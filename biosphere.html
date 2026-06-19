@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04070b">
+<title>🌍 Biosphere — Elements, DNA, Evolution</title>
+<style>
+  :root{ --bg:#04070b; --panel:#0c121a; --panel2:#121b26; --line:#1f2d3b;
+    --txt:#dfe7ef; --dim:#7e8c9d; --accent:#5dd98a; --gold:#ffcc55; --carn:#ff6b6b; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--txt);
+    font-family:ui-monospace,Menlo,Consolas,monospace; overflow:hidden;}
+  #app{display:flex; height:100%; width:100%;}
+  #stage{position:relative; flex:1 1 auto; min-width:0; background:#010306;}
+  canvas{display:block; width:100%; height:100%; touch-action:none;}
+  #hud{position:absolute; top:8px; left:8px; right:8px; display:flex; gap:6px;
+    flex-wrap:wrap; pointer-events:none; font-size:11.5px;}
+  .stat{background:rgba(12,18,26,.82); border:1px solid var(--line); border-radius:7px;
+    padding:4px 8px; backdrop-filter:blur(4px);}
+  .stat b{font-weight:700;} .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; vertical-align:middle;}
+  #mini{position:absolute; left:8px; bottom:8px; width:220px; height:110px; border:1px solid var(--line);
+    border-radius:6px; background:#010306; image-rendering:pixelated;}
+  @media (max-width:720px){ #mini{width:150px; height:75px;} }
+  #panel{flex:0 0 336px; max-width:90vw; background:var(--panel); border-left:1px solid var(--line);
+    display:flex; flex-direction:column; transition:margin-right .25s ease;}
+  #panel.collapsed{margin-right:calc(-336px - 1px);}
+  #panelInner{overflow-y:auto; padding:12px 14px 40px; -webkit-overflow-scrolling:touch;}
+  h1{font-size:15px; margin:2px 0;} .sub{color:var(--dim); font-size:11px; margin-bottom:10px; line-height:1.45;}
+  .row{display:flex; gap:8px; margin:9px 0;} .row button{flex:1;}
+  button{font-family:inherit; cursor:pointer; background:var(--panel2); color:var(--txt);
+    border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:13px; transition:.12s;}
+  button:hover{border-color:var(--accent); color:#fff;}
+  button.primary{background:var(--accent); color:#06210f; border-color:var(--accent); font-weight:700;}
+  button.warn{color:var(--carn);}
+  details{border:1px solid var(--line); border-radius:8px; margin:8px 0; background:var(--panel2); overflow:hidden;}
+  summary{cursor:pointer; padding:9px 11px; font-size:13px; font-weight:700; list-style:none; user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:"▸"; color:var(--dim); margin-right:7px;} details[open] summary::before{content:"▾";}
+  .group{padding:4px 11px 11px;}
+  .ctl{margin:11px 0;} .ctl label{display:flex; justify-content:space-between; font-size:11.5px; color:var(--dim); margin-bottom:3px;}
+  .ctl label .val{color:var(--txt); font-weight:700;}
+  input[type=range]{width:100%; height:22px; -webkit-appearance:none; background:transparent; margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px; border-radius:3px; background:var(--line);}
+  input[type=range]::-moz-range-track{height:4px; border-radius:3px; background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; margin-top:-7px; width:18px; height:18px; border-radius:50%; background:var(--accent); border:2px solid #06210f;}
+  input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--accent); border:2px solid #06210f;}
+  #graph{width:100%; height:80px; background:#02050a; border:1px solid var(--line); border-radius:8px; display:block;}
+  .legend{font-size:10.5px; color:var(--dim); margin-top:6px;} .hint{color:var(--dim); font-size:10.5px; line-height:1.55; margin-top:4px;}
+  #dna{font-size:10px; line-height:1.5; word-break:break-all; letter-spacing:1px; background:#02050a; border:1px solid var(--line); border-radius:6px; padding:7px; max-height:80px; overflow:auto;}
+  #dna .A{color:#ff6b6b;} #dna .C{color:#5dd98a;} #dna .G{color:#5db8ff;} #dna .T{color:#ffcc55;} #dna .body{background:rgba(255,204,85,.14);}
+  #code{font-size:10.5px; line-height:1.4; background:#02050a; border:1px solid var(--line); border-radius:6px; padding:7px; max-height:130px; overflow:auto; white-space:pre; margin-top:7px; color:#bcd;}
+  #code .op{color:#5dd98a;}
+  #toggle{position:absolute; top:8px; right:8px; z-index:5; pointer-events:auto; background:rgba(12,18,26,.9); border:1px solid var(--line); border-radius:8px; padding:7px 11px; font-size:13px;}
+  #clock{position:absolute; top:42px; right:8px; pointer-events:none; background:rgba(12,18,26,.82); border:1px solid var(--line); border-radius:7px; padding:4px 9px; font-size:12px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="stat"><span class="dot" style="background:#3fae5a"></span>Flora <b id="hPlant">0</b></div>
+      <div class="stat"><span class="dot" style="background:#5db8ff"></span>Herb <b id="hHerb">0</b></div>
+      <div class="stat"><span class="dot" style="background:#ff6b6b"></span>Carn <b id="hCarn">0</b></div>
+      <div class="stat">Gen <b id="hGen">0</b></div>
+      <div class="stat">CO₂ <b id="hCO2">0</b></div>
+      <div class="stat">O₂ <b id="hO2">0</b></div>
+      <div class="stat" id="hStatus">▶</div>
+    </div>
+    <div id="clock">☀ —</div>
+    <canvas id="mini"></canvas>
+    <button id="toggle">⚙</button>
+  </div>
+  <div id="panel"><div id="panelInner">
+    <h1>🌍 Biosphere</h1>
+    <div class="sub">A living world built from the ground up: <b>elements</b> (light, water,
+    carbon, oxygen, minerals) flow through a planet of mountains, plains, oceans, ice and
+    forest, driven by <b>seasons, rain, drought and snow</b>. Life is <i>assembled</i> from
+    those building blocks — plants photosynthesise CO₂ + water + minerals into biomass and O₂;
+    animals eat biomass, breathe, and return nutrients when they die. Everything carries
+    <b>DNA</b> and evolves. Matter cycles; nothing is free.</div>
+
+    <div class="row"><button id="btnPlay" class="primary">⏸ Pause</button><button id="btnStep">⏭ Step</button></div>
+    <div class="row"><button id="btnReset">🌍 New world</button><button id="btnReseed">🧬 Reseed life</button></div>
+    <div class="row"><button id="btnView">🗺 View: land</button><button id="btnColor">🎨 diet</button></div>
+    <div class="row"><button id="btnDrought" class="warn">🔥 Drought</button><button id="btnMeteor" class="warn">☄ Impact</button></div>
+
+    <div class="ctl"><label>Simulation speed <span class="val" id="vSpeed"></span></label><input type="range" id="speed" min="1" max="6" step="1"></div>
+
+    <details open><summary>🪐 Planet &amp; climate</summary><div class="group">
+      <div class="ctl"><label>Sea level <span class="val" id="vSea"></span></label><input type="range" id="sea" min="10" max="75" step="1"></div>
+      <div class="ctl"><label>Mountain height <span class="val" id="vMount"></span></label><input type="range" id="mount" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Year length (season) <span class="val" id="vYear"></span></label><input type="range" id="year" min="300" max="4000" step="100"></div>
+      <div class="ctl"><label>Axial tilt (season strength) <span class="val" id="vTilt"></span></label><input type="range" id="tilt" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Rainfall <span class="val" id="vRain"></span></label><input type="range" id="rain" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Global warmth <span class="val" id="vWarm"></span></label><input type="range" id="warm" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Volcanism (CO₂ + minerals) <span class="val" id="vVolc"></span></label><input type="range" id="volc" min="0" max="100" step="1"></div>
+    </div></details>
+
+    <details><summary>🌿 Life</summary><div class="group">
+      <div class="ctl"><label>Photosynthesis rate <span class="val" id="vPhoto"></span></label><input type="range" id="photo" min="10" max="200" step="5"></div>
+      <div class="ctl"><label>Flora cap <span class="val" id="vFcap"></span></label><input type="range" id="fcap" min="500" max="9000" step="100"></div>
+      <div class="ctl"><label>Starting animals <span class="val" id="vA0"></span></label><input type="range" id="a0" min="0" max="2000" step="50"></div>
+      <div class="ctl"><label>Animal metabolism <span class="val" id="vMeta"></span></label><input type="range" id="meta" min="1" max="20" step="1"></div>
+      <div class="ctl"><label>Immigration <span class="val" id="vImmig"></span></label><input type="range" id="immig" min="0" max="100" step="1"></div>
+    </div></details>
+
+    <details><summary>🧬 Genetics</summary><div class="group">
+      <div class="ctl"><label>Plant mutation <span class="val" id="vPmut"></span></label><input type="range" id="pmut" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Animal point mutation <span class="val" id="vMut"></span></label><input type="range" id="mut" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Indel rate (insert/delete/dup) <span class="val" id="vIndel"></span></label><input type="range" id="indel" min="0" max="100" step="1"></div>
+    </div></details>
+
+    <details open><summary>📈 Biosphere</summary><div class="group">
+      <canvas id="graph"></canvas>
+      <div class="legend"><span class="dot" style="background:#3fae5a"></span>flora
+        <span class="dot" style="background:#5db8ff; margin-left:6px;"></span>herbivores
+        <span class="dot" style="background:#ff6b6b; margin-left:6px;"></span>carnivores</div>
+      <div class="hint" id="avg"></div>
+    </div></details>
+
+    <details open><summary>🧬 Organism (tap one)</summary><div class="group">
+      <div id="dna">tap a plant or animal to read its DNA &amp; composition…</div>
+      <div class="hint" id="dnaInfo"></div>
+      <div id="code"></div>
+      <div class="hint">Head codons (highlighted) build the body; the rest is behaviour code
+      for animals. The composition line shows the actual <b>building blocks</b> this organism
+      is made of right now.</div>
+    </div></details>
+
+    <div class="hint">Drag to fly · scroll/pinch to zoom · tap minimap to jump ·
+    <b>🗺 View</b> cycles map layers (terrain, temperature, rain, water, minerals, biomass).</div>
+  </div></div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+const graph=document.getElementById('graph'), gctx=graph.getContext('2d');
+const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
+const $=id=>document.getElementById(id);
+const rand=(a=1,b=0)=> b+Math.random()*(a-b);
+const clamp=(v,lo,hi)=> v<lo?lo:v>hi?hi:v;
+const lerp=(a,b,t)=> a+(b-a)*t;
+const sat=x=> x/(1+x);                              // saturating (Michaelis–Menten) response
+
+const WORLD={ w:4096, h:2048 };
+// ---- parameters ----
+const P={ speed:2, sea:42, mount:55, year:1600, tilt:55, rain:55, warm:50, volc:45,
+  photo:90, fcap:5000, a0:500, meta:3, immig:50, pmut:25, mut:6, indel:3 };
+const sliders={ speed:'vSpeed', sea:'vSea', mount:'vMount', year:'vYear', tilt:'vTilt', rain:'vRain', warm:'vWarm', volc:'vVolc',
+  photo:'vPhoto', fcap:'vFcap', a0:'vA0', meta:'vMeta', immig:'vImmig', pmut:'vPmut', mut:'vMut', indel:'vIndel' };
+function syncUI(){ for(const k in sliders){ const el=$(k); el.value=P[k]; $(sliders[k]).textContent=P[k]; } }
+for(const k in sliders) $(k).addEventListener('input',e=>{ P[k]=+e.target.value; $(sliders[k]).textContent=P[k]; });
+
+// ===========================================================================
+//  DNA ⇄ CODE  (shared codon engine; animals also carry a behaviour program)
+// ===========================================================================
+const BASES="ACGT", B={A:0,C:1,G:2,T:3}, NBODY=7;
+const KCONST=[-1,-0.5,-0.25,0,0.25,0.5,1,2];
+const OPNAME=['PUSH_S','PUSH_K','ADD','SUB','MUL','FN','STK','OUT'];
+const SNAME=['1','energy','food→x','food→y','prey→x','prey→y','foe→x','foe→y'];
+const FNNAME=['tanh','neg','abs','sign'];
+function codonsToGenome(a){ let s=''; for(const v of a) s+=BASES[(v>>4)&3]+BASES[(v>>2)&3]+BASES[v&3]; return s; }
+const PROG=[2,56,3,57,4,56,5,57,6,8,32,56,7,8,32,57];
+const ANC_HERB=codonsToGenome([21,8,30,32,24,31,21].concat(PROG));
+const ANC_CARN=codonsToGenome([35,54,40,32,24,31,0].concat(PROG));
+// plant ancestor: body codons = photo, uptake, water-eff, tempOpt, sizeCap, hue, (+1 spare)
+const ANC_PLANT=codonsToGenome([40,34,34,34,34,24,21]);
+
+function codonsOf(g){ const c=[]; for(let i=0;i+3<=g.length;i+=3) c.push((B[g[i]]<<4)|(B[g[i+1]]<<2)|B[g[i+2]]); return c; }
+function decodeAnimal(g){
+  const c=codonsOf(g), cv=i=> i<c.length?c[i]:0;
+  const d={ size:0.6+cv(0)/63*1.8, diet:cv(1)/63, speed:4+cv(2)/63*30, sense:30+cv(3)/63*180,
+    metaEff:0.7+cv(4)/63*0.8, tempPref:cv(5)/63, hue:cv(6)/63*360, clen:c.length };
+  const n=Math.max(0,Math.min(c.length-NBODY,48)); d.op=new Uint8Array(n); d.arg=new Uint8Array(n);
+  for(let k=0;k<n;k++){ const v=c[NBODY+k]; d.op[k]=v>>3; d.arg[k]=v&7; } return d;
+}
+function decodePlant(g){
+  const c=codonsOf(g), cv=i=> i<c.length?c[i]:0;
+  return { photo:0.4+cv(0)/63*1.6, uptake:0.4+cv(1)/63*1.6, waterEff:0.5+cv(2)/63*1.4,
+    tempOpt:cv(3)/63, sizeCap:8+cv(4)/63*40, hue:90+cv(5)/63*60, clen:c.length };
+}
+const ST=new Float64Array(64);
+function runVM(c,S){ let sp=0,ox=0,oy=0; const op=c.op,arg=c.arg,n=op.length;
+  for(let i=0;i<n;i++){ const o=op[i],a=arg[i];
+    if(o===0){ if(sp<64)ST[sp++]=S[a&7]; }
+    else if(o===1){ if(sp<64)ST[sp++]=KCONST[a]; }
+    else if(o===2){ const b=sp?ST[--sp]:0,x=sp?ST[--sp]:0; if(sp<64)ST[sp++]=x+b; }
+    else if(o===3){ const b=sp?ST[--sp]:0,x=sp?ST[--sp]:0; if(sp<64)ST[sp++]=x-b; }
+    else if(o===4){ const b=sp?ST[--sp]:0,x=sp?ST[--sp]:0; if(sp<64)ST[sp++]=clamp(x*b,-1e4,1e4); }
+    else if(o===5){ let x=sp?ST[--sp]:0; const f=a&3; x=f===0?Math.tanh(x):f===1?-x:f===2?Math.abs(x):(x>0?1:x<0?-1:0); if(sp<64)ST[sp++]=x; }
+    else if(o===6){ if(a&1){ if(sp&&sp<64){ST[sp]=ST[sp-1];sp++;} } else if(sp>=2){ const t=ST[sp-1];ST[sp-1]=ST[sp-2];ST[sp-2]=t; } }
+    else { const x=sp?ST[--sp]:0; if(a&1)oy+=x; else ox+=x; } }
+  return [Math.tanh(ox),Math.tanh(oy)];
+}
+function mutate(g,pm,pi){
+  const ps=pm/100*0.025, pid=pi/100*0.012; let out='';
+  for(let i=0;i<g.length;i++){ if(Math.random()<pid) continue; let ch=g[i];
+    if(Math.random()<ps) ch=BASES[(Math.random()*4)|0]; out+=ch;
+    if(Math.random()<pid) out+=BASES[(Math.random()*4)|0]; }
+  if(Math.random()<pi/100*0.08 && out.length>9){ const seg=out.substr((Math.random()*out.length)|0,3*(1+(Math.random()*4|0)));
+    const b=(Math.random()*out.length)|0; out=out.slice(0,b)+seg+out.slice(b); }
+  if(out.length<12) out=g; if(out.length>720) out=out.slice(0,720); return out;
+}
+
+// ===========================================================================
+//  PLANET FIELDS  — every cell holds environmental building blocks
+// ===========================================================================
+const GC=192, GR=96, GN=GC*GR;
+const elev=new Float32Array(GN);      // static terrain 0..1
+const baseTmp=new Float32Array(GN);   // climatic base temperature 0..1
+const wet=new Float32Array(GN);       // rainfall climatology 0..1
+const water=new Float32Array(GN);     // soil/surface water (building block)
+const minrl=new Float32Array(GN);     // soil minerals N/P (building block)
+const det=new Float32Array(GN);       // detritus: dead organic matter awaiting decomposition
+const snow=new Float32Array(GN);      // snowpack
+const tempF=new Float32Array(GN);     // live temperature 0..1
+const lightF=new Float32Array(GN);    // live sunlight 0..1
+const cloudF=new Float32Array(GN);    // cloud cover 0..1
+const bioF=new Float32Array(GN);      // plant biomass per cell (for map view)
+let CO2=0, O2=0, season=0, planetSeed=1;   // CO2/O2 = shared atmosphere
+const SEA=()=>P.sea/100;
+
+function noise(x,y,s){ const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const h=(ix,iy)=>{ let n=(ix*1619+iy*31337+s*1013)|0; n=(n<<13)^n; return 1-(((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824); };
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return (h(xi,yi)*(1-u)+h(xi+1,yi)*u)*(1-v)+(h(xi,yi+1)*(1-u)+h(xi+1,yi+1)*u)*v; }
+function fbm(x,y,s){ return 0.6*noise(x,y,s)+0.3*noise(x*2,y*2,s+7)+0.1*noise(x*4,y*4,s+19); }
+const idxOf=(x,y)=>{ let cx=Math.floor(x/WORLD.w*GC); cx=((cx%GC)+GC)%GC; const cy=clamp(Math.floor(y/WORLD.h*GR),0,GR-1); return cx+cy*GC; };
+const latOf=r=> (r/(GR-1)-0.5)*2;     // -1 (north) .. +1 (south)
+
+function generateWorld(){
+  CO2=120000; O2=70000; season=0;
+  const mh=P.mount/100;
+  for(let r=0;r<GR;r++){ const lat=Math.abs(latOf(r));
+    for(let col=0;col<GC;col++){ const i=col+r*GC, nx=col/GC*5, ny=r/GR*5;
+      let e=0.5+0.65*fbm(nx,ny,planetSeed); e=clamp(0.5+(e-0.5)*(0.5+mh),0,1);
+      elev[i]=e;
+      const m=clamp(0.5+0.7*fbm(nx+11,ny+5,planetSeed+3),0,1);
+      wet[i]=clamp(m*(1-lat*0.4)+0.1,0,1);
+      baseTmp[i]=clamp(1-lat - Math.max(0,e-SEA())*0.7 + (fbm(nx+3,ny+9,planetSeed+8)-0.5)*0.25, 0, 1);
+      water[i]= e<SEA()? 100 : 20+wet[i]*30;
+      minrl[i]= e<SEA()? 5 : 25+ (e-SEA())*40;        // mountains/rock richer in minerals
+      det[i]=0; snow[i]=0; bioF[i]=0;
+    }
+  }
+}
+
+// ---- environment dynamics: seasons, weather, rain, drought, snow, cycles ----
+function envStep(dt){
+  season += dt/Math.max(60,P.year)*6.2831853;
+  const decl = (P.tilt/100)*0.9*Math.sin(season);   // solar latitude (season)
+  const warm = (P.warm-50)/100*0.5;
+  const rainK = P.rain/100, volc=P.volc/100;
+  const weatherT = season*0.6;                       // weather drifts over time
+  let totW=0;
+  for(let r=0;r<GR;r++){ const lat=latOf(r);
+    for(let col=0;col<GC;col++){ const i=col+r*GC;
+      // sunlight: peak latitude follows the season (axial tilt)
+      let light=clamp(1-Math.abs(lat-decl)*1.25,0,1);
+      // clouds drift as a noise field -> wet fronts and dry droughts
+      const cl=clamp(0.5+0.9*fbm(col/GC*7+weatherT, r/GR*7, planetSeed+40),0,1);
+      cloudF[i]=cl; light*=(1-cl*0.6); lightF[i]=light;
+      // temperature: climate base + warmth + sun, minus elevation & snow albedo
+      let t=clamp(baseTmp[i]+warm+(light-0.5)*0.5 - snow[i]*0.02, 0, 1); tempF[i]=t;
+      if(elev[i]<SEA()){ // ocean cell: big water reserve, no soil life
+        water[i]=100; totW+=1; continue;
+      }
+      // precipitation where clouds & climate are wet
+      const precip = rainK*cl*wet[i]*1.6;
+      if(precip>0){ if(t<0.28) snow[i]=Math.min(60,snow[i]+precip*2); else water[i]+=precip; }
+      // snowmelt feeds water when warm
+      if(snow[i]>0 && t>0.34){ const melt=Math.min(snow[i],(t-0.34)*4); snow[i]-=melt; water[i]+=melt*0.5; }
+      // evaporation (faster when hot) -> water leaves the soil
+      water[i]=clamp(water[i]-(0.15+t*0.5)*0.6, 0, 140);
+      // weathering of rock slowly frees minerals (mountains weather faster)
+      minrl[i]=Math.min(120, minrl[i] + (0.02+Math.max(0,elev[i]-SEA())*0.06)*(1+volc*2));
+      // decomposition: detritus -> minerals + CO2 (+ a little water), faster when warm & wet
+      if(det[i]>0){ const dr=det[i]*(0.01+t*0.02)*(0.4+0.6*sat(water[i]/20));
+        det[i]-=dr; minrl[i]=Math.min(140,minrl[i]+dr*0.6); CO2+=dr*0.4; O2-=dr*0.4; water[i]+=dr*0.05; }
+      totW+=1;
+    }
+  }
+  // geological buffering (oceans dissolve CO2, rock weathering, outgassing):
+  // relaxes the atmosphere toward a baseline so the biosphere drives BOUNDED
+  // seasonal swings instead of running away or deadlocking.
+  const co2base=110000 + volc*40000;
+  CO2 += (co2base - CO2)*0.0014*dt;
+  O2  += (70000  - O2 )*0.0014*dt;
+  CO2 = clamp(CO2, 3000, 600000);                       // physical bounds
+  O2  = clamp(O2, 5000, 400000);
+}
+
+// ===========================================================================
+//  ORGANISMS  — assembled from elements, carrying DNA
+// ===========================================================================
+let plants=[], animals=[], tick=0, generation=0, nextId=1;
+
+function makePlant(x,y,genome){ const d=decodePlant(genome);
+  return { id:nextId++, kind:'plant', x, y, genome,
+    photo:d.photo, uptake:d.uptake, waterEff:d.waterEff, tempOpt:d.tempOpt, sizeCap:d.sizeCap, hue:d.hue, clen:d.clen,
+    bio: 1.2, age:0 };                                 // bio = structural building blocks assembled so far
+}
+function makeAnimal(x,y,genome,gen,ef){ const d=decodeAnimal(genome);
+  const repro=120*(0.5+d.size*0.5);
+  return { id:nextId++, kind:'animal', x, y, vx:0, vy:0, dx:0, dy:0, wander:rand(6.283), genome, gen:gen||0,
+    size:d.size, diet:d.diet, speed:d.speed, sense:d.sense, metaEff:d.metaEff, tempPref:d.tempPref, hue:d.hue,
+    op:d.op, arg:d.arg, clen:d.clen, bio:repro*(ef||1)*0.3, energy:repro*(ef||1), age:0 };
+}
+function seedLife(){
+  animals=[]; tick=0; generation=0;
+  const nH=Math.round(P.a0*0.85), nC=P.a0-nH;
+  for(let i=0;i<nH;i++){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_HERB,P.mut,P.indel),0,1.1)); }
+  for(let i=0;i<nC;i++){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_CARN,P.mut,P.indel),0,1.1)); }
+  // seed flora across fertile land
+  plants=[];
+  for(let i=0;i<P.fcap*0.4;i++){ const [x,y]=landSpot(); if(x>=0) plants.push(makePlant(x,y,mutate(ANC_PLANT,P.pmut,P.indel))); }
+  history.length=0;
+}
+function newWorld(){ planetSeed=(Math.random()*1e6)|0; generateWorld(); for(let k=0;k<40;k++) envStep(4); seedLife(); }
+function landSpot(){ for(let i=0;i<30;i++){ const x=rand(WORLD.w),y=rand(WORLD.h),id=idxOf(x,y);
+  if(elev[id]>=SEA() && Math.random()<0.25+wet[id]*0.6) return [x,y]; } return [-1,-1]; }
+
+// spatial hash for animals & plants
+const CELLG=80, GWID=Math.ceil(WORLD.w/CELLG);
+function buildGrid(items){ const g=new Map(); for(const it of items){ const k=((it.x/CELLG)|0)+((it.y/CELLG)|0)*GWID; let b=g.get(k); if(!b){b=[];g.set(k,b);} b.push(it); } return g; }
+function nearest(grid,x,y,radius,filter){ const r=Math.ceil(radius/CELLG),cx=(x/CELLG)|0,cy=(y/CELLG)|0; let best=null,bd=radius*radius;
+  for(let gy=cy-r;gy<=cy+r;gy++)for(let gx=cx-r;gx<=cx+r;gx++){ const b=grid.get(gx+gy*GWID); if(!b)continue;
+    for(const it of b){ if(filter&&!filter(it))continue; const dx=it.x-x,dy=it.y-y,d=dx*dx+dy*dy; if(d<bd){bd=d;best=it;} } } return best; }
+
+// ---- temperature tolerance curve ----
+const tcurve=(t,opt)=> Math.exp(-((t-opt)*(t-opt))/0.06);
+
+// ===========================================================================
+//  SIMULATION STEP
+// ===========================================================================
+const S=new Float64Array(8);
+let selected=null;
+function fill2(base,e,t){ if(!t){S[base]=0;S[base+1]=0;return;} const dx=t.x-e.x,dy=t.y-e.y,d=Math.hypot(dx,dy)||1e-6,c=clamp(1-d/e.sense,0,1),g=0.5+0.5*c; S[base]=dx/d*g; S[base+1]=dy/d*g; }
+
+function step(){
+  tick++;
+  if(tick%2===0) envStep(2);                  // climate updates on a light cadence
+
+  // ---- FLORA: photosynthesis assembles biomass from light+CO2+water+minerals ----
+  bioF.fill(0);
+  const photoK=P.photo/100, newSeeds=[];
+  for(const p of plants){
+    if(p.dead) continue;
+    p.age++;
+    const i=idxOf(p.x,p.y);
+    const t=tempF[i], light=lightF[i];
+    // limiting factors — Liebig's law of the minimum, softened by saturation
+    const fW=sat(water[i]/10), fM=sat(minrl[i]/8), fC=sat(CO2/40000), fT=tcurve(t,p.tempOpt);
+    const gross = photoK*p.photo*light*fW*fM*fC*fT*1.8*(0.5+0.5*sat(p.bio/3));
+    if(gross>0){
+      const cUse=gross*1.2, wUse=gross*1.0/p.waterEff, mUse=gross*0.35/p.uptake;
+      if(CO2>cUse && water[i]>wUse && minrl[i]>mUse){
+        CO2-=cUse; O2+=cUse; water[i]-=wUse; minrl[i]-=mUse; p.bio+=gross;     // build biomass, release O2
+      }
+    }
+    // respiration / maintenance (costs biomass, breathes)
+    const resp=0.008+p.bio*0.004*(0.6+t*0.6);
+    p.bio-=resp; CO2+=resp; O2-=resp;                  // breathe: mirror exchange (conserved)
+    // frost & death
+    if(t<0.12) p.bio-=0.4;
+    bioF[i]+=p.bio;
+    // seeding: spend biomass to disperse a (mutated) seed nearby
+    if(p.bio>5 && plants.length+newSeeds.length<P.fcap && Math.random()<0.05){
+      p.bio-=2; const a=rand(6.283), dist=rand(160,40);
+      const sx=clamp(p.x+Math.cos(a)*dist,0,WORLD.w-1), sy=clamp(p.y+Math.sin(a)*dist,0,WORLD.h-1);
+      if(elev[idxOf(sx,sy)]>=SEA()){ const s=makePlant(sx,sy,mutate(p.genome,P.pmut,P.indel)); s.bio=1.2; newSeeds.push(s); generation=Math.max(generation,0); }
+    }
+    if(p.bio<=0.2){ p.dead=true; det[i]+=Math.max(0,p.bio)+1.0; minrl[i]+=0.3; }   // die -> detritus
+  }
+  plants=plants.filter(p=>!p.dead).concat(newSeeds);
+
+  // ---- immigration of flora into bare fertile ground keeps continents green ----
+  for(let k=0;k<6;k++){ if(plants.length<P.fcap*0.9 && Math.random()<0.5){ const [x,y]=landSpot(); if(x>=0) plants.push(makePlant(x,y,mutate(ANC_PLANT,P.pmut,P.indel))); } }
+
+  // ---- ANIMALS: behave via DNA code, eat building blocks, respire, die ----
+  const plantGrid=buildGrid(plants), aniGrid=buildGrid(animals), newborns=[];
+  if(P.immig>0){ const f=P.immig/100;
+    if(animals.length<P.fcap*0.3 && Math.random()<f*0.08){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_HERB,P.mut,P.indel),0,1.1)); }
+    if(animals.length>40 && Math.random()<f*0.04){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_CARN,P.mut,P.indel),0,1.1)); }
+  }
+  for(const e of animals){
+    if(e.dead) continue;
+    e.age++;
+    const d=e.diet, repro=120*(0.5+e.size*0.5);
+    const food = d<0.92 ? nearest(plantGrid,e.x,e.y,e.sense,p=>!p.dead&&p.bio>0.6) : null;
+    const prey = nearest(aniGrid,e.x,e.y,e.sense,o=>o!==e&&!o.dead&&o.size<e.size*0.82);
+    const foe  = nearest(aniGrid,e.x,e.y,e.sense,o=>o!==e&&!o.dead&&o.diet>0.45&&o.size>e.size*1.18);
+    S[0]=1; S[1]=clamp(e.energy/repro,0,1.5)/0.75-1; fill2(2,e,food); fill2(4,e,prey); fill2(6,e,foe);
+    const out=runVM(e,S); e.dx=out[0]; e.dy=out[1];
+    let mx=out[0],my=out[1]; e.wander+=rand(0.45,-0.45);
+    if(Math.abs(mx)+Math.abs(my)<0.25){ mx+=Math.cos(e.wander)*0.7; my+=Math.sin(e.wander)*0.7; }
+    const sp=e.speed*0.12; e.vx=e.vx*0.72+mx*sp; e.vy=e.vy*0.72+my*sp;
+    e.x+=e.vx; e.y+=e.vy; if(e.x<0)e.x+=WORLD.w; else if(e.x>=WORLD.w)e.x-=WORLD.w; e.y=clamp(e.y,0,WORLD.h-0.01);
+    const id=idxOf(e.x,e.y);
+    // respiration: burn energy for the work of living, breathe O2 -> CO2
+    const stress=Math.abs(tempF[id]-e.tempPref);
+    const burn=P.meta*(0.4+e.size*0.6)*e.metaEff*(1+stress*0.7)+ (Math.abs(e.vx)+Math.abs(e.vy))*0.02*e.size;
+    e.energy-=burn; CO2+=burn*0.15; O2-=burn*0.15;     // respire: O2 -> CO2 (conserved)
+    // graze: take a bite of plant biomass (building blocks transfer)
+    if(food && !food.dead){ const dx=food.x-e.x,dy=food.y-e.y;
+      if(dx*dx+dy*dy<64){ const bite=Math.min(food.bio*0.7, 10); food.bio-=bite; if(food.bio<0.4) food.dead=true, det[id]+=0.4;
+        e.energy+=bite*10*(1-d*0.5); e.bio+=bite*0.3; } }
+    // hunt: eat another animal
+    if(d>0.3 && prey && !prey.dead){ const dx=prey.x-e.x,dy=prey.y-e.y,reach=9+e.size*3;
+      if(dx*dx+dy*dy<reach*reach){ e.energy+=120*0.55*d*(0.5+prey.size*0.5)+prey.bio*1.2; e.bio+=prey.bio*0.4; prey.dead=true; det[idxOf(prey.x,prey.y)]+=prey.bio*0.6; } }
+    // reproduce
+    if(e.energy>repro*1.5 && animals.length+newborns.length<2600){ e.energy-=repro;
+      const g=mutate(e.genome,P.mut,P.indel); const c=makeAnimal(clamp(e.x+rand(24,-24),0,WORLD.w),clamp(e.y+rand(24,-24),0,WORLD.h),g,e.gen+1,0.9);
+      generation=Math.max(generation,c.gen); newborns.push(c); }
+    if(e.energy<=0 || e.age>2500){ e.dead=true; det[id]+=e.bio*0.7+0.5; minrl[id]+=e.bio*0.1; CO2+=e.bio*0.2; O2-=e.bio*0.2; }
+  }
+  animals=animals.filter(e=>!e.dead).concat(newborns);
+  recordHistory();
+}
+
+const history=[], HISTMAX=300;
+function recordHistory(){ if(tick%4) return; let h=0,c=0; for(const e of animals){ if(e.diet<0.5)h++; else c++; }
+  history.push([plants.length,h,c]); if(history.length>HISTMAX) history.shift(); }
+function counts(){ let h=0,c=0; for(const e of animals){ if(e.diet<0.5)h++; else c++; } return [h,c]; }
+
+// ===========================================================================
+//  RENDER
+// ===========================================================================
+const view={ x:WORLD.w/2, y:WORLD.h/2, zoom:0.2 };
+let colorMode='diet', viewMode='land', mapCanvas=document.createElement('canvas');
+mapCanvas.width=GC; mapCanvas.height=GR; const mapx=mapCanvas.getContext('2d');
+const VIEWS=['land','temperature','rainfall','water','minerals','biomass'];
+let mapAge=999;
+function refreshMap(){
+  for(let i=0;i<GN;i++){ const e=elev[i]; let col;
+    if(e<SEA()){ const dp=clamp(e/SEA(),0,1); col=[16+dp*20,36+dp*40,76+dp*70]; }
+    else {
+      if(viewMode==='temperature'){ const t=tempF[i]; col=[40+t*210, 60+(1-Math.abs(t-0.5)*2)*120, 230-t*210]; }
+      else if(viewMode==='rainfall'){ const c=cloudF[i]*wet[i]; col=[30+ (1-c)*120, 60+c*60, 60+c*180]; }
+      else if(viewMode==='water'){ const w=clamp(water[i]/60,0,1); col=[40+(1-w)*120,80+w*60,90+w*150]; }
+      else if(viewMode==='minerals'){ const m=clamp(minrl[i]/80,0,1); col=[90+m*150,70+m*90,40]; }
+      else if(viewMode==='biomass'){ const b=clamp(bioF[i]/40,0,1); col=[20+ (1-b)*60, 50+b*150, 30+ (1-b)*30]; }
+      else { // land: terrain shaded by height + snow
+        const h=(e-SEA())/(1-SEA());
+        if(snow[i]>3){ col=[225,232,240]; }
+        else { col=[60+h*120, 90+h*70-tempF[i]*10, 55+h*35]; if(tempF[i]<0.2) col=[200,215,225]; }
+      }
+    }
+    mapx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`; mapx.fillRect(i%GC, (i/GC)|0, 1,1);
+  }
+  mapAge=0;
+}
+function resize(){ const dpr=Math.min(2,window.devicePixelRatio||1);
+  for(const [cv,c2] of [[canvas,ctx],[graph,gctx],[mini,mctx]]){ const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr; c2.setTransform(dpr,0,0,dpr,0,0); cv._w=r.width; cv._h=r.height; }
+  view._w=canvas._w; view._h=canvas._h; }
+window.addEventListener('resize',resize);
+const w2s=(x,y)=>[(x-view.x)*view.zoom+view._w/2,(y-view.y)*view.zoom+view._h/2];
+const s2w=(sx,sy)=>[(sx-view._w/2)/view.zoom+view.x,(sy-view._h/2)/view.zoom+view.y];
+function aniHue(e){ return colorMode==='lineage'?(e.hue|0): colorMode==='temp'?240*(1-e.tempPref): 120*(1-e.diet); }
+function render(){
+  ctx.clearRect(0,0,view._w,view._h);
+  if(mapAge>7) refreshMap(); mapAge++;
+  const [bx,by]=w2s(0,0); ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(mapCanvas,bx,by,WORLD.w*view.zoom,WORLD.h*view.zoom);
+  // flora
+  for(const p of plants){ const [sx,sy]=w2s(p.x,p.y); if(sx<0||sy<0||sx>view._w||sy>view._h) continue;
+    const r=Math.max(0.6,(0.7+p.bio*0.10)*view.zoom); ctx.fillStyle=`hsl(${p.hue|0} 65% ${30+clamp(p.bio*2,0,28)}%)`;
+    ctx.fillRect(sx-r/2,sy-r/2,r,r); }
+  // animals
+  for(const e of animals){ const [sx,sy]=w2s(e.x,e.y); const r=(2+e.size*2.2)*view.zoom;
+    if(sx<-r||sy<-r||sx>view._w+r||sy>view._h+r) continue; const hue=aniHue(e);
+    ctx.fillStyle=`hsl(${hue} 72% 58%)`; ctx.beginPath(); ctx.arc(sx,sy,Math.max(1,r),0,6.283); ctx.fill(); }
+  if(selected && !selected.dead){ const [sx,sy]=w2s(selected.x,selected.y);
+    ctx.strokeStyle='#ffcc55'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(sx,sy,8*view.zoom+5,0,6.283); ctx.stroke(); }
+}
+function drawMini(){ const w=mini._w,h=mini._h; mctx.clearRect(0,0,w,h); mctx.imageSmoothingEnabled=true; mctx.drawImage(mapCanvas,0,0,w,h);
+  mctx.fillStyle='rgba(255,255,255,.65)'; for(let i=0;i<animals.length;i+=4){ const e=animals[i]; mctx.fillRect(e.x/WORLD.w*w,e.y/WORLD.h*h,1,1); }
+  const x0=(view.x-view._w/2/view.zoom)/WORLD.w*w, y0=(view.y-view._h/2/view.zoom)/WORLD.h*h, ww=(view._w/view.zoom)/WORLD.w*w, hh=(view._h/view.zoom)/WORLD.h*h;
+  mctx.strokeStyle='#ffcc55'; mctx.lineWidth=1; mctx.strokeRect(x0,y0,ww,hh); }
+function drawGraph(){ const w=graph._w,h=graph._h; gctx.clearRect(0,0,w,h); if(history.length<2) return;
+  let mP=1,mA=1; for(const [p,hh,c] of history){ if(p>mP)mP=p; const m=Math.max(hh,c); if(m>mA)mA=m; }
+  const n=history.length, line=(idx,sc,col)=>{ gctx.strokeStyle=col; gctx.lineWidth=1.4; gctx.beginPath();
+    for(let i=0;i<n;i++){ const x=i/(HISTMAX-1)*w, y=h-(history[i][idx]/sc)*(h-6)-3; i?gctx.lineTo(x,y):gctx.moveTo(x,y);} gctx.stroke(); };
+  line(0,mP,'#3fae5a'); line(1,mA,'#5db8ff'); line(2,mA,'#ff6b6b'); }
+
+const SEASONS=['🌸 spring','☀ summer','🍂 autumn','❄ winter'];
+function updateHUD(){
+  const [h,c]=counts();
+  $('hPlant').textContent=plants.length; $('hHerb').textContent=h; $('hCarn').textContent=c; $('hGen').textContent=generation;
+  $('hCO2').textContent=(CO2/1000).toFixed(0)+'k'; $('hO2').textContent=(O2/1000).toFixed(0)+'k';
+  const ph=((season/6.2831853)%1+1)%1; const north=SEASONS[(Math.floor(ph*4))%4];
+  $('clock').textContent=`yr ${(season/6.2831853).toFixed(1)} · N:${north}`;
+  if(!(selected&&!selected.dead)){
+    const a=k=> animals.length?(animals.reduce((s,e)=>s+(e[k]||0),0)/animals.length):0;
+    let avgBio=0; for(const p of plants) avgBio+=p.bio; avgBio= plants.length?avgBio/plants.length:0;
+    $('avg').innerHTML = `🌿 ${plants.length} flora · avg biomass ${avgBio.toFixed(1)} · 🐾 ${animals.length} animals (gen ${generation})<br>`+
+      `atmosphere CO₂ ${(CO2/1000).toFixed(0)}k · O₂ ${(O2/1000).toFixed(0)}k · avg diet ${a('diet').toFixed(2)}`;
+  }
+}
+function inspect(e){
+  let html=''; const g=e.genome;
+  for(let i=0;i<g.length;i++){ const inB=i<NBODY*3; html+=`<span class="${g[i]}${inB?' body':''}">${g[i]}</span>`; if(i%3===2) html+=' '; }
+  $('dna').innerHTML=html;
+  if(e.kind==='plant'){
+    $('dnaInfo').innerHTML=`<b style="color:#7ddf6a">🌿 Flora #${e.id}</b> · ${g.length} bases / ${e.clen} codons<br>`+
+      `photo ${e.photo.toFixed(2)} · uptake ${e.uptake.toFixed(2)} · water-eff ${e.waterEff.toFixed(2)} · tOpt ${e.tempOpt.toFixed(2)}<br>`+
+      `<b>built of:</b> biomass ${e.bio.toFixed(1)} blocks · age ${e.age}`;
+    $('code').innerHTML='(flora is sessile — its DNA is all body/metabolism genes, no behaviour program)';
+  } else {
+    const role=e.diet<0.34?'🦌 Herbivore':e.diet<0.66?'🐗 Omnivore':'🐺 Carnivore';
+    $('dnaInfo').innerHTML=`<b style="color:var(--gold)">${role} #${e.id}</b> · gen ${e.gen} · ${g.length} bases / ${e.clen} codons<br>`+
+      `size ${e.size.toFixed(2)} · diet ${e.diet.toFixed(2)} · speed ${e.speed.toFixed(1)} · sense ${e.sense.toFixed(0)}<br>`+
+      `<b>built of:</b> energy ${e.energy|0} · biomass ${e.bio.toFixed(1)} blocks`;
+    let code=''; for(let i=0;i<e.op.length;i++){ const o=e.op[i],a=e.arg[i]; let l=OPNAME[o];
+      if(o===0)l+=' '+SNAME[a&7]; else if(o===1)l+=' '+KCONST[a]; else if(o===5)l+=' '+FNNAME[a&3]; else if(o===6)l+=(a&1)?' dup':' swap'; else if(o===7)l+=(a&1)?' steerY':' steerX';
+      code+=`<span class="op">${String(i).padStart(2)}</span> ${l}\n`; }
+    $('code').innerHTML=code||'(no program)';
+  }
+}
+
+// ===========================================================================
+//  LOOP + CONTROLS
+// ===========================================================================
+let running=true;
+function frame(){ if(running) for(let i=0;i<P.speed;i++) step();
+  render(); drawMini(); drawGraph(); updateHUD(); if(selected&&!selected.dead) inspect(selected);
+  requestAnimationFrame(frame); }
+$('btnPlay').addEventListener('click',()=>{ running=!running; $('btnPlay').textContent=running?'⏸ Pause':'▶ Play'; $('hStatus').textContent=running?'▶':'⏸'; });
+$('btnStep').addEventListener('click',()=>{ running=false; $('btnPlay').textContent='▶ Play'; $('hStatus').textContent='⏸'; step(); });
+$('btnReset').addEventListener('click',()=> newWorld());
+$('btnReseed').addEventListener('click',()=> seedLife());
+$('btnView').addEventListener('click',()=>{ viewMode=VIEWS[(VIEWS.indexOf(viewMode)+1)%VIEWS.length]; $('btnView').textContent='🗺 View: '+viewMode; mapAge=999; });
+$('btnColor').addEventListener('click',()=>{ colorMode= colorMode==='diet'?'lineage':colorMode==='lineage'?'temp':'diet'; $('btnColor').textContent='🎨 '+colorMode; });
+$('btnDrought').addEventListener('click',()=>{ for(let i=0;i<GN;i++) water[i]*=0.25; });
+$('btnMeteor').addEventListener('click',()=>{ animals=animals.filter(()=>Math.random()>0.8); plants=plants.filter(()=>Math.random()>0.6); CO2+=40000; });
+$('toggle').addEventListener('click',()=> $('panel').classList.toggle('collapsed'));
+
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,moved:false,vx:view.x,vy:view.y}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true; view.x=drag.vx-dx/view.zoom; view.y=drag.vy-dy/view.zoom; clampView(); });
+canvas.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=canvas.getBoundingClientRect(); const [wx,wy]=s2w(e.clientX-r.left,e.clientY-r.top);
+  let best=null,bd=Math.max(200,1400/(view.zoom*view.zoom));
+  for(const c of animals){ const d=(c.x-wx)**2+(c.y-wy)**2; if(d<bd){bd=d;best=c;} }
+  if(!best) for(const c of plants){ const d=(c.x-wx)**2+(c.y-wy)**2; if(d<bd){bd=d;best=c;} }
+  selected=best; if(best) inspect(best); } drag=null; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*(e.deltaY<0?1.12:0.89),0.12,7); clampView(); },{passive:false});
+let pinch=null;
+canvas.addEventListener('touchstart',e=>{ if(e.touches.length===2)pinch=tdist(e); },{passive:false});
+canvas.addEventListener('touchmove',e=>{ if(e.touches.length===2&&pinch){ e.preventDefault(); const d=tdist(e); view.zoom=clamp(view.zoom*d/pinch,0.12,7); pinch=d; clampView(); } },{passive:false});
+canvas.addEventListener('touchend',e=>{ if(e.touches.length<2)pinch=null; });
+function tdist(e){ const a=e.touches[0],b=e.touches[1]; return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY); }
+function clampView(){ view.y=clamp(view.y,0,WORLD.h); if(view.x<0)view.x+=WORLD.w; else if(view.x>WORLD.w)view.x-=WORLD.w; }
+mini.addEventListener('pointerdown',e=>{ const r=mini.getBoundingClientRect(); view.x=(e.clientX-r.left)/r.width*WORLD.w; view.y=(e.clientY-r.top)/r.height*WORLD.h; view.zoom=Math.max(view.zoom,0.6); });
+
+syncUI(); resize(); newWorld();
+view.zoom=Math.min(view._w/WORLD.w,view._h/WORLD.h)*0.96 || 0.2;
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
