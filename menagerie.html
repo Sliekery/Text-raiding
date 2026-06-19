@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f14">
+<title>🐾 Menagerie — Watch Life Evolve</title>
+<style>
+  :root{ --bg:#0a0f14; --panel:#111a22; --panel2:#16222c; --line:#243440;
+    --txt:#e6edf3; --dim:#8aa0b0; --accent:#6fe39a; --gold:#ffd56b; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;}
+  #app{display:flex;height:100%;width:100%;}
+  #stage{position:relative;flex:1 1 auto;min-width:0;background:radial-gradient(circle at 50% 30%, #0e1820, #070c10 70%);}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  #hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;font-size:11.5px;}
+  .stat{background:rgba(17,26,34,.82);border:1px solid var(--line);border-radius:8px;padding:4px 9px;backdrop-filter:blur(5px);}
+  .stat b{font-weight:700;}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+  #panel{flex:0 0 348px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:margin-right .25s ease;}
+  #panel.collapsed{margin-right:calc(-348px - 1px);}
+  #panelInner{overflow-y:auto;padding:12px 14px 40px;-webkit-overflow-scrolling:touch;}
+  h1{font-size:16px;margin:2px 0;}.sub{color:var(--dim);font-size:11px;margin-bottom:10px;line-height:1.45;}
+  .row{display:flex;gap:8px;margin:9px 0;}.row button{flex:1;}
+  button{font-family:inherit;cursor:pointer;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;transition:.12s;}
+  button:hover{border-color:var(--accent);color:#fff;}button.primary{background:var(--accent);color:#06210f;border-color:var(--accent);font-weight:700;}
+  details{border:1px solid var(--line);border-radius:9px;margin:8px 0;background:var(--panel2);overflow:hidden;}
+  summary{cursor:pointer;padding:9px 11px;font-size:13px;font-weight:700;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}summary::before{content:"▸";color:var(--dim);margin-right:7px;}details[open] summary::before{content:"▾";}
+  .group{padding:4px 11px 11px;}
+  .ctl{margin:11px 0;}.ctl label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:3px;}
+  .ctl label .val{color:var(--txt);font-weight:700;}
+  input[type=range]{width:100%;height:22px;-webkit-appearance:none;background:transparent;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-7px;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  .panelCanvas{width:100%;background:#0a141b;border:1px solid var(--line);border-radius:9px;display:block;}
+  #tree{height:170px;} #ages{height:96px;} #inspect{height:150px;}
+  .legend{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.7;}.hint{color:var(--dim);font-size:10.5px;line-height:1.55;margin-top:5px;}
+  #spList{font-size:11px;line-height:1.7;margin-top:6px;}
+  #spList .sp{display:flex;align-items:center;gap:6px;}
+  #toggle{position:absolute;top:8px;right:8px;z-index:5;pointer-events:auto;background:rgba(17,26,34,.9);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:13px;}
+  #era{position:absolute;left:8px;bottom:8px;pointer-events:none;background:rgba(17,26,34,.82);border:1px solid var(--line);border-radius:9px;padding:5px 11px;font-size:12px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="stat">Creatures <b id="hPop">0</b></div>
+      <div class="stat">Species <b id="hSpec">0</b></div>
+      <div class="stat">Generation <b id="hGen">0</b></div>
+      <div class="stat">Age <b id="hAge">I</b></div>
+      <div class="stat" id="hDom">—</div>
+      <div class="stat" id="hStatus">▶</div>
+    </div>
+    <div id="era">🌅 watching evolution…</div>
+    <button id="toggle">⚙</button>
+  </div>
+  <div id="panel"><div id="panelInner">
+    <h1>🐾 Menagerie</h1>
+    <div class="sub">A world of creatures, each drawn from its <b>DNA</b>: body size and shape,
+    fins, eyes, jaws, spikes, colour. They hunt, graze, breed and die — and as their genes
+    mutate, their <b>bodies visibly change</b>. Watch new <b>species</b> branch off on the
+    living tree of life, and the <b>ages strip</b> remember what life looked like long ago.</div>
+
+    <div class="row"><button id="btnPlay" class="primary">⏸ Pause</button><button id="btnFast">⏩ Fast-forward</button></div>
+    <div class="row"><button id="btnReset">🌱 New world</button><button id="btnCata" >☄ Cataclysm</button></div>
+
+    <div class="ctl"><label>Time speed <span class="val" id="vSpeed"></span></label><input type="range" id="speed" min="1" max="12" step="1"></div>
+    <div class="ctl"><label>Mutation (how fast bodies change) <span class="val" id="vMut"></span></label><input type="range" id="mut" min="2" max="100" step="2"></div>
+    <div class="ctl"><label>Food <span class="val" id="vFood"></span></label><input type="range" id="food" min="20" max="200" step="5"></div>
+    <div class="ctl"><label>Predation pressure <span class="val" id="vPred"></span></label><input type="range" id="pred" min="0" max="100" step="5"></div>
+
+    <details open><summary>🌳 Tree of life</summary><div class="group">
+      <canvas id="tree" class="panelCanvas"></canvas>
+      <div id="spList"></div>
+    </div></details>
+
+    <details open><summary>⏳ Through the ages</summary><div class="group">
+      <canvas id="ages" class="panelCanvas"></canvas>
+      <div class="hint">Each portrait is the dominant creature of that age. Watch the body-plan
+      drift from the first ancestor (left) to today (right).</div>
+    </div></details>
+
+    <details open><summary>🔬 Creature (tap one)</summary><div class="group">
+      <canvas id="inspect" class="panelCanvas"></canvas>
+      <div class="hint" id="inspectInfo">tap any creature to study it…</div>
+    </div></details>
+
+    <div class="hint">Drag to pan · scroll/pinch to zoom in on the creatures · tap one to inspect it.</div>
+  </div></div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const treeC=document.getElementById('tree'),tcx=treeC.getContext('2d');
+const agesC=document.getElementById('ages'),acx=agesC.getContext('2d');
+const inspC=document.getElementById('inspect'),icx=inspC.getContext('2d');
+const $=id=>document.getElementById(id);
+const rand=(a=1,b=0)=>b+Math.random()*(a-b);
+const clamp=(v,lo,hi)=>v<lo?lo:v>hi?hi:v;
+const TAU=6.2831853;
+const WORLD={w:1700,h:1100};
+
+const P={ speed:3, mut:40, food:120, pred:45 };
+const sliders={ speed:'vSpeed', mut:'vMut', food:'vFood', pred:'vPred' };
+function syncUI(){ for(const k in sliders){ const el=$(k); el.value=P[k]; $(sliders[k]).textContent=P[k]; } }
+for(const k in sliders) $(k).addEventListener('input',e=>{ P[k]=+e.target.value; $(sliders[k]).textContent=P[k]; });
+
+// ===========================================================================
+//  GENOME  — a handful of genes that drive BOTH how a creature looks and what it does
+// ===========================================================================
+const G={ SIZE:0, ELONG:1, HUE:2, FINS:3, FINLEN:4, EYE:5, JAW:6, SPIKE:7, TAIL:8, DIET:9, PACE:10, SENSE:11 };
+const NG=12;
+function randGenome(){ const g=new Float32Array(NG); for(let i=0;i<NG;i++) g[i]=Math.random(); g[G.DIET]=rand(0.25,0); return g; }
+function mutateGenome(g){ const m=P.mut/100*0.10; const c=new Float32Array(g);
+  for(let i=0;i<NG;i++){ if(Math.random()<0.6) c[i]=clamp(c[i]+(Math.random()*2-1)*m,0,1); }
+  if(Math.random()<0.08) c[G.DIET]=clamp(c[G.DIET]+(Math.random()*2-1)*0.25,0,1);   // diet jumps a little more
+  return c; }
+function gdist(a,b){ let s=0; const W=[1.4,1,0,1.3,0.5,0.6,1.1,1.1,0.8,1.6,0.4,0.4];   // weighted by visible/important genes
+  for(let i=0;i<NG;i++){ if(i===G.HUE){ let d=Math.abs(a[i]-b[i]); d=Math.min(d,1-d); s+=(d*2)*(d*2)*1.2; } else { const d=(a[i]-b[i])*W[i]; s+=d*d; } } return Math.sqrt(s); }
+
+// derived traits
+const realSize=g=>5+g[G.SIZE]*20;
+const realSpeed=g=>(0.7+g[G.PACE]*1.7)*(0.6+g[G.FINS]*0.9)/Math.sqrt(0.5+g[G.SIZE]*1.5)*(g[G.DIET]>0.5?1.32:1);  // hunters get burst speed
+const realSense=g=>40+g[G.EYE]*60+g[G.SENSE]*120;
+const isCarn=g=>g[G.DIET]>0.5;
+
+// ===========================================================================
+//  SPECIES  &  PHYLOGENY (the living tree of life)
+// ===========================================================================
+let species=[], nextSpec=1;
+const SYL1=['Vor','Aza','Mel','Tru','Qen','Sil','Bor','Nyx','Lup','Ori','Cda','Pyr','Gal','Umb','Tho','Esk','Wra','Fen','Hyl','Zor'];
+const SYL2=['nak','ria','vex','mor','lith','dun','sai','phex','tula','grin','vos','mira','dax','een','oth','ux'];
+function speciesName(){ return SYL1[(Math.random()*SYL1.length)|0]+SYL2[(Math.random()*SYL2.length)|0]; }
+function newSpecies(genome,parent){ const hue=genome[G.HUE]*360;
+  const s={ id:nextSpec++, name:speciesName(), hue, parent:parent?parent.id:0, born:tick, died:-1,
+    centroid:new Float32Array(genome), rep:new Float32Array(genome), pop:0, peak:0, x:0 }; species.push(s); return s; }
+const specById=id=>species.find(s=>s.id===id);
+
+// ===========================================================================
+//  CREATURES & WORLD
+// ===========================================================================
+let pop=[], food=[], tick=0, generation=0, nextId=1;
+const bank=[]; function remember(g){ bank.push(new Float32Array(g)); if(bank.length>30) bank.shift(); }
+
+function makeCreature(x,y,genome,gen,spec){
+  return { id:nextId++, x, y, vx:0, vy:0, dir:rand(TAU), wob:rand(TAU), genome, gen:gen||0, spec,
+    energy: 40+realSize(genome)*2, age:0 }; }
+function seedWorld(){ pop=[]; food=[]; species=[]; nextSpec=1; tick=0; generation=0; bank.length=0; ages.length=0; history.length=0;
+  const anc=randGenome(); anc[G.DIET]=0.1; const s0=newSpecies(anc,null); s0.name='Primordia';
+  for(let i=0;i<110;i++){ const g=mutateGenome(anc); pop.push(makeCreature(rand(WORLD.w),rand(WORLD.h),g,0,s0)); }
+  // a founding hunter lineage, so there are predators (and a toothy red branch) from the start
+  const h=randGenome(); h[G.DIET]=0.8; h[G.JAW]=0.75; h[G.SIZE]=0.5; h[G.HUE]=0.02; h[G.FINS]=0.85; h[G.PACE]=0.85; h[G.EYE]=0.7; const s1=newSpecies(h,null); s1.name='Raptora';
+  for(let i=0;i<22;i++){ const g=mutateGenome(h); pop.push(makeCreature(rand(WORLD.w),rand(WORLD.h),g,0,s1)); } }
+
+const CELL=90,GW=Math.ceil(WORLD.w/CELL);
+function grid(items){ const m=new Map(); for(const it of items){ const k=((it.x/CELL)|0)+((it.y/CELL)|0)*GW; let b=m.get(k); if(!b){b=[];m.set(k,b);} b.push(it);} return m; }
+function near(g,x,y,r,f){ const rr=Math.ceil(r/CELL),cx=(x/CELL)|0,cy=(y/CELL)|0; let best=null,bd=r*r;
+  for(let gy=cy-rr;gy<=cy+rr;gy++)for(let gx=cx-rr;gx<=cx+rr;gx++){ const b=g.get(gx+gy*GW); if(!b)continue;
+    for(const it of b){ if(f&&!f(it))continue; const dx=it.x-x,dy=it.y-y,d=dx*dx+dy*dy; if(d<bd){bd=d;best=it;}}} return best; }
+
+function step(){
+  tick++;
+  // food grows
+  const fcap=P.food*14; if(food.length<fcap){ for(let i=0;i<6;i++) if(food.length<fcap) food.push({x:rand(WORLD.w),y:rand(WORLD.h),e:18}); }
+  const fg=grid(food), cg=grid(pop), newborns=[];
+  for(const c of pop){
+    if(c.dead) continue; c.age++; const g=c.genome; const sz=realSize(g), carn=isCarn(g), sense=realSense(g);
+    // sense & decide
+    let tx=0,ty=0, has=false;
+    const foe=near(cg,c.x,c.y,sense,o=>o!==c&&!o.dead&&isCarn(o.genome)&&realSize(o.genome)>sz*1.25);
+    if(foe){ tx=c.x-foe.x; ty=c.y-foe.y; has=true; }
+    else if(carn){ const prey=near(cg,c.x,c.y,sense,o=>o!==c&&!o.dead&&realSize(o.genome)<sz*0.85);
+      if(prey){ tx=prey.x-c.x; ty=prey.y-c.y; has=true; } }
+    else { const f=near(fg,c.x,c.y,sense,o=>!o.dead); if(f){ tx=f.x-c.x; ty=f.y-c.y; has=true; } }
+    if(!has){ c.dir+=rand(0.4,-0.4); tx=Math.cos(c.dir); ty=Math.sin(c.dir); }
+    const tl=Math.hypot(tx,ty)||1; const sp=realSpeed(g);
+    c.vx=c.vx*0.8+(tx/tl)*sp; c.vy=c.vy*0.8+(ty/tl)*sp;
+    c.x+=c.vx; c.y+=c.vy; if(c.x<0)c.x+=WORLD.w; else if(c.x>=WORLD.w)c.x-=WORLD.w; if(c.y<0)c.y+=WORLD.h; else if(c.y>=WORLD.h)c.y-=WORLD.h;
+    if(Math.abs(c.vx)+Math.abs(c.vy)>0.2) c.dir=Math.atan2(c.vy,c.vx);
+    c.wob+=0.3+sp*0.05;
+    // metabolism
+    c.energy -= 0.08 + sz*0.028 + (Math.abs(c.vx)+Math.abs(c.vy))*0.015;
+    // eat
+    if(carn){ const prey=near(cg,c.x,c.y,sz+10,o=>o!==c&&!o.dead&&realSize(o.genome)<sz*0.85);
+      if(prey){ const dx=prey.x-c.x,dy=prey.y-c.y,reach=sz+realSize(prey.genome);
+        if(dx*dx+dy*dy<reach*reach){ c.energy += 45+realSize(prey.genome)*5; prey.dead=true; prey.eaten=true; } } }
+    else { const f=near(fg,c.x,c.y,sz+8,o=>!o.dead); if(f){ const dx=f.x-c.x,dy=f.y-c.y; if(dx*dx+dy*dy<(sz+6)*(sz+6)){ c.energy+=f.e; f.dead=true; } } }
+    // reproduce
+    const rep= 42+sz*3;
+    if(c.energy>rep*1.4 && pop.length+newborns.length<420){ c.energy-=rep;
+      const cg2=mutateGenome(g); let sp2=c.spec;
+      // speciation: a child far enough from its species' centre founds a NEW species (a branch on the tree)
+      if(gdist(cg2,c.spec.centroid)>0.4){ sp2=newSpecies(cg2,c.spec); }
+      const child=makeCreature(clamp(c.x+rand(24,-24),0,WORLD.w),clamp(c.y+rand(24,-24),0,WORLD.h),cg2,c.gen+1,sp2);
+      generation=Math.max(generation,child.gen); newborns.push(child); if(Math.random()<0.15) remember(g); }
+    if(c.energy<=0 || c.age>2200) c.dead=true;
+  }
+  food=food.filter(f=>!f.dead);
+  pop=pop.filter(c=>!c.dead).concat(newborns);
+  // predation pressure: extra culling of the slow if enabled (keeps arms races alive)
+  if(P.pred>0 && tick%30===0){ const k=P.pred/100; for(const c of pop){ if(!isCarn(c.genome)&&Math.random()<k*0.02*(1-realSpeed(c.genome)/4)) c.dead=true; } pop=pop.filter(c=>!c.dead); }
+  // rescue from extinction
+  if(pop.length<5){ const g= bank.length?bank[(Math.random()*bank.length)|0]:randGenome(); const s=species.find(s=>s.pop>0)||newSpecies(g,null);
+    for(let i=0;i<24;i++) pop.push(makeCreature(rand(WORLD.w),rand(WORLD.h),mutateGenome(g),0,s)); }
+  updateSpecies();
+  recordHistory();
+  if(tick%AGELEN===0) captureAge();
+}
+
+function updateSpecies(){
+  if(tick%20) return;
+  for(const s of species){ s.pop=0; }
+  const acc=new Map();
+  for(const c of pop){ s_inc(c.spec); let a=acc.get(c.spec.id); if(!a){a=new Float32Array(NG);acc.set(c.spec.id,a);} for(let i=0;i<NG;i++)a[i]+=c.genome[i]; }
+  function s_inc(s){ s.pop++; if(s.pop>s.peak)s.peak=s.pop; }
+  for(const s of species){ if(s.pop>0){ const a=acc.get(s.id); for(let i=0;i<NG;i++) s.centroid[i]=a[i]/s.pop; if(s.died>=0)s.died=-1; }
+    else if(s.died<0 && tick-s.born>40){ s.died=tick; } }
+}
+
+// ===========================================================================
+//  "THROUGH THE AGES" snapshots
+// ===========================================================================
+const ages=[]; const AGELEN=900; const AGENAMES=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII'];
+function captureAge(){ let dom=null,bp=-1; for(const s of species){ if(s.pop>bp){bp=s.pop;dom=s;} }
+  if(dom&&bp>0){ ages.push({tick, genome:new Float32Array(dom.centroid), hue:dom.hue, name:dom.name}); if(ages.length>14) ages.shift(); } }
+
+const history=[],HISTMAX=260;
+function recordHistory(){ if(tick%4) return; let carn=0; for(const c of pop) if(isCarn(c.genome))carn++; history.push([pop.length,carn, species.filter(s=>s.pop>0).length]); if(history.length>HISTMAX)history.shift(); }
+
+// ===========================================================================
+//  CREATURE RENDERING — the heart of it: a body drawn from genes
+// ===========================================================================
+function drawCreature(g, gx, gctx, x, y, dir, scale, wob){
+  const sz=realSize(g)*scale, hue=g[G.HUE]*360, carn=isCarn(g);
+  const elong=0.7+g[G.ELONG]*0.9;                 // body length/width ratio
+  const bodyL=sz*elong, bodyW=sz*0.85;
+  gctx.save(); gctx.translate(x,y); gctx.rotate(dir);
+  const light = carn?52:60, sat=carn?70:62;
+  const body=`hsl(${hue|0} ${sat}% ${light}%)`, dark=`hsl(${hue|0} ${sat}% ${light-22}%)`, lite=`hsl(${hue|0} ${sat}% ${light+18}%)`;
+  // tail
+  if(g[G.TAIL]>0.15){ const tl=sz*(0.4+g[G.TAIL]*1.4); gctx.fillStyle=dark; gctx.beginPath();
+    gctx.moveTo(-bodyL*0.7,0); gctx.lineTo(-bodyL*0.7-tl, -sz*0.25-Math.sin(wob)*sz*0.18); gctx.lineTo(-bodyL*0.7-tl, sz*0.25+Math.sin(wob)*sz*0.18); gctx.closePath(); gctx.fill(); }
+  // fins / limbs (symmetric pairs along the body)
+  const fins=Math.round(g[G.FINS]*5); const finL=sz*(0.5+g[G.FINLEN]*1.5);
+  gctx.strokeStyle=dark; gctx.lineWidth=Math.max(1,sz*0.18); gctx.lineCap='round';
+  for(let i=0;i<fins;i++){ const fx=bodyL*(0.5-i/(fins+0.5)); const wig=Math.sin(wob+i*0.9)*0.5;
+    for(const side of [-1,1]){ gctx.beginPath(); gctx.moveTo(fx, side*bodyW*0.5);
+      gctx.lineTo(fx-finL*0.3, side*(bodyW*0.5+finL*(0.8+wig*0.3))); gctx.stroke(); } }
+  // body
+  gctx.fillStyle=body; gctx.beginPath(); gctx.ellipse(0,0,bodyL,bodyW,0,0,TAU); gctx.fill();
+  gctx.fillStyle=lite; gctx.beginPath(); gctx.ellipse(bodyL*0.15,-bodyW*0.25,bodyL*0.6,bodyW*0.45,0,0,TAU); gctx.fill();
+  // spikes
+  if(g[G.SPIKE]>0.3){ const ns=Math.round(g[G.SPIKE]*8); gctx.fillStyle=dark;
+    for(let i=0;i<ns;i++){ const a=i/ns*Math.PI-Math.PI/2; const sx=Math.cos(a)*bodyL*0.9, sy=Math.sin(a)*bodyW; const sl=sz*0.4*g[G.SPIKE];
+      gctx.beginPath(); gctx.moveTo(sx,sy); gctx.lineTo(sx+Math.cos(a)*sl, sy+Math.sin(a)*sl); gctx.lineTo(sx+Math.cos(a+0.3)*sz*0.15, sy+Math.sin(a+0.3)*sz*0.15); gctx.closePath(); gctx.fill(); } }
+  // jaw / mouth (carnivores get a real mouth)
+  const jaw=g[G.JAW];
+  if(carn||jaw>0.4){ gctx.fillStyle='#3a1414'; gctx.beginPath(); gctx.moveTo(bodyL*0.7,-bodyW*0.18); gctx.lineTo(bodyL*(1.0+jaw*0.3),0); gctx.lineTo(bodyL*0.7,bodyW*0.18); gctx.closePath(); gctx.fill();
+    if(carn){ gctx.fillStyle='#fff'; for(let t=0;t<3;t++){ const tx=bodyL*(0.78+t*0.07); gctx.beginPath(); gctx.moveTo(tx,-bodyW*0.12); gctx.lineTo(tx+sz*0.06,0); gctx.lineTo(tx,bodyW*0.12*(t%2?1:-1)); gctx.closePath(); gctx.fill(); } } }
+  // eyes
+  const eye=sz*(0.12+g[G.EYE]*0.28);
+  for(const side of [-1,1]){ const ex=bodyL*0.55, ey=side*bodyW*0.45;
+    gctx.fillStyle='#f7fbff'; gctx.beginPath(); gctx.arc(ex,ey,eye,0,TAU); gctx.fill();
+    gctx.fillStyle='#0a0e12'; gctx.beginPath(); gctx.arc(ex+eye*0.3,ey,eye*0.55,0,TAU); gctx.fill(); }
+  gctx.restore();
+}
+
+// ===========================================================================
+//  MAIN VIEW
+// ===========================================================================
+const view={ x:WORLD.w/2, y:WORLD.h/2, zoom:0.6, _w:900, _h:600 };
+function resize(){ const dpr=Math.min(2,window.devicePixelRatio||1);
+  for(const [cv,c2] of [[canvas,ctx],[treeC,tcx],[agesC,acx],[inspC,icx]]){ const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr; c2.setTransform(dpr,0,0,dpr,0,0); cv._w=r.width; cv._h=r.height; } view._w=canvas._w; view._h=canvas._h; }
+window.addEventListener('resize',resize);
+const w2s=(x,y)=>[(x-view.x)*view.zoom+view._w/2,(y-view.y)*view.zoom+view._h/2];
+const s2w=(sx,sy)=>[(sx-view._w/2)/view.zoom+view.x,(sy-view._h/2)/view.zoom+view.y];
+let selected=null, selId=-1;
+function render(){
+  ctx.clearRect(0,0,view._w,view._h);
+  const [bx,by]=w2s(0,0); ctx.fillStyle='rgba(10,20,26,.5)'; ctx.fillRect(bx,by,WORLD.w*view.zoom,WORLD.h*view.zoom);
+  // food
+  ctx.fillStyle='rgba(120,210,140,.5)'; const fr=Math.max(1,2*view.zoom);
+  for(const f of food){ const [sx,sy]=w2s(f.x,f.y); if(sx<0||sy<0||sx>view._w||sy>view._h)continue; ctx.beginPath(); ctx.arc(sx,sy,fr,0,TAU); ctx.fill(); }
+  // creatures
+  for(const c of pop){ const [sx,sy]=w2s(c.x,c.y); const r=realSize(c.genome)*view.zoom;
+    if(sx<-r*3||sy<-r*3||sx>view._w+r*3||sy>view._h+r*3) continue; drawCreature(c.genome,0,ctx,sx,sy,c.dir,view.zoom,c.wob); }
+  if(selected && !selected.dead){ const [sx,sy]=w2s(selected.x,selected.y);
+    ctx.strokeStyle='#ffd56b'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sx,sy,realSize(selected.genome)*view.zoom*1.6+6,0,TAU); ctx.stroke(); }
+}
+function drawTree(){ const w=treeC._w,h=treeC._h; tcx.clearRect(0,0,w,h);
+  const live=species.filter(s=>s.pop>0 || s.died<0 || (s.died>tick-1500));
+  if(!live.length) return;
+  let t0=tick-2400; const t1=tick; const ty=t=>h-8-((t-t0)/(t1-t0))*(h-16);
+  // assign x by order of birth
+  const ord=species.slice().sort((a,b)=>a.born-b.born); let xi=0; for(const s of ord){ s.x=10+ (xi+0.5)/(ord.length)* (w-20); xi++; }
+  // edges to parents
+  tcx.lineWidth=1; for(const s of species){ if(s.born<t0) continue; const p=specById(s.parent); if(p){ tcx.strokeStyle='rgba(150,170,190,.35)';
+    tcx.beginPath(); tcx.moveTo(p.x,ty(s.born)); tcx.lineTo(s.x,ty(s.born)); tcx.stroke(); } }
+  // species lifelines
+  for(const s of species){ const yb=ty(Math.max(s.born,t0)); const ye=ty(s.died<0?t1:Math.min(s.died,t1));
+    tcx.strokeStyle=`hsl(${s.hue|0} 70% 60%)`; tcx.lineWidth=clamp(1+s.pop*0.12,1.2,6);
+    tcx.beginPath(); tcx.moveTo(s.x,yb); tcx.lineTo(s.x,ye); tcx.stroke();
+    if(s.pop>0){ tcx.fillStyle=`hsl(${s.hue|0} 70% 65%)`; tcx.beginPath(); tcx.arc(s.x,ye,clamp(2+s.pop*0.08,2,5),0,TAU); tcx.fill(); } }
+  tcx.fillStyle='#52677a'; tcx.font='9px ui-monospace'; tcx.fillText('now',4,12); tcx.fillText('past',4,h-3);
+}
+function drawAges(){ const w=agesC._w,h=agesC._h; acx.clearRect(0,0,w,h); if(!ages.length) return;
+  const n=ages.length, cw=w/n;
+  for(let i=0;i<n;i++){ const a=ages[i]; const cx=cw*(i+0.5), cy=h*0.46;
+    acx.strokeStyle='rgba(255,255,255,.04)'; acx.beginPath(); acx.moveTo(cw*(i+1),6); acx.lineTo(cw*(i+1),h-6); acx.stroke();
+    drawCreature(a.genome,0,acx,cx,cy,0, Math.min(cw,h)*0.018, i*0.7);
+    acx.fillStyle='#7e93a4'; acx.font='8px ui-monospace'; acx.textAlign='center';
+    acx.fillText('age '+(AGENAMES[i]||i+1), cx, h-4); }
+  acx.textAlign='left';
+}
+function drawInspect(){ const w=inspC._w,h=inspC._h; icx.clearRect(0,0,w,h);
+  const c=selected; if(!c||c.dead){ icx.fillStyle='#52677a'; icx.font='11px ui-monospace'; icx.fillText('tap a creature',12,h/2); return; }
+  drawCreature(c.genome,0,icx,w*0.5,h*0.5,0, Math.min(w,h)*0.02, tick*0.1);
+}
+
+function updateHUD(){
+  const liveSpec=species.filter(s=>s.pop>0);
+  let dom=null,bp=-1; for(const s of liveSpec) if(s.pop>bp){bp=s.pop;dom=s;}
+  $('hPop').textContent=pop.length; $('hSpec').textContent=liveSpec.length; $('hGen').textContent=generation;
+  $('hAge').textContent=AGENAMES[Math.min(ages.length,17)]||'I';
+  $('hDom').innerHTML= dom? `<span class="dot" style="background:hsl(${dom.hue|0} 70% 60%)"></span>${dom.name} ×${dom.pop}`:'—';
+  $('era').textContent= dom? `🌅 Age ${AGENAMES[Math.min(ages.length,17)]||'I'} · the age of ${dom.name}` : '🌅 watching evolution…';
+  // species list
+  liveSpec.sort((a,b)=>b.pop-a.pop);
+  let html=''; for(const s of liveSpec.slice(0,7)){ html+=`<div class="sp"><span class="dot" style="background:hsl(${s.hue|0} 70% 60%)"></span>${s.name} <span style="color:var(--dim)">×${s.pop} · ${isCarn(s.centroid)?'🦷 hunter':'🌿 grazer'}</span></div>`; }
+  $('spList').innerHTML=html;
+  if(selId>=0){ const c=pop.find(p=>p.id===selId); selected=c&&!c.dead?c:null; }
+  if(selected){ const c=selected; const sp=c.spec;
+    $('inspectInfo').innerHTML=`<b style="color:var(--gold)">${sp.name}</b> · gen ${c.gen} · ${isCarn(c.genome)?'hunter':'grazer'}<br>`+
+      `size ${realSize(c.genome).toFixed(0)} · speed ${realSpeed(c.genome).toFixed(1)} · ${Math.round(c.genome[G.FINS]*5)} fins · ${(c.genome[G.SPIKE]>0.3?'spiked':'smooth')}`; }
+}
+
+let running=true, fast=false;
+function frame(){ if(running){ const n=fast?P.speed*4:P.speed; for(let i=0;i<n;i++) step(); }
+  render(); drawTree(); drawAges(); drawInspect(); updateHUD(); requestAnimationFrame(frame); }
+$('btnPlay').addEventListener('click',()=>{ running=!running; $('btnPlay').textContent=running?'⏸ Pause':'▶ Play'; $('hStatus').textContent=running?'▶':'⏸'; });
+$('btnFast').addEventListener('click',()=>{ fast=!fast; $('btnFast').textContent=fast?'⏩ Fast ON':'⏩ Fast-forward'; $('btnFast').classList.toggle('primary',fast); });
+$('btnReset').addEventListener('click',()=> seedWorld());
+$('btnCata').addEventListener('click',()=>{ pop=pop.filter(()=>Math.random()>0.7); });
+$('toggle').addEventListener('click',()=> $('panel').classList.toggle('collapsed'));
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,moved:false,vx:view.x,vy:view.y}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true; view.x=drag.vx-dx/view.zoom; view.y=drag.vy-dy/view.zoom; });
+canvas.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=canvas.getBoundingClientRect(); const [wx,wy]=s2w(e.clientX-r.left,e.clientY-r.top);
+  let best=null,bd=1e9; for(const c of pop){ const d=(c.x-wx)**2+(c.y-wy)**2; const rr=(realSize(c.genome)*2+14)**2; if(d<bd&&d<rr*3){bd=d;best=c;} } selected=best; selId=best?best.id:-1; } drag=null; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*(e.deltaY<0?1.12:0.89),0.25,4); },{passive:false});
+let pinch=null;
+canvas.addEventListener('touchstart',e=>{ if(e.touches.length===2)pinch=td(e); },{passive:false});
+canvas.addEventListener('touchmove',e=>{ if(e.touches.length===2&&pinch){ e.preventDefault(); const d=td(e); view.zoom=clamp(view.zoom*d/pinch,0.25,4); pinch=d; } },{passive:false});
+canvas.addEventListener('touchend',e=>{ if(e.touches.length<2)pinch=null; });
+function td(e){ const a=e.touches[0],b=e.touches[1]; return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY); }
+
+syncUI(); resize(); seedWorld();
+view.zoom=Math.min(view._w/WORLD.w,view._h/WORLD.h)*1.3||0.6;
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
