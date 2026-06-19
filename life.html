@@ -107,9 +107,10 @@
     <div id="panelInner">
       <h1>🌱 Petri</h1>
       <div class="sub">A self-contained ecosystem. Plants grow, herbivores graze,
-      predators hunt. Each creature carries genes (speed, size, sense, metabolism)
-      that <b>mutate</b> on reproduction — so the population <i>evolves</i> over time.
-      Tune any parameter live and watch the balance tip.</div>
+      predators hunt. Every creature has a tiny <b>neural-network brain</b> whose
+      weights are its genome — its behaviour isn't scripted, it <i>evolves</i>. Brains
+      and bodies mutate at birth, so strategies (flee, swarm, ambush, rest) emerge on
+      their own from whatever survives. Tune any parameter live and watch life adapt.</div>
 
       <div class="row">
         <button id="btnPlay" class="primary">⏸ Pause</button>
@@ -182,6 +183,24 @@
           <input type="range" id="cmut" min="0" max="100" step="1"></div>
       </div></details>
 
+      <details><summary>🧬 Evolution</summary><div class="group">
+        <div class="ctl"><label>Innate instinct (newborn prior) <span class="val" id="vInnate"></span></label>
+          <input type="range" id="innate" min="0" max="100" step="1"></div>
+        <div class="ctl"><label>Immigration (open world) <span class="val" id="vImmig"></span></label>
+          <input type="range" id="immig" min="0" max="100" step="1"></div>
+        <div class="hint">Every creature has a tiny <b>neural-network brain</b> whose
+        weights are its genome. Brains mutate at birth, so behaviour is <b>not
+        scripted</b> — fleeing, grazing, ambushing, swarming all have to <i>evolve</i>
+        from whatever survives. <b>Innate instinct</b> only sets how much a brand-new
+        lineage leans toward food / away from danger at birth; at <b>0</b> they start as
+        blank slates (purest emergence, but they may struggle to bootstrap). Applies on
+        Reset and to fresh creatures from Bloom — existing lineages keep evolving on
+        their own. Crank <i>Mutation strength</i> (per species) to speed adaptation.
+        <b>Immigration</b> lets rare new arrivals wander in, keeping the world alive and
+        the gene pool fresh; set it to <b>0</b> for a sealed world that can go extinct
+        for good.</div>
+      </div></details>
+
       <details open><summary>📈 Populations</summary><div class="group" id="graphWrap">
         <canvas id="graph"></canvas>
         <div class="legend" style="margin-top:6px;">
@@ -218,9 +237,10 @@ const WORLD = { w: 1200, h: 1200 };
 const P = {
   speed: 3,
   p0: 320, h0: 90, c0: 18,
-  pgrow: 40, pcap: 900, penergy: 28, pspread: 46,
-  hmeta: 8, hrepro: 120, hlife: 1600, hspeed: 14, hsense: 70, hmut: 22,
-  cmeta: 10, crepro: 160, clife: 2200, cspeed: 20, csense: 120, cgain: 110, cmut: 22,
+  pgrow: 55, pcap: 900, penergy: 40, pspread: 46,
+  hmeta: 3, hrepro: 110, hlife: 1600, hspeed: 14, hsense: 70, hmut: 10,
+  cmeta: 3, crepro: 150, clife: 2200, cspeed: 24, csense: 130, cgain: 130, cmut: 10,
+  innate: 60, immig: 40,
 };
 
 // bind every slider to P and a live readout
@@ -229,6 +249,7 @@ const sliders = {
   pgrow:'vPgrow', pcap:'vPcap', penergy:'vPenergy', pspread:'vPspread',
   hmeta:'vHmeta', hrepro:'vHrepro', hlife:'vHlife', hspeed:'vHspeed', hsense:'vHsense', hmut:'vHmut',
   cmeta:'vCmeta', crepro:'vCrepro', clife:'vClife', cspeed:'vCspeed', csense:'vCsense', cgain:'vCgain', cmut:'vCmut',
+  innate:'vInnate', immig:'vImmig',
 };
 function syncSliderUI(){
   for(const k in sliders){
@@ -254,19 +275,96 @@ let nextId = 1;
 const rand = (a=1,b=0)=> b + Math.random()*(a-b);
 const clamp=(v,lo,hi)=> v<lo?lo:v>hi?hi:v;
 
+// =========================================================================
+//  BRAINS — every creature thinks with a tiny neural network.  The network
+//  weights ARE its genome.  Nothing about fleeing / hunting / grazing is
+//  hardcoded: the brain reads what it senses and decides how to move, and
+//  the weights mutate on birth.  So behaviour is *evolved*, not scripted.
+//
+//    inputs (12): bias, own-energy, own-age,
+//                 nearest-food   (dirX, dirY, closeness),
+//                 nearest-danger (dirX, dirY, closeness),   // 0s for predators
+//                 nearest-rival  (dirX, dirY, closeness)    // same species
+//    hidden  (8, tanh)  ->  outputs (2, tanh) = steer X / Y (& throttle)
+// =========================================================================
+const NIN = 12, NHID = 8, NOUT = 2;
+const INP = new Float32Array(NIN);   // scratch sensory vector (reused)
+const HID = new Float32Array(NHID+1);
+
+// crude gaussian (~N(0, ~0.8))
+function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)*0.7; }
+
+function newBrain(prior){
+  const w1 = new Float32Array(NIN*NHID);
+  const w2 = new Float32Array((NHID+1)*NOUT);
+  for(let i=0;i<w1.length;i++) w1[i]=gauss()*0.6;
+  for(let i=0;i<w2.length;i++) w2[i]=gauss()*0.6;
+  // optional faint "instinct" so brand-new lineages aren't pure noise.
+  // It only biases newborns toward food / away from danger — evolution is
+  // free to overwrite every bit of it. At prior=0 they're blank slates.
+  if(prior>0){
+    const k = prior*3.0;
+    w1[3*NHID+0]+=k; w1[4*NHID+1]+=k;   // food dir  -> hidden0/1
+    w1[6*NHID+2]+=k; w1[7*NHID+3]+=k;   // danger dir -> hidden2/3
+    w2[0*NOUT+0]+=k; w2[1*NOUT+1]+=k;   // hidden0/1 -> steer toward food
+    w2[2*NOUT+0]-=k; w2[3*NOUT+1]-=k;   // hidden2/3 -> steer away from danger
+  }
+  return {w1, w2};
+}
+
+function think(b){            // reads global INP, returns [steerX, steerY]
+  const w1=b.w1, w2=b.w2;
+  for(let j=0;j<NHID;j++){
+    let s=0;
+    for(let i=0;i<NIN;i++) s += INP[i]*w1[i*NHID+j];
+    HID[j]=Math.tanh(s);
+  }
+  HID[NHID]=1;               // hidden bias node
+  let o0=0, o1=0;
+  for(let j=0;j<=NHID;j++){ const v=HID[j]; o0+=v*w2[j*NOUT]; o1+=v*w2[j*NOUT+1]; }
+  return [Math.tanh(o0), Math.tanh(o1)];
+}
+
+function mutateBrain(b, m){   // m in [0,1] = mutation strength
+  const w1=b.w1.slice(), w2=b.w2.slice();
+  const rate = 0.12 + 0.55*m;     // fraction of weights nudged
+  const amp  = 0.12 + 1.3*m;      // size of each nudge
+  for(let i=0;i<w1.length;i++){ if(Math.random()<rate) w1[i]+=gauss()*amp; if(Math.random()<0.008) w1[i]=gauss()*0.6; }
+  for(let i=0;i<w2.length;i++){ if(Math.random()<rate) w2[i]+=gauss()*amp; if(Math.random()<0.008) w2[i]=gauss()*0.6; }
+  return {w1, w2};
+}
+
+// fill 3 sensory inputs (unit direction + closeness) for a target, or zeros
+function fill3(base, e, t){
+  if(!t){ INP[base]=0; INP[base+1]=0; INP[base+2]=0; return; }
+  const dx=t.x-e.x, dy=t.y-e.y, d=Math.hypot(dx,dy)||1e-6;
+  INP[base]=dx/d; INP[base+1]=dy/d;
+  INP[base+2]=clamp(1-d/e.sense, 0, 1);
+}
+function senseVec(e, food, danger, rival){
+  const rep  = e.kind==='herb'?P.hrepro:P.crepro;
+  const life = e.kind==='herb'?P.hlife :P.clife;
+  INP[0]=1;
+  INP[1]=clamp(e.energy/rep,0,1.5)/0.75 - 1;
+  INP[2]=clamp(e.age/life,0,1)*2 - 1;
+  fill3(3, e, food); fill3(6, e, danger); fill3(9, e, rival);
+}
+
 function makeCreature(x,y,kind,genes){
   return {
     id: nextId++, x, y, kind,
-    vx:0, vy:0,
-    energy: kind==='herb' ? P.hrepro*0.6 : P.crepro*0.6,
+    vx:0, vy:0, dx:0, dy:0,
+    energy: kind==='herb' ? P.hrepro*0.9 : P.crepro*1.15,
     age: 0,
     born: tick,
     gen: genes ? genes.gen+1 : 0,
-    // genes — these mutate and drive behaviour
+    // physical genes — these mutate alongside the brain
     speed:  genes ? genes.speed  : (kind==='herb'?P.hspeed:P.cspeed),
     sense:  genes ? genes.sense  : (kind==='herb'?P.hsense:P.csense),
     size:   genes ? genes.size   : rand(1.3,0.8),
     hue:    genes ? genes.hue     : (kind==='herb'? rand(210,190): rand(5,355)%360),
+    // the evolving "code"
+    brain:  genes ? genes.brain  : newBrain(P.innate/100),
   };
 }
 
@@ -283,6 +381,7 @@ function mutate(parent, kind){
       sense: j(parent.sense, 8, 300),
       size:  j(parent.size, 0.6, 2.4),
       hue:   (parent.hue + rand(14,-14) + 360) % 360,
+      brain: mutateBrain(parent.brain, m),   // the behaviour evolves here
     }
   );
   generation = Math.max(generation, child.gen);
@@ -350,33 +449,43 @@ function step(){
     }
   }
   // plants ripen
-  for(const pl of plants){ if(pl.e<P.penergy) pl.e = Math.min(P.penergy, pl.e+0.4); }
+  for(const pl of plants){ if(pl.e<P.penergy) pl.e = Math.min(P.penergy, pl.e+1.2); }
 
-  // 2. herbivores: flee predators, seek plants, graze, breed, age
+  // 1b. immigration — the world is an OPEN system: rare new arrivals wander in.
+  // This keeps the ecosystem alive indefinitely and refreshes the gene pool,
+  // so a chance crash or mutational dead-end isn't necessarily forever. Set the
+  // Immigration parameter to 0 for a sealed world that CAN go permanently extinct.
+  if(P.immig>0){
+    const f=P.immig/100;
+    if(herbs.length<760 && Math.random()<f*0.06)
+      herbs.push(makeCreature(rand(WORLD.w),rand(WORLD.h),'herb',null));
+    if(herbs.length>20 && carns.length<220 && Math.random()<f*0.02)
+      carns.push(makeCreature(rand(WORLD.w),rand(WORLD.h),'carn',null));
+  }
+
+  // build all neighbour grids up front (brains sense food / danger / rivals)
   const plantGrid = buildGrid(plants);
+  const herbGrid  = buildGrid(herbs);
   const carnGrid  = buildGrid(carns);
+
+  // 2. herbivores — the brain decides how to move; eating is automatic on touch
   const newHerbs = [];
   for(const h of herbs){
     h.age++;
-    h.energy -= P.hmeta*(0.5 + h.size*0.5) + h.speed*0.02;
-
-    // flee nearest predator within sense
-    const pred = nearest(carnGrid, h.x, h.y, h.sense, null);
-    let ax=0, ay=0;
-    if(pred){
-      const dx=h.x-pred.x, dy=h.y-pred.y, d=Math.hypot(dx,dy)||1;
-      ax += dx/d*2; ay += dy/d*2;
-    } else {
-      const food = nearest(plantGrid, h.x, h.y, h.sense, null);
-      if(food){
-        const dx=food.x-h.x, dy=food.y-h.y, d=Math.hypot(dx,dy)||1;
-        ax += dx/d; ay += dy/d;
-        if(d<6){ h.energy += food.e; food.e=0; food.dead=true; }
-      } else { ax += rand(1,-1); ay += rand(1,-1); }
+    const food  = nearest(plantGrid, h.x, h.y, h.sense, p=>!p.dead);
+    const danger= nearest(carnGrid,  h.x, h.y, h.sense, null);
+    const rival = nearest(herbGrid,  h.x, h.y, h.sense, p=> p!==h && !p.dead);
+    senseVec(h, food, danger, rival);
+    const out = think(h.brain);
+    h.dx=out[0]; h.dy=out[1];
+    move(h, out[0], out[1]);
+    // metabolism: a base cost + a cost for how hard it actually moved
+    h.energy -= P.hmeta*(0.4 + h.size*0.6) + (Math.abs(h.vx)+Math.abs(h.vy))*0.03*h.size;
+    // graze whatever it's standing on
+    if(food && !food.dead){
+      const dx=food.x-h.x, dy=food.y-h.y;
+      if(dx*dx+dy*dy < 36){ h.energy += food.e; food.e=0; food.dead=true; }
     }
-    move(h, ax, ay);
-
-    // reproduce / die
     if(h.energy > P.hrepro*1.4 && herbs.length+newHerbs.length < 2000){
       h.energy -= P.hrepro; newHerbs.push(mutate(h,'herb'));
     }
@@ -384,21 +493,21 @@ function step(){
   }
   plants = plants.filter(p=>!p.dead);
 
-  // 3. predators: hunt herbivores
-  const herbGrid = buildGrid(herbs);
+  // 3. predators — same deal, hunting whatever its brain learned to chase
   const newCarns = [];
   for(const c of carns){
     c.age++;
-    c.energy -= P.cmeta*(0.5 + c.size*0.5) + c.speed*0.03;
-    const prey = nearest(herbGrid, c.x, c.y, c.sense, p=>!p.dead);
-    let ax=0, ay=0;
-    if(prey){
-      const dx=prey.x-c.x, dy=prey.y-c.y, d=Math.hypot(dx,dy)||1;
-      ax += dx/d; ay += dy/d;
-      if(d < 6 + c.size*2){ c.energy += P.cgain; prey.dead=true; }
-    } else { ax += rand(1,-1); ay += rand(1,-1); }
-    move(c, ax, ay);
-
+    const prey  = nearest(herbGrid, c.x, c.y, c.sense, p=>!p.dead);
+    const rival = nearest(carnGrid, c.x, c.y, c.sense, p=> p!==c && !p.dead);
+    senseVec(c, prey, null, rival);   // predators have no natural enemy slot
+    const out = think(c.brain);
+    c.dx=out[0]; c.dy=out[1];
+    move(c, out[0], out[1]);
+    c.energy -= P.cmeta*(0.4 + c.size*0.6) + (Math.abs(c.vx)+Math.abs(c.vy))*0.03*c.size;
+    if(prey && !prey.dead){
+      const dx=prey.x-c.x, dy=prey.y-c.y, reach=9+c.size*3;
+      if(dx*dx+dy*dy < reach*reach){ c.energy += P.cgain; prey.dead=true; }
+    }
     if(c.energy > P.crepro*1.4 && carns.length+newCarns.length < 1200){
       c.energy -= P.crepro; newCarns.push(mutate(c,'carn'));
     }
@@ -411,11 +520,11 @@ function step(){
   recordHistory();
 }
 
-function move(e, ax, ay){
-  const mag = Math.hypot(ax,ay)||1;
+// steer = brain output in [-1,1] per axis; magnitude lets it throttle / rest
+function move(e, sx, sy){
   const sp = e.speed*0.1;
-  e.vx = e.vx*0.6 + (ax/mag)*sp;
-  e.vy = e.vy*0.6 + (ay/mag)*sp;
+  e.vx = e.vx*0.6 + sx*sp;
+  e.vy = e.vy*0.6 + sy*sp;
   e.x += e.vx; e.y += e.vy;
   // wrap-around world (toroidal) keeps things alive at edges
   if(e.x<0) e.x+=WORLD.w; else if(e.x>=WORLD.w) e.x-=WORLD.w;
@@ -634,7 +743,8 @@ function showInspect(c){
   $('avgGenes').innerHTML =
     `<b style="color:var(--gold)">Inspecting ${kind} #${c.id}</b><br>`+
     `gen ${c.gen} · age ${c.age} · energy ${c.energy|0}<br>`+
-    `speed ${c.speed.toFixed(1)} · sense ${c.sense.toFixed(0)} · size ${c.size.toFixed(2)}`;
+    `speed ${c.speed.toFixed(1)} · sense ${c.sense.toFixed(0)} · size ${c.size.toFixed(2)}<br>`+
+    `🧠 brain steer (${c.dx.toFixed(2)}, ${c.dy.toFixed(2)}) · evolved net`;
 }
 
 // -------- go -------------------------------------------------------------
