@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060a">
+<title>🧬 Tierra — Shared-Memory Life &amp; Parasites</title>
+<style>
+  :root{ --bg:#04060a; --panel:#0b1119; --panel2:#111a24; --line:#1e2c3a;
+    --txt:#dfe7ef; --dim:#7e8c9d; --accent:#5dd98a; --gold:#ffcc55; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;}
+  #app{display:flex;height:100%;width:100%;}
+  #stage{position:relative;flex:1 1 auto;min-width:0;background:#02040a;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated;}
+  #hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;font-size:11.5px;}
+  .stat{background:rgba(11,17,25,.82);border:1px solid var(--line);border-radius:7px;padding:4px 8px;backdrop-filter:blur(4px);}
+  .stat b{font-weight:700;}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+  #panel{flex:0 0 340px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:margin-right .25s ease;}
+  #panel.collapsed{margin-right:calc(-340px - 1px);}
+  #panelInner{overflow-y:auto;padding:12px 14px 40px;-webkit-overflow-scrolling:touch;}
+  h1{font-size:15px;margin:2px 0;}.sub{color:var(--dim);font-size:11px;margin-bottom:10px;line-height:1.45;}
+  .row{display:flex;gap:8px;margin:9px 0;}.row button{flex:1;}
+  button{font-family:inherit;cursor:pointer;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;transition:.12s;}
+  button:hover{border-color:var(--accent);color:#fff;}button.primary{background:var(--accent);color:#06210f;border-color:var(--accent);font-weight:700;}
+  details{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:var(--panel2);overflow:hidden;}
+  summary{cursor:pointer;padding:9px 11px;font-size:13px;font-weight:700;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}summary::before{content:"▸";color:var(--dim);margin-right:7px;}details[open] summary::before{content:"▾";}
+  .group{padding:4px 11px 11px;}
+  .ctl{margin:11px 0;}.ctl label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:3px;}
+  .ctl label .val{color:var(--txt);font-weight:700;}
+  input[type=range]{width:100%;height:22px;-webkit-appearance:none;background:transparent;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-7px;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  #graph{width:100%;height:74px;background:#02050b;border:1px solid var(--line);border-radius:8px;display:block;}
+  .legend{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.7;}.hint{color:var(--dim);font-size:10.5px;line-height:1.55;margin-top:4px;}
+  #asm{font-size:10.5px;line-height:1.5;background:#02050b;border:1px solid var(--line);border-radius:6px;padding:7px;max-height:200px;overflow:auto;margin-top:6px;white-space:pre;}
+  #asm .rep{color:#5dd98a;}#asm .tmpl{color:#56657a;}#asm .ctl{color:#5db8ff;}#asm .here{background:rgba(255,204,85,.25);}
+  #toggle{position:absolute;top:8px;right:8px;z-index:5;pointer-events:auto;background:rgba(11,17,25,.9);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="stat">Organisms <b id="hPop">0</b></div>
+      <div class="stat">Gen <b id="hGen">0</b></div>
+      <div class="stat">Avg size <b id="hLen">0</b></div>
+      <div class="stat"><span class="dot" style="background:#ff6b6b"></span>Parasites <b id="hPar">0</b></div>
+      <div class="stat">Memory <b id="hMem">0</b></div>
+      <div class="stat" id="hStatus">▶</div>
+    </div>
+    <button id="toggle">⚙</button>
+  </div>
+  <div id="panel"><div id="panelInner">
+    <h1>🧬 Tierra</h1>
+    <div class="sub">One shared block of <b>memory</b> — the soup — filled with instructions.
+    Every organism is a stretch of self-replicating code with its own CPU. The twist that makes
+    this the deepest sandbox in the series: an organism can <b>read and run code anywhere</b>,
+    but only write into its own offspring. So when a mutant <b>loses its copy loop</b>, it can
+    survive by jumping into a neighbour's loop and replicating on borrowed machinery — a
+    <b>parasite</b>. Nobody wrote parasites; they emerge, and then immunity and counter-parasites
+    chase them. Tap the memory to read the organism living there.</div>
+
+    <div class="row"><button id="btnPlay" class="primary">⏸ Pause</button><button id="btnStep">⏭ Step</button></div>
+    <div class="row"><button id="btnReset">🧬 Reseed</button><button id="btnColor">🎨 View: size</button></div>
+
+    <div class="ctl"><label>Simulation speed <span class="val" id="vSpeed"></span></label><input type="range" id="speed" min="1" max="8" step="1"></div>
+
+    <details open><summary>🧬 Conditions</summary><div class="group">
+      <div class="ctl"><label>Copy error rate <span class="val" id="vCmut"></span></label><input type="range" id="cmut" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Cosmic-ray (soup flips) <span class="val" id="vFlip"></span></label><input type="range" id="flip" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Death rate (reaper) <span class="val" id="vReap"></span></label><input type="range" id="reap" min="5" max="60" step="1"></div>
+    </div></details>
+
+    <details open><summary>📈 Ecology</summary><div class="group">
+      <canvas id="graph"></canvas>
+      <div class="legend"><span class="dot" style="background:#5db8ff"></span>organisms
+        <span class="dot" style="background:var(--gold);margin-left:6px;"></span>avg size
+        <span class="dot" style="background:#ff6b6b;margin-left:6px;"></span>parasites</div>
+      <div class="hint" id="avg"></div>
+    </div></details>
+
+    <details open><summary>💾 Organism (tap memory)</summary><div class="group">
+      <div class="hint" id="orgInfo">tap the soup to disassemble an organism…</div>
+      <div id="asm"></div>
+    </div></details>
+
+    <div class="hint">Drag to pan · scroll/pinch to zoom · tap a cell to read its code. Watch the
+    soup fill with one ancestor, then watch shorter parasites (red) bloom and crash in cycles.</div>
+  </div></div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const graph=document.getElementById('graph'),gctx=graph.getContext('2d');
+const $=id=>document.getElementById(id);
+const clamp=(v,lo,hi)=>v<lo?lo:v>hi?hi:v;
+
+const P={ speed:3, cmut:12, flip:2, reap:25 };
+const sliders={ speed:'vSpeed', cmut:'vCmut', flip:'vFlip', reap:'vReap' };
+function syncUI(){ for(const k in sliders){ const el=$(k); el.value=P[k]; $(sliders[k]).textContent=P[k]; } }
+for(const k in sliders) $(k).addEventListener('input',e=>{ P[k]=+e.target.value; $(sliders[k]).textContent=P[k]; });
+
+// ===========================================================================
+//  THE SOUP  —  one shared circular array of instructions.  Organisms may READ
+//  and EXECUTE anywhere, but may only WRITE into a block they have allocated.
+//  That single asymmetry is what lets parasites evolve.
+// ===========================================================================
+const SS=48000;
+const soup=new Int16Array(SS);
+const owner=new Int32Array(SS);            // which organism id owns each cell (-1 = free)
+let freeCells=SS;
+// instruction set (compact, Tierra-flavoured)
+const INAMES=['nop0','nop1','reset','alloc','copy','dec','ifz','jmp','divide','inc','push','pop','ifnz','sub'];
+const NI=INAMES.length;
+const CLS=['tmpl','tmpl','rep','rep','rep','rep','ctl','ctl','rep','rep','rep','rep','ctl','rep'];
+const JUNK=NI;   // empty memory is filled with non-template junk (so the void isn't one giant "0000" template)
+function inDaughter(o,w){ const rel=((w-o.dstart)%SS+SS)%SS; return o.hasChild && rel<o.dlen; }
+// the ANCESTOR self-replicator (verified): start template, reset+alloc,
+//   [ "00" loop-start | copy | dec | ifz->exit | jmp "11"->find "00" ] , divide
+const ANCESTOR=[1,1, 2,3, 0,0, 4,5,6, 7,1,1, 8];
+
+let pop=[], tick=0, generation=0, nextId=1, allocCur=0;
+
+function makeOrg(addr,len,gen){
+  return { id:nextId++, addr, len, gen:gen||0, ip:addr, read:addr, write:0, dstart:-1, dlen:0, hasChild:false,
+    cx:0, bx:0, stack:[], age:0, errors:0, foreign:0, parasite:false }; }
+
+function freeBlock(a,l){ for(let i=0;i<l;i++){ const p=((a+i)%SS+SS)%SS; if(owner[p]!==-1){ owner[p]=-1; freeCells++; } soup[p]=JUNK; } }
+function claim(a,l,id){ for(let i=0;i<l;i++){ const p=((a+i)%SS+SS)%SS; if(owner[p]===-1) freeCells--; owner[p]=id; } }
+
+function reseed(){ soup.fill(JUNK); owner.fill(-1); freeCells=SS; pop=[]; tick=0; generation=0; nextId=1; allocCur=0; history.length=0;
+  // write one ancestor into the soup and register it
+  const L=ANCESTOR.length, base=(SS/2)|0;
+  for(let i=0;i<L;i++) soup[base+i]=ANCESTOR[i];
+  const o=makeOrg(base,L,0); claim(base,L,o.id); pop.push(o); }
+
+// ---- template matching (binary nop templates) ----
+function tmplLen(pos){ let n=0; while(n<10){ const v=soup[((pos+n)%SS+SS)%SS]; if(v>1) break; n++; } return n; }
+function findComplement(fromIp, tlen){
+  // template is the nops at fromIp+1.. ; search outward for the COMPLEMENT pattern
+  const t0=((fromIp+1)%SS+SS)%SS;
+  for(let d=1; d<=2200; d++){
+    for(let s=0;s<2;s++){ const base=((fromIp + (s?-d:d))%SS+SS)%SS;
+      let ok=true; for(let i=0;i<tlen;i++){ const want=soup[((t0+i)%SS+SS)%SS]^1; if(soup[((base+i)%SS+SS)%SS]!==want){ok=false;break;} }
+      if(ok) return ((base+tlen)%SS+SS)%SS;
+    }
+  }
+  return -1;
+}
+function alloc(o){ if(o.hasChild){ freeBlock(o.dstart,o.dlen); o.hasChild=false; }   // re-alloc: release the orphaned previous daughter
+  const need=o.cx>0?o.cx:o.len; if(need<5||need>400) return false;   // floor on viable genome size
+  for(let t=0;t<60;t++){ const start=allocCur; allocCur=(allocCur+ (need*1.7|0) + 13)%SS;
+    let ok=true; for(let i=0;i<need;i++){ if(owner[((start+i)%SS+SS)%SS]!==-1){ ok=false; break; } }
+    if(ok){ o.dstart=start%SS; o.dlen=need; o.write=o.dstart; o.hasChild=true; claim(o.dstart,o.dlen,o.id); return true; } }
+  return false; }
+function divide(o,births){
+  if(!o.hasChild || o.dlen<5){ o.hasChild=false; return; }
+  const child=makeOrg(o.dstart, o.dlen, o.gen+1);
+  // ownership of the daughter block transfers to the child
+  for(let i=0;i<o.dlen;i++){ owner[((o.dstart+i)%SS+SS)%SS]=child.id; }
+  child.parasite = (o.foreign>3 && o.dlen<10);        // short, and replicated on foreign code
+  generation=Math.max(generation,child.gen); births.push(child);
+  o.hasChild=false; o.dstart=-1; o.dlen=0; o.foreign=0;
+}
+function exec(o,births){
+  const ipw=((o.ip%SS)+SS)%SS; const i=soup[ipw]; let nextIp=o.ip+1;
+  if(ipw<o.addr-2 || ipw>o.addr+o.len+1){ o.foreign++; } // executing outside own block = using foreign code
+  const cm=P.cmut/100*0.025;
+  switch(i){
+    case 0: case 1: break;                                              // nop templates
+    case 2: o.read=o.addr; o.cx=o.len; break;                           // reset: read head -> own start, CX = own length
+    case 3: alloc(o); break;                                            // alloc daughter
+    case 4: if(o.hasChild){ const w=((o.write%SS)+SS)%SS;               // copy: ONLY into own daughter block
+              if(inDaughter(o,w)){ let v=soup[((o.read%SS)+SS)%SS]; if(Math.random()<cm) v=(Math.random()*NI)|0; soup[w]=v; o.write++; o.read++; }
+              else o.errors++; } break;
+    case 5: o.cx=(o.cx-1)|0; break;                                     // dec CX
+    case 6: if(o.cx===0) nextIp=o.ip+2; break;                          // ifz: skip next if CX==0
+    case 7: { const tl=tmplLen(o.ip+1); const dst=tl?findComplement(o.ip,tl):-1; if(dst>=0) nextIp=dst; else nextIp=o.ip+1+tl; } break; // jmp to complementary template
+    case 8: divide(o,births); break;                                   // divide
+    case 9: o.cx=(o.cx+1)|0; break;
+    case 10: if(o.stack.length<12) o.stack.push(o.cx); break;
+    case 11: o.cx= o.stack.length? o.stack.pop()|0 : 0; break;
+    case 12: if(o.cx!==0) nextIp=o.ip+2; break;                         // ifnz
+    case 13: o.cx=(o.cx-o.bx)|0; break;
+    default: break;
+  }
+  o.ip=((nextIp%SS)+SS)%SS;
+}
+
+const history=[],HISTMAX=300;
+function recordHistory(){ if(tick%2) return; let l=0,par=0; for(const o of pop){ l+=o.len; if(o.parasite)par++; }
+  history.push([pop.length, pop.length?l/pop.length:0, par]); if(history.length>HISTMAX) history.shift(); }
+
+function update(){
+  tick++;
+  // cosmic rays: random flips anywhere in the soup
+  const flips=Math.round(P.flip/100*8); for(let k=0;k<flips;k++) soup[(Math.random()*SS)|0]=(Math.random()*NI)|0;
+  const births=[];
+  for(const o of pop){ if(o.dead) continue; o.age++;
+    for(let k=0;k<8 && !o.dead;k++) exec(o,births);
+    if(o.errors>40 || o.age>2500) o.dead=true;          // death (errors or senescence) -> turnover -> evolution
+  }
+  // reaper: keep memory headroom so replication & jumps stay reliable
+  pop=pop.concat(births);
+  const occ=1-freeCells/SS;
+  if(occ>0.8){
+    pop.sort((a,b)=> (b.age - a.age) + (b.errors-a.errors)*5 );   // oldest / most error-prone first
+    let kill=Math.max(births.length, Math.floor(pop.length*0.05));
+    for(let n=0;n<kill && pop.length>1;n++){ pop[n].dead=true; }
+  }
+  // clear dead & free their memory
+  const alive=[]; for(const o of pop){ if(o.dead){ freeBlock(o.addr,o.len); if(o.hasChild) freeBlock(o.dstart,o.dlen); } else alive.push(o); }
+  pop=alive;
+  if(tick%48===0){ let f=0; for(let i=0;i<SS;i++) if(owner[i]<0) f++; freeCells=f; }   // correct any bookkeeping drift
+  if(pop.length<2){ // reinject ancestor if life dies out
+    const L=ANCESTOR.length, base=(Math.random()*(SS-L))|0; let ok=true; for(let i=0;i<L;i++) if(owner[(base+i)%SS]!==-1){ok=false;break;}
+    if(ok){ for(let i=0;i<L;i++) soup[base+i]=ANCESTOR[i]; const o=makeOrg(base,L,0); claim(base,L,o.id); pop.push(o); } }
+  recordHistory();
+}
+
+// ===========================================================================
+//  RENDER  — the soup as a 2D memory map; one pixel per memory cell
+// ===========================================================================
+const COLS=240, ROWS=Math.ceil(SS/COLS);
+const view={ x:0, y:0, zoom:1, _w:900, _h:600 };
+let colorMode='size';
+let field=document.createElement('canvas'); field.width=COLS; field.height=ROWS;
+const fctx=field.getContext('2d'); let img=null; try{ img=fctx.createImageData(COLS,ROWS); }catch(e){}
+const orgById=new Map();
+function resize(){ const dpr=Math.min(2,window.devicePixelRatio||1);
+  for(const [cv,c2] of [[canvas,ctx],[graph,gctx]]){ const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr; c2.setTransform(dpr,0,0,dpr,0,0); cv._w=r.width; cv._h=r.height; } view._w=canvas._w; view._h=canvas._h; }
+window.addEventListener('resize',resize);
+let selected=null, selId=-1;
+function hsv(h,s,v){ h=((h%360)+360)%360/60; const c=v*s,x=c*(1-Math.abs(h%2-1)),m=v-c; let r,g,b;
+  if(h<1){r=c;g=x;b=0;}else if(h<2){r=x;g=c;b=0;}else if(h<3){r=0;g=c;b=x;}else if(h<4){r=0;g=x;b=c;}else if(h<5){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+  return [(r+m)*255,(g+m)*255,(b+m)*255]; }
+function render(){
+  ctx.fillStyle='#02040a'; ctx.fillRect(0,0,view._w,view._h);
+  if(!img){ return; } const d=img.data;
+  orgById.clear(); for(const o of pop) orgById.set(o.id,o);
+  for(let i=0;i<SS;i++){ const own=owner[i]; let r,g,b;
+    if(own<0){ const v=soup[i]; r=8+v*2; g=12+v*3; b=16+v*2; }    // free memory: faint instruction colour
+    else { const o=orgById.get(own);
+      if(!o){ r=20;g=24;b=30; }
+      else if(colorMode==='parasite'){ if(o.parasite){r=255;g=80;b=80;} else {r=70;g=150;b=110;} }
+      else if(colorMode==='lineage'){ const c=hsv((o.gen*53)%360,0.6,0.85); r=c[0];g=c[1];b=c[2]; }
+      else { const c=hsv(clamp(o.len,8,90)/90*250,0.75,0.95); r=c[0];g=c[1];b=c[2]; }
+    }
+    const p=i*4; d[p]=r;d[p+1]=g;d[p+2]=b;d[p+3]=255;
+  }
+  fctx.putImageData(img,0,0); ctx.imageSmoothingEnabled=false;
+  const cw=view._w/COLS*view.zoom, ch=view._h/ROWS*view.zoom;
+  ctx.drawImage(field, view.x, view.y, COLS*cw, ROWS*ch);
+  if(selected && !selected.dead){ const a=selected.addr; const sx=view.x+(a%COLS)*cw, sy=view.y+((a/COLS)|0)*ch;
+    ctx.strokeStyle='#ffcc55'; ctx.lineWidth=1.5; ctx.strokeRect(sx-1,sy-1,Math.max(2,selected.len*cw),ch+2); }
+}
+function drawGraph(){ const w=graph._w,h=graph._h; gctx.clearRect(0,0,w,h); if(history.length<2) return;
+  let mP=1,mL=1,mPar=1; for(const r of history){ if(r[0]>mP)mP=r[0]; if(r[1]>mL)mL=r[1]; if(r[2]>mPar)mPar=r[2]; }
+  const n=history.length, line=(idx,sc,col)=>{ gctx.strokeStyle=col; gctx.lineWidth=1.4; gctx.beginPath();
+    for(let i=0;i<n;i++){ const x=i/(HISTMAX-1)*w, y=h-(history[i][idx]/sc)*(h-6)-3; i?gctx.lineTo(x,y):gctx.moveTo(x,y);} gctx.stroke(); };
+  line(0,mP,'#5db8ff'); line(1,mL,'#ffcc55'); line(2,Math.max(mPar,1),'#ff6b6b'); }
+function disasm(o){ let s=''; for(let i=0;i<o.len && i<140;i++){ const a=((o.addr+i)%SS+SS)%SS; const ins=soup[a];
+  const here=(a===((o.ip%SS+SS)%SS))?' here':''; s+=`<span class="${CLS[ins]||'tmpl'}${here}">${String(i).padStart(3)}  ${INAMES[ins]||'?'}</span>\n`; } return s; }
+function inspect(o){ $('orgInfo').innerHTML=`<b style="color:var(--gold)">Organism #${o.id}</b> · gen ${o.gen} · ${o.len} instr · age ${o.age}`+
+    (o.parasite?` · <b style="color:#ff6b6b">PARASITE</b> (replicates on foreign code)`:'')+`<br>errors ${o.errors} · foreign exec ${o.foreign}`;
+  $('asm').innerHTML=disasm(o); }
+function updateHUD(){ let l=0,par=0; for(const o of pop){ l+=o.len; if(o.parasite)par++; } const n=pop.length||1;
+  $('hPop').textContent=pop.length; $('hGen').textContent=generation; $('hLen').textContent=(l/n).toFixed(1);
+  $('hPar').textContent=par; $('hMem').textContent=Math.round((1-freeCells/SS)*100)+'%';
+  if(selId>=0){ const o=pop.find(p=>p.id===selId); selected=o&&!o.dead?o:null; if(o) inspect(o); }
+  if(!selected) $('avg').innerHTML= pop.length? `${pop.length} organisms · avg ${(l/n).toFixed(1)} instr · ${par} parasites · memory ${Math.round((1-freeCells/SS)*100)}% full`:'Empty soup.'; }
+
+let running=true;
+function frame(){ if(running) for(let i=0;i<P.speed;i++) update();
+  render(); drawGraph(); updateHUD(); requestAnimationFrame(frame); }
+$('btnPlay').addEventListener('click',()=>{ running=!running; $('btnPlay').textContent=running?'⏸ Pause':'▶ Play'; $('hStatus').textContent=running?'▶':'⏸'; });
+$('btnStep').addEventListener('click',()=>{ running=false; $('btnPlay').textContent='▶ Play'; update(); });
+$('btnReset').addEventListener('click',()=> reseed());
+$('btnColor').addEventListener('click',()=>{ colorMode= colorMode==='size'?'parasite':colorMode==='parasite'?'lineage':'size'; $('btnColor').textContent='🎨 View: '+colorMode; });
+$('toggle').addEventListener('click',()=> $('panel').classList.toggle('collapsed'));
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,moved:false,vx:view.x,vy:view.y}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true; view.x=drag.vx+dx; view.y=drag.vy+dy; });
+canvas.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=canvas.getBoundingClientRect();
+  const cw=view._w/COLS*view.zoom, ch=view._h/ROWS*view.zoom; const gx=Math.floor((e.clientX-r.left-view.x)/cw), gy=Math.floor((e.clientY-r.top-view.y)/ch);
+  const cellIdx=gy*COLS+gx; if(cellIdx>=0&&cellIdx<SS){ const own=owner[cellIdx]; const o= own>=0? pop.find(p=>p.id===own):null; selected=o||null; selId=o?o.id:-1; if(o) inspect(o); } } drag=null; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*(e.deltaY<0?1.12:0.89),0.5,20); },{passive:false});
+let pinch=null;
+canvas.addEventListener('touchstart',e=>{ if(e.touches.length===2)pinch=tdist(e); },{passive:false});
+canvas.addEventListener('touchmove',e=>{ if(e.touches.length===2&&pinch){ e.preventDefault(); const d=tdist(e); view.zoom=clamp(view.zoom*d/pinch,0.5,20); pinch=d; } },{passive:false});
+canvas.addEventListener('touchend',e=>{ if(e.touches.length<2)pinch=null; });
+function tdist(e){ const a=e.touches[0],b=e.touches[1]; return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY); }
+
+syncUI(); resize(); reseed();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
