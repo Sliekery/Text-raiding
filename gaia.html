@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060a">
+<title>🌐 Gaia — A Planet of Evolving Code</title>
+<style>
+  :root{ --bg:#04060a; --panel:#0b1119; --panel2:#111a24; --line:#1e2c3a;
+    --txt:#dfe7ef; --dim:#7e8c9d; --accent:#5dd98a; --gold:#ffcc55; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;}
+  #app{display:flex;height:100%;width:100%;}
+  #stage{position:relative;flex:1 1 auto;min-width:0;background:#02040a;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated;}
+  #hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;font-size:11.5px;}
+  .stat{background:rgba(11,17,25,.82);border:1px solid var(--line);border-radius:7px;padding:4px 8px;backdrop-filter:blur(4px);}
+  .stat b{font-weight:700;}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+  #panel{flex:0 0 340px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:margin-right .25s ease;}
+  #panel.collapsed{margin-right:calc(-340px - 1px);}
+  #panelInner{overflow-y:auto;padding:12px 14px 40px;-webkit-overflow-scrolling:touch;}
+  h1{font-size:15px;margin:2px 0;}.sub{color:var(--dim);font-size:11px;margin-bottom:10px;line-height:1.45;}
+  .row{display:flex;gap:8px;margin:9px 0;}.row button{flex:1;}
+  button{font-family:inherit;cursor:pointer;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;transition:.12s;}
+  button:hover{border-color:var(--accent);color:#fff;}button.primary{background:var(--accent);color:#06210f;border-color:var(--accent);font-weight:700;}
+  details{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:var(--panel2);overflow:hidden;}
+  summary{cursor:pointer;padding:9px 11px;font-size:13px;font-weight:700;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}summary::before{content:"▸";color:var(--dim);margin-right:7px;}details[open] summary::before{content:"▾";}
+  .group{padding:4px 11px 11px;}
+  .ctl{margin:11px 0;}.ctl label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:3px;}
+  .ctl label .val{color:var(--txt);font-weight:700;}
+  input[type=range]{width:100%;height:22px;-webkit-appearance:none;background:transparent;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-7px;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #06210f;}
+  #graph{width:100%;height:74px;background:#02050b;border:1px solid var(--line);border-radius:8px;display:block;}
+  .legend{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.7;}.hint{color:var(--dim);font-size:10.5px;line-height:1.55;margin-top:4px;}
+  #asm{font-size:10.5px;line-height:1.5;background:#02050b;border:1px solid var(--line);border-radius:6px;padding:7px;max-height:200px;overflow:auto;margin-top:6px;white-space:pre;}
+  #asm .rep{color:#5dd98a;}#asm .io{color:#ffcc55;}#asm .cmp{color:#5db8ff;}#asm .atk{color:#ff6b6b;}#asm .nop{color:#56657a;}
+  #toggle{position:absolute;top:8px;right:8px;z-index:5;pointer-events:auto;background:rgba(11,17,25,.9);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;}
+  #era{position:absolute;top:42px;right:8px;pointer-events:none;background:rgba(11,17,25,.82);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="stat">Organisms <b id="hPop">0</b></div>
+      <div class="stat">Gen <b id="hGen">0</b></div>
+      <div class="stat">Avg code <b id="hLen">0</b></div>
+      <div class="stat">Genotypes <b id="hGeno">0</b></div>
+      <div class="stat">Max tasks <b id="hTasks">0</b></div>
+      <div class="stat" id="hStatus">▶</div>
+    </div>
+    <div id="era">🌑 era —</div>
+    <button id="toggle">⚙</button>
+  </div>
+  <div id="panel"><div id="panelInner">
+    <h1>🌐 Gaia</h1>
+    <div class="sub">The self-replicating code of <b>Soup</b>, now planted on a <b>world</b>:
+    a grid planet with resource <b>biomes</b> (rich greens, barren reds). Organisms harvest
+    local energy to fund their CPU, divide into neighbouring land, and compete for territory.
+    Three forces of open-ended evolution are switched on: <b>predation / parasitism</b> (steal a
+    neighbour's energy), <b>sexual recombination</b> (cross genomes on birth), and an
+    <b>escalating environment</b> — as life masters today's logic tasks, the world demands
+    harder ones, so the bar keeps rising. Nobody wrote a fitness function. Tap any pixel of
+    land to read the organism living there.</div>
+
+    <div class="row"><button id="btnPlay" class="primary">⏸ Pause</button><button id="btnStep">⏭ Step</button></div>
+    <div class="row"><button id="btnReset">🌍 New world</button><button id="btnColor">🎨 View: complexity</button></div>
+
+    <div class="ctl"><label>Simulation speed <span class="val" id="vSpeed"></span></label><input type="range" id="speed" min="1" max="8" step="1"></div>
+
+    <details open><summary>🌍 World</summary><div class="group">
+      <div class="ctl"><label>Resource richness <span class="val" id="vRich"></span></label><input type="range" id="rich" min="20" max="200" step="5"></div>
+      <div class="ctl"><label>Regrowth rate <span class="val" id="vRegen"></span></label><input type="range" id="regen" min="1" max="40" step="1"></div>
+      <div class="ctl"><label>Escalation (raise the bar) <span class="val" id="vEsc"></span></label><input type="range" id="esc" min="0" max="100" step="5"></div>
+    </div></details>
+
+    <details><summary>🧬 Forces of evolution</summary><div class="group">
+      <div class="ctl"><label>Predation / parasitism <span class="val" id="vPred"></span></label><input type="range" id="pred" min="0" max="100" step="5"></div>
+      <div class="ctl"><label>Sexual recombination <span class="val" id="vSex"></span></label><input type="range" id="sex" min="0" max="100" step="5"></div>
+      <div class="ctl"><label>Copy error <span class="val" id="vCmut"></span></label><input type="range" id="cmut" min="0" max="100" step="1"></div>
+      <div class="ctl"><label>Insertion / deletion <span class="val" id="vIndel"></span></label><input type="range" id="indel" min="0" max="100" step="1"></div>
+    </div></details>
+
+    <details open><summary>📈 Evolution</summary><div class="group">
+      <canvas id="graph"></canvas>
+      <div class="legend"><span class="dot" style="background:#5db8ff"></span>population
+        <span class="dot" style="background:var(--gold);margin-left:6px;"></span>avg code length
+        <span class="dot" style="background:#c98bff;margin-left:6px;"></span>max tasks (complexity)</div>
+      <div class="hint" id="avg"></div>
+    </div></details>
+
+    <details open><summary>💾 Organism (tap land)</summary><div class="group">
+      <div class="hint" id="orgInfo">tap a living cell to disassemble its code…</div>
+      <div id="asm"></div>
+    </div></details>
+
+    <div class="hint">Drag to pan · scroll/pinch to zoom · tap a cell to read its genome.
+    Watch a single ancestor colonise a continent, then differentiate by biome.</div>
+  </div></div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const graph=document.getElementById('graph'),gctx=graph.getContext('2d');
+const $=id=>document.getElementById(id);
+const clamp=(v,lo,hi)=>v<lo?lo:v>hi?hi:v;
+
+const P={ speed:2, rich:100, regen:14, esc:60, pred:40, sex:30, cmut:18, indel:10 };
+const sliders={ speed:'vSpeed', rich:'vRich', regen:'vRegen', esc:'vEsc', pred:'vPred', sex:'vSex', cmut:'vCmut', indel:'vIndel' };
+function syncUI(){ for(const k in sliders){ const el=$(k); el.value=P[k]; $(sliders[k]).textContent=P[k]; } }
+for(const k in sliders) $(k).addEventListener('input',e=>{ P[k]=+e.target.value; $(sliders[k]).textContent=P[k]; });
+
+// ===========================================================================
+//  THE PLANET (grid of land cells, each holding at most one organism)
+// ===========================================================================
+const GW=144, GH=84, GN=GW*GH;
+const cap=new Float32Array(GN);     // per-cell resource capacity (the biome)
+const res=new Float32Array(GN);     // current resource
+const cellOrg=new Array(GN).fill(null);
+let planetSeed=1;
+function noise(x,y,s){ const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const h=(ix,iy)=>{ let n=(ix*1619+iy*31337+s*1013)|0; n=(n<<13)^n; return 1-(((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824); };
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return (h(xi,yi)*(1-u)+h(xi+1,yi)*u)*(1-v)+(h(xi,yi+1)*(1-u)+h(xi+1,yi+1)*u)*v; }
+function generateWorld(){ for(let y=0;y<GH;y++){ const lat=Math.abs(y/(GH-1)-0.5)*2;
+  for(let x=0;x<GW;x++){ const i=y*GW+x; const n=0.5+0.6*noise(x/GW*5,y/GH*5,planetSeed);
+    cap[i]=clamp((1-lat)*2.4+0.4,0.2,3)*(0.4+n)*(P.rich/100); res[i]=cap[i]; } } }
+
+// ===========================================================================
+//  THE VIRTUAL CPU  (genome = self-replicating code; same engine as Soup + ATTACK)
+// ===========================================================================
+const INAMES=['nopA','nopB','nopC','alloc','set-flow','copy','if-n-done','jmp-flow','divide',
+  'IO','nand','inc','dec','push','pop','mov-AB','mov-BA','mov-BC','add','if-equ','attack'];
+const NI=INAMES.length;
+const CLS=['nop','nop','nop','rep','rep','rep','rep','rep','rep','io','cmp','cmp','cmp','cmp','cmp','cmp','cmp','cmp','cmp','cmp','atk'];
+const ANCESTOR=[3,4,5,6,7,8];   // alloc→set-flow→[copy→if-n-done→jmp-flow]→divide
+// auto-curriculum: ECHO is the trivial stepping-stone (just repeat an input), which
+// seeds IO into the gene pool; harder logic tasks unlock only once life masters the
+// easier ones, so the bar keeps rising — the engine against the complexity plateau.
+const TASKS=[ ['ECHO',(a,b)=>a>>>0],['NOT',(a,b)=>(~a)>>>0],['NAND',(a,b)=>(~(a&b))>>>0],
+  ['AND',(a,b)=>(a&b)>>>0],['OR',(a,b)=>(a|b)>>>0],['ANDN',(a,b)=>(a&(~b))>>>0],
+  ['NOR',(a,b)=>(~(a|b))>>>0],['XOR',(a,b)=>(a^b)>>>0],['EQU',(a,b)=>(~(a^b))>>>0] ];
+
+let pop=[], tick=0, generation=0, nextId=1, maxTasks=0, unlocked=1;
+const ERAS=['🌑 primordial','🌱 colonisation','🧠 logic dawns','⚙ computation','🔬 complexity','✨ deep evolution'];
+
+function makeOrg(genome,gen,cx,cy){ const i=cy*GW+cx;
+  return { id:nextId++, genome, gen:gen||0, ip:0, flow:0, rh:0, wh:0, repl:false, child:null,
+    regs:new Int32Array(3), stack:[], inputs:[], tasks:0, taskSet:0, merit:1, energy:6, age:0, cx, cy, cell:i }; }
+
+function generateLife(){ pop=[]; cellOrg.fill(null); tick=0; generation=0; nextId=1; maxTasks=0; unlocked=1; history.length=0;
+  for(let k=0;k<200;k++){ const cx=(Math.random()*GW)|0, cy=(Math.random()*GH)|0, i=cy*GW+cx;
+    if(!cellOrg[i]){ const o=makeOrg(ANCESTOR.slice(),0,cx,cy); cellOrg[i]=o; pop.push(o); } } }
+function newWorld(){ planetSeed=(Math.random()*1e6)|0; generateWorld(); generateLife(); }
+
+function checkTasks(o,out){ if(o.inputs.length<2) return;
+  const a=o.inputs[o.inputs.length-1]>>>0,b=o.inputs[o.inputs.length-2]>>>0;
+  for(let t=0;t<unlocked && t<TASKS.length;t++){ if(o.taskSet&(1<<t))continue;
+    if(out===TASKS[t][1](a,b)){ o.taskSet|=(1<<t); o.tasks++; if(o.tasks>maxTasks)maxTasks=o.tasks; o.merit=1<<Math.min(o.tasks,12); } } }
+function io(o){ const out=o.regs[1]>>>0; checkTasks(o,out);
+  const inp=(Math.random()*0xffffffff)>>>0; o.regs[1]=inp|0; o.inputs.push(inp); if(o.inputs.length>4)o.inputs.shift(); }
+
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+function neighborCell(o,k){ const d=DIRS[k]; const nx=((o.cx+d[0])%GW+GW)%GW, ny=((o.cy+d[1])%GH+GH)%GH; return ny*GW+nx; }
+function divide(o,births){
+  if(!o.repl||!o.child||o.child.length<2){ o.repl=false; o.child=null; return; }
+  let c=o.child.slice();
+  if(Math.random()<P.indel/100*0.5 && c.length<200){ c.splice((Math.random()*c.length)|0,0,(Math.random()*NI)|0); }
+  if(Math.random()<P.indel/100*0.5 && c.length>3){ c.splice((Math.random()*c.length)|0,1); }
+  // sexual recombination: cross the child with a neighbour's genome
+  if(Math.random()<P.sex/100){ for(let k=0;k<8;k++){ const occ=cellOrg[neighborCell(o,k)];
+    if(occ&&occ!==o&&occ.genome.length>2){ const a=(Math.random()*c.length)|0,b=(Math.random()*occ.genome.length)|0;
+      c=c.slice(0,a).concat(occ.genome.slice(b)); break; } } }
+  if(c.length<2||c.length>200){ o.repl=false; o.child=null; return; }
+  // find a home for the child among the 8 neighbours
+  const order=[0,1,2,3,4,5,6,7]; for(let i=7;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=order[i];order[i]=order[j];order[j]=t; }
+  let placed=-1, victim=null;
+  for(const k of order){ const ni=neighborCell(o,k); if(!cellOrg[ni]){ placed=ni; break; } }
+  if(placed<0){ const ni=neighborCell(o,order[0]); const occ=cellOrg[ni]; if(occ && (o.energy>occ.energy||Math.random()<0.25)){ placed=ni; victim=occ; } }
+  if(placed<0){ o.repl=false; o.child=null; return; }
+  if(victim){ victim.dead=true; }
+  const cx=placed%GW, cy=(placed/GW)|0; const child=makeOrg(c,o.gen+1,cx,cy);
+  child.energy=o.energy*0.45; o.energy*=0.5;
+  cellOrg[placed]=child; births.push(child); generation=Math.max(generation,child.gen);
+  o.repl=false; o.child=null; o.rh=0; o.wh=0;
+}
+function exec(o,births){
+  const g=o.genome, len=g.length; if(len<1){o.dead=true;return;}
+  const ip=((o.ip%len)+len)%len, i=g[ip]; let nextIp=ip+1; const cm=P.cmut/100*0.02;
+  switch(i){
+    case 3: o.child=[]; o.rh=0; o.wh=0; o.repl=true; break;
+    case 4: o.flow=(ip+1)%len; break;
+    case 5: if(o.repl){ let v=g[((o.rh%len)+len)%len]; if(Math.random()<cm)v=(Math.random()*NI)|0; o.child[o.wh++]=v; o.rh++; } break;
+    case 6: if(o.rh>=len) nextIp=ip+2; break;
+    case 7: nextIp=o.flow; break;
+    case 8: divide(o,births); break;
+    case 9: io(o); break;
+    case 10: o.regs[2]=(~(o.regs[0]&o.regs[1]))|0; break;
+    case 11: o.regs[1]=(o.regs[1]+1)|0; break;
+    case 12: o.regs[1]=(o.regs[1]-1)|0; break;
+    case 13: if(o.stack.length<16) o.stack.push(o.regs[1]); break;
+    case 14: o.regs[1]=o.stack.length?o.stack.pop()|0:0; break;
+    case 15: o.regs[0]=o.regs[1]; break;                                    // mov-AB: A <- B
+    case 16: o.regs[1]=o.regs[0]; break;                                    // mov-BA: B <- A
+    case 17: o.regs[1]=o.regs[2]; break;                                    // mov-BC: B <- C
+    case 18: o.regs[2]=(o.regs[0]+o.regs[1])|0; break;
+    case 19: if(o.regs[1]!==o.regs[2]) nextIp=ip+2; break;
+    case 20: if(P.pred>0){ for(let k=0;k<8;k++){ const occ=cellOrg[neighborCell(o,k)]; if(occ&&occ!==o&&!occ.dead){
+              const drain=Math.min(occ.energy*0.4, 3)*(P.pred/100); occ.energy-=drain; o.energy+=drain*0.85; break; } } } break; // attack/parasitise
+    default: break;
+  }
+  o.ip=((nextIp%len)+len)%len;
+}
+
+const history=[],HISTMAX=300;
+function recordHistory(){ if(tick%2) return; let l=0; for(const o of pop) l+=o.genome.length;
+  history.push([pop.length, pop.length?l/pop.length:0, maxTasks]); if(history.length>HISTMAX) history.shift(); }
+
+function update(){
+  tick++;
+  // resource regrowth across the planet
+  const rg=P.regen/100; for(let i=0;i<GN;i++){ if(res[i]<cap[i]) res[i]+=(cap[i]-res[i])*rg; }
+  // escalation: when life masters the unlocked tasks, the world demands a harder one
+  if(P.esc>0 && unlocked<TASKS.length && maxTasks>=unlocked && Math.random()<P.esc/100*0.02) unlocked++;
+  let mtot=0; for(const o of pop) mtot+=o.merit; const mavg=mtot/(pop.length||1);
+  const births=[];
+  for(const o of pop){
+    if(o.dead) continue; o.age++;
+    // harvest local resource; doing logic tasks extracts more energy (metabolism of computation)
+    const take=Math.min(res[o.cell], 1.4)*(1+0.5*o.tasks); o.energy+=take; res[o.cell]-=Math.min(res[o.cell],1.4);
+    let cycles=clamp(1+((o.energy*0.6)|0), 1, 26); cycles=clamp(Math.round(cycles*o.merit/(mavg||1)),1,40);
+    for(let k=0;k<cycles && !o.dead;k++){ exec(o,births); o.energy-=0.12; if(o.energy<-3){o.dead=true;break;} }
+    if(o.age>2600) o.dead=true;
+  }
+  // clear dead from grid, keep living + newborns
+  for(const o of pop){ if(o.dead && cellOrg[o.cell]===o) cellOrg[o.cell]=null; }
+  pop=pop.filter(o=>!o.dead).concat(births);
+  if(pop.length<6){ for(let k=0;k<40;k++){ const cx=(Math.random()*GW)|0, cy=(Math.random()*GH)|0, i=cy*GW+cx; if(!cellOrg[i]){ const o=makeOrg(ANCESTOR.slice(),0,cx,cy); cellOrg[i]=o; pop.push(o);} } }
+  recordHistory();
+}
+
+// ===========================================================================
+//  RENDER  (the planet as an image; one pixel per land cell)
+// ===========================================================================
+const view={ x:0, y:0, zoom:1, _w:900, _h:600 };
+let colorMode='complexity';
+let field=document.createElement('canvas'); field.width=GW; field.height=GH;
+const fctx=field.getContext('2d'); let img=null; try{ img=fctx.createImageData(GW,GH); }catch(e){}
+function resize(){ const dpr=Math.min(2,window.devicePixelRatio||1);
+  for(const [cv,c2] of [[canvas,ctx],[graph,gctx]]){ const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr; c2.setTransform(dpr,0,0,dpr,0,0); cv._w=r.width; cv._h=r.height; } view._w=canvas._w; view._h=canvas._h; }
+window.addEventListener('resize',resize);
+let selected=null, selId=-1;
+function genoHash(o){ let h=0; for(const g of o.genome) h=((h*31)+g)|0; return h>>>0; }
+function hsv(h,s,v){ h=((h%360)+360)%360/60; const c=v*s,x=c*(1-Math.abs(h%2-1)),m=v-c; let r,g,b;
+  if(h<1){r=c;g=x;b=0;}else if(h<2){r=x;g=c;b=0;}else if(h<3){r=0;g=c;b=x;}else if(h<4){r=0;g=x;b=c;}else if(h<5){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+  return [(r+m)*255,(g+m)*255,(b+m)*255]; }
+function render(){
+  ctx.fillStyle='#02040a'; ctx.fillRect(0,0,view._w,view._h);
+  if(!img){ return; } const d=img.data;
+  for(let i=0;i<GN;i++){ let r,g,b; const o=cellOrg[i];
+    if(o && !o.dead){ let col;
+      if(colorMode==='length') col=hsv(clamp(o.genome.length,4,120)/120*270,0.7,0.9);
+      else if(colorMode==='lineage') col=hsv(genoHash(o)%360,0.6,0.85);
+      else col= o.tasks? hsv(clamp(45-o.tasks*18,-50,45),0.9,0.95) : [70,120,180];
+      r=col[0];g=col[1];b=col[2];
+    } else { const e=clamp(res[i]/2.2,0,1); r=14+e*8; g=24+e*70; b=20+e*22; }  // empty land shaded by resource (biome)
+    const p=i*4; d[p]=r; d[p+1]=g; d[p+2]=b; d[p+3]=255;
+  }
+  fctx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=false;
+  const cw=view._w/GW*view.zoom, ch=view._h/GH*view.zoom; const dw=GW*cw, dh=GH*ch;
+  ctx.drawImage(field, view.x, view.y, dw, dh);
+  if(selected && !selected.dead){ const sx=view.x+selected.cx*cw, sy=view.y+selected.cy*ch;
+    ctx.strokeStyle='#ffcc55'; ctx.lineWidth=1.5; ctx.strokeRect(sx-1,sy-1,cw+2,ch+2); }
+}
+function drawGraph(){ const w=graph._w,h=graph._h; gctx.clearRect(0,0,w,h); if(history.length<2) return;
+  let mP=1,mL=1,mT=1; for(const r of history){ if(r[0]>mP)mP=r[0]; if(r[1]>mL)mL=r[1]; if(r[2]>mT)mT=r[2]; }
+  const n=history.length, line=(idx,sc,col)=>{ gctx.strokeStyle=col; gctx.lineWidth=1.4; gctx.beginPath();
+    for(let i=0;i<n;i++){ const x=i/(HISTMAX-1)*w, y=h-(history[i][idx]/sc)*(h-6)-3; i?gctx.lineTo(x,y):gctx.moveTo(x,y);} gctx.stroke(); };
+  line(0,mP,'#5db8ff'); line(1,mL,'#ffcc55'); line(2,Math.max(mT,1),'#c98bff'); }
+function disasm(o){ let s=''; for(let i=0;i<o.genome.length;i++){ const ins=o.genome[i];
+  s+=`<span class="${CLS[ins]}">${String(i).padStart(3)}  ${INAMES[ins]}</span>\n`; if(i>120){s+='   …\n';break;} } return s; }
+function inspect(o){ const tl=[]; for(let t=0;t<TASKS.length;t++) if(o.taskSet&(1<<t)) tl.push(TASKS[t][0]);
+  $('orgInfo').innerHTML=`<b style="color:var(--gold)">Organism #${o.id}</b> · gen ${o.gen} · ${o.genome.length} instr · CPU ×${o.merit} · energy ${o.energy.toFixed(1)}<br>tasks: ${tl.length?tl.join(', '):'none'}`;
+  $('asm').innerHTML=disasm(o); }
+function updateHUD(){ let l=0; const seen=new Set(); for(const o of pop){ l+=o.genome.length; seen.add(genoHash(o)); } const n=pop.length||1;
+  $('hPop').textContent=pop.length; $('hGen').textContent=generation; $('hLen').textContent=(l/n).toFixed(1);
+  $('hGeno').textContent=seen.size; $('hTasks').textContent=maxTasks;
+  $('era').textContent=ERAS[Math.min(unlocked,ERAS.length-1)]+' · demands '+unlocked+' tasks';
+  if(selId>=0){ const o=pop.find(p=>p.id===selId); selected=o||null; if(o) inspect(o); }
+  if(!selected) $('avg').innerHTML= pop.length? `${pop.length} organisms · avg ${(l/n).toFixed(1)} instr · ${seen.size} genotypes · world demands ${unlocked} logic task(s), deepest reached ${maxTasks}`:'Barren.';
+}
+let running=true;
+function frame(){ if(running) for(let i=0;i<P.speed;i++) update();
+  render(); drawGraph(); updateHUD(); requestAnimationFrame(frame); }
+$('btnPlay').addEventListener('click',()=>{ running=!running; $('btnPlay').textContent=running?'⏸ Pause':'▶ Play'; $('hStatus').textContent=running?'▶':'⏸'; });
+$('btnStep').addEventListener('click',()=>{ running=false; $('btnPlay').textContent='▶ Play'; update(); });
+$('btnReset').addEventListener('click',()=> newWorld());
+$('btnColor').addEventListener('click',()=>{ colorMode= colorMode==='complexity'?'length':colorMode==='length'?'lineage':'complexity'; $('btnColor').textContent='🎨 View: '+colorMode; });
+$('toggle').addEventListener('click',()=> $('panel').classList.toggle('collapsed'));
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,moved:false,vx:view.x,vy:view.y}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true; view.x=drag.vx+dx; view.y=drag.vy+dy; });
+canvas.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=canvas.getBoundingClientRect();
+  const cw=view._w/GW*view.zoom, ch=view._h/GH*view.zoom; const gx=Math.floor((e.clientX-r.left-view.x)/cw), gy=Math.floor((e.clientY-r.top-view.y)/ch);
+  if(gx>=0&&gx<GW&&gy>=0&&gy<GH){ const o=cellOrg[gy*GW+gx]; selected=o&&!o.dead?o:null; selId=selected?selected.id:-1; if(selected) inspect(selected); } } drag=null; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*(e.deltaY<0?1.12:0.89),0.5,16); },{passive:false});
+let pinch=null;
+canvas.addEventListener('touchstart',e=>{ if(e.touches.length===2)pinch=tdist(e); },{passive:false});
+canvas.addEventListener('touchmove',e=>{ if(e.touches.length===2&&pinch){ e.preventDefault(); const d=tdist(e); view.zoom=clamp(view.zoom*d/pinch,0.5,16); pinch=d; } },{passive:false});
+canvas.addEventListener('touchend',e=>{ if(e.touches.length<2)pinch=null; });
+function tdist(e){ const a=e.touches[0],b=e.touches[1]; return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY); }
+
+syncUI(); resize(); newWorld();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
