@@ -581,6 +581,9 @@ def run_encounter(player, raid, bossdef, difficulty, boss_index):
         # Damage/heal-over-time ticks (dots/hots resolve silently each round).
         for c in raid + [boss] + adds:
             c.tick_effects([])
+        # A damage-over-time effect can land the killing blow on the boss.
+        if not boss.alive:
+            return finish_encounter(True, boss, raid, round_no)
 
         for line in boss_log:
             say(line)

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Text Raiding">
+<meta name="theme-color" content="#0d0f15">
+<title>⚔️ Text Raiding</title>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#161a24; --panel2:#1d2331; --line:#2a3142;
+    --txt:#d7dcea; --dim:#8a92a6; --gold:#ffcc55; --red:#ff5d5d; --green:#5dd98a;
+    --blue:#6db3ff; --mag:#c98bff; --cyan:#62e6e0; --yellow:#ffe06b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace; font-size:15px;
+    -webkit-text-size-adjust:100%;}
+  #app{max-width:640px; margin:0 auto; padding:env(safe-area-inset-top) 12px
+    calc(env(safe-area-inset-bottom) + 8px); min-height:100vh;}
+  h1,h2,h3{margin:.3em 0;}
+  .title{text-align:center; padding:14px 0 4px;}
+  .title .big{font-size:30px; font-weight:800; letter-spacing:1px;
+    background:linear-gradient(90deg,var(--mag),var(--cyan)); -webkit-background-clip:text;
+    background-clip:text; color:transparent;}
+  .title .sub{color:var(--dim); font-size:13px;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px; margin:10px 0;}
+  .panel.tight{padding:8px 10px;}
+  .row{display:flex; align-items:center; gap:8px;}
+  .between{justify-content:space-between;}
+  button{font-family:inherit; font-size:15px; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:10px; padding:12px 12px; width:100%;
+    text-align:left; cursor:pointer; transition:transform .05s, background .1s;}
+  button:active{transform:scale(.98); background:#283248;}
+  button:disabled{opacity:.4;}
+  button.primary{background:linear-gradient(90deg,#3a2a5a,#264a5a); border-color:#3a4a66;
+    text-align:center; font-weight:700;}
+  button.choice{margin:6px 0;}
+  .btn-title{font-weight:700;}
+  .btn-desc{color:var(--dim); font-size:12px; margin-top:3px; line-height:1.3;}
+  .pill{display:inline-block; font-size:11px; padding:1px 7px; border-radius:20px;
+    border:1px solid var(--line); color:var(--dim);}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .hpwrap{position:relative; height:16px; background:#0a0c12; border-radius:6px;
+    overflow:hidden; border:1px solid #0a0c12;}
+  .hpfill{position:absolute; top:0; left:0; bottom:0; border-radius:6px; transition:width .25s;}
+  .hptext{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:10px; color:#eef; text-shadow:0 1px 2px #000;}
+  .resbar{height:5px; background:#0a0c12; border-radius:4px; overflow:hidden; margin-top:3px;}
+  .resfill{height:100%; background:var(--cyan); transition:width .25s;}
+  .member{padding:6px 0; border-bottom:1px dashed var(--line);}
+  .member:last-child{border-bottom:none;}
+  .mtop{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;}
+  .tag.TANK{color:var(--blue);} .tag.HEALER{color:var(--green);} .tag.DPS{color:var(--red);}
+  .you{color:var(--gold); font-weight:700;}
+  .dead{color:var(--dim); text-decoration:line-through;}
+  .fx{font-size:12px; letter-spacing:1px;}
+  .bossart{white-space:pre; font-size:12px; line-height:1.15; color:var(--red);
+    text-shadow:0 0 8px rgba(255,80,80,.25);}
+  .bossname{font-size:18px; font-weight:800; color:var(--red);}
+  .bosssub{color:var(--dim); font-size:12px;}
+  .warn{background:rgba(255,210,80,.12); border:1px solid #5a4a1a; color:var(--yellow);
+    border-radius:8px; padding:8px; font-size:13px; font-weight:700; margin-top:8px;
+    text-align:center; animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1} 50%{opacity:.55}}
+  .enr{color:var(--yellow); font-weight:800;}
+  .ph2{color:var(--mag); font-weight:800;}
+  #log{background:#0a0c12; border:1px solid var(--line); border-radius:10px; padding:8px 10px;
+    height:150px; overflow-y:auto; font-size:12.5px; line-height:1.45;}
+  #log div{margin:1px 0;}
+  .c-red{color:var(--red);} .c-green{color:var(--green);} .c-blue{color:var(--blue);}
+  .c-gold{color:var(--gold);} .c-mag{color:var(--mag);} .c-cyan{color:var(--cyan);}
+  .c-yellow{color:var(--yellow);} .c-dim{color:var(--dim);}
+  .actbar{position:sticky; bottom:0; background:linear-gradient(180deg,transparent,var(--bg) 22%);
+    padding-top:10px;}
+  .skillbtn{position:relative;}
+  .skillbtn .meta{position:absolute; top:8px; right:10px; font-size:11px; color:var(--dim);}
+  .center{text-align:center;}
+  .small{font-size:12px;} .dim{color:var(--dim);}
+  .banner{text-align:center; padding:18px 10px; border-radius:14px; margin:14px 0;}
+  .banner.win{background:linear-gradient(180deg,#13301f,#0d0f15); border:1px solid #2a6a44;}
+  .banner.lose{background:linear-gradient(180deg,#311515,#0d0f15); border:1px solid #6a2a2a;}
+  .banner .h{font-size:26px; font-weight:800;}
+  input[type=text]{font-family:inherit; font-size:16px; width:100%; padding:11px;
+    background:#0a0c12; color:var(--txt); border:1px solid var(--line); border-radius:10px;}
+  .seg{display:flex; gap:6px; flex-wrap:wrap;}
+  .roster .member{border-bottom:1px dashed var(--line);}
+  a{color:var(--cyan);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ============================================================ DATA ===== */
+const ROLE_BASE = {
+  TANK:   {hp:3000, power:85,  crit:.10, haste:.10, defense:.40},
+  HEALER: {hp:1700, power:110, crit:.12, haste:.12, defense:0},
+  DPS:    {hp:1950, power:130, crit:.15, haste:.12, defense:0},
+};
+const GEAR_SLOTS = ["Head","Chest","Hands","Legs","Weapon","Trinket"];
+const GEAR_PER_ILVL = {hp:42, power:3.4, crit:.0016, haste:.0016, defense:.0015};
+
+const DIFFICULTIES = {
+  Normal:{name:"Normal", hp:1.00, dmg:1.00, loot:24, bot:16, extra:false},
+  Heroic:{name:"Heroic", hp:1.40, dmg:1.28, loot:40, bot:38, extra:true},
+  Mythic:{name:"Mythic", hp:1.85, dmg:1.55, loot:56, bot:54, extra:true},
+};
+
+// skill: {name,kind,cost,cd,power,threat,dur,value,target,desc}
+function S(name,kind,o={}){return Object.assign(
+  {name,kind,cost:0,cd:0,power:0,threat:1,dur:0,value:0,target:"enemy",desc:""},o);}
+
+const CLASSES = {
+TANK:[
+ {name:"Guardian",role:"TANK",res:"RAGE",maxres:100,regen:18,
+  flavor:"A wall of plate and fury who lives in the boss's face.",
+  skills:[
+   S("Shield Slam","attack",{cost:15,power:1.4,threat:4,desc:"Bash for solid damage and heavy threat."}),
+   S("Thunder Clap","aoe_attack",{cost:25,cd:2,power:.7,threat:4,target:"allenemies",desc:"Hit all enemies, huge AoE threat."}),
+   S("Taunt","taunt",{cd:3,desc:"Force the boss to attack you for 2 rounds."}),
+   S("Shield Wall","defensive",{cost:20,cd:6,dur:3,value:.60,target:"self",desc:"-60% damage taken for 3 rounds."}),
+   S("Last Stand","heal",{cost:30,cd:8,power:6,target:"self",desc:"Heal a large chunk of your health."}),
+  ]},
+ {name:"Crusader",role:"TANK",res:"MANA",maxres:120,regen:14,
+  flavor:"A holy knight who smites with righteous fire.",
+  skills:[
+   S("Avenger's Shield","aoe_attack",{cost:18,power:1.1,threat:4,target:"allenemies",desc:"Holy shield: damage + threat on all enemies."}),
+   S("Hand of Reckoning","taunt",{cd:3,desc:"Compel the boss to strike you for 2 rounds."}),
+   S("Divine Protection","defensive",{cost:20,cd:6,dur:3,value:.50,target:"self",desc:"-50% damage taken for 3 rounds."}),
+   S("Word of Glory","heal",{cost:30,cd:4,power:5,target:"self",desc:"Strong holy self-heal."}),
+   S("Consecration","dot",{cost:22,cd:3,power:.45,threat:4,dur:3,desc:"Burn enemies for 3 rounds."}),
+  ]},
+ {name:"Bramble Warden",role:"TANK",res:"RAGE",maxres:100,regen:18,
+  flavor:"A bear-druid that shrugs off blows and regenerates fiercely.",
+  skills:[
+   S("Mangle","attack",{cost:15,power:1.5,threat:4,desc:"Rend the boss for big damage and threat."}),
+   S("Swipe","aoe_attack",{cost:20,cd:1,power:.6,threat:4,target:"allenemies",desc:"Claw all enemies for AoE threat."}),
+   S("Growl","taunt",{cd:3,desc:"Roar to force the boss onto you for 2 rounds."}),
+   S("Barkskin","defensive",{cost:15,cd:5,dur:3,value:.45,target:"self",desc:"-45% damage taken for 3 rounds."}),
+   S("Frenzied Regen","hot",{cost:25,cd:4,power:1.6,dur:3,target:"self",desc:"Rapidly regenerate over 3 rounds."}),
+  ]},
+],
+HEALER:[
+ {name:"Cleric",role:"HEALER",res:"MANA",maxres:1000,regen:60,
+  flavor:"A devout priest of big direct heals and shields.",
+  skills:[
+   S("Heal","heal",{cost:120,power:2.6,target:"ally",desc:"Strong direct heal on the lowest ally."}),
+   S("Power Word: Shield","shield",{cost:110,cd:2,power:2.2,dur:3,target:"ally",desc:"Absorb shield on an ally."}),
+   S("Prayer of Healing","aoe_heal",{cost:240,cd:2,power:1.3,target:"raid",desc:"Heal the entire raid at once."}),
+   S("Renew","hot",{cost:90,power:.9,dur:3,target:"ally",desc:"Heal an ally over 3 rounds."}),
+   S("Smite","attack",{cost:60,power:1.4,desc:"Holy fire when healing isn't needed."}),
+  ]},
+ {name:"Restoration Druid",role:"HEALER",res:"MANA",maxres:1000,regen:60,
+  flavor:"Nature's hand — heal-over-time keeps the raid topped.",
+  skills:[
+   S("Regrowth","heal",{cost:140,power:2.2,target:"ally",desc:"A burst heal on the lowest ally."}),
+   S("Rejuvenation","hot",{cost:90,power:1.0,dur:4,target:"ally",desc:"Powerful heal-over-time."}),
+   S("Wild Growth","aoe_heal",{cost:230,cd:2,power:.7,dur:3,target:"raid",desc:"Blanket the raid in healing."}),
+   S("Swiftmend","heal",{cost:130,cd:3,power:3.4,target:"ally",desc:"Instant emergency heal."}),
+   S("Wrath","attack",{cost:60,power:1.3,desc:"Sling nature damage between heals."}),
+  ]},
+ {name:"Sage",role:"HEALER",res:"MANA",maxres:1000,regen:65,
+  flavor:"An arcane medic who weaves barriers and damages to heal.",
+  skills:[
+   S("Diagnosis","shield",{cost:120,power:1.6,dur:3,target:"ally",desc:"Heal an ally and leave a barrier."}),
+   S("Druochole","heal",{cost:150,power:3.0,target:"ally",desc:"A large single-target heal."}),
+   S("Prognosis","aoe_shield",{cost:240,cd:3,power:1.0,dur:3,target:"raid",desc:"Shield the entire raid."}),
+   S("Pneuma","aoe_heal",{cost:210,cd:4,power:1.1,target:"raid",desc:"Radiant pulse heals the raid."}),
+   S("Dosis","dot",{cost:70,power:.8,dur:3,desc:"Toxin damages the enemy over 3 rounds."}),
+  ]},
+],
+DPS:[
+ {name:"Pyromancer",role:"DPS",res:"MANA",maxres:1000,regen:80,
+  flavor:"A fire mage of explosive burst and infernos.",
+  skills:[
+   S("Fireball","attack",{cost:80,power:2.0,desc:"A reliable bolt of flame."}),
+   S("Pyroblast","attack",{cost:160,cd:3,power:4.2,desc:"A massive, slow-charging fireball."}),
+   S("Fire Blast","attack",{cost:60,cd:2,power:1.6,desc:"Instant flame burst."}),
+   S("Flamestrike","aoe_attack",{cost:180,cd:2,power:1.4,target:"allenemies",desc:"Fire on all enemies."}),
+   S("Combustion","buff",{cost:40,cd:8,dur:3,value:.50,target:"self",desc:"+50% damage for 3 rounds."}),
+  ]},
+ {name:"Assassin",role:"DPS",res:"ENERGY",maxres:100,regen:25,
+  flavor:"A rogue of bleeds, poisons and brutal finishers.",
+  skills:[
+   S("Sinister Strike","attack",{cost:20,power:1.6,desc:"A quick, efficient stab."}),
+   S("Rupture","dot",{cost:25,power:.9,dur:4,desc:"A deep bleed for 4 rounds."}),
+   S("Eviscerate","attack",{cost:35,cd:2,power:3.6,desc:"A finishing blow for heavy damage."}),
+   S("Fan of Knives","aoe_attack",{cost:35,cd:2,power:1.0,target:"allenemies",desc:"Spray blades at all enemies."}),
+   S("Adrenaline Rush","buff",{cd:8,dur:3,value:.40,target:"self",desc:"+40% damage for 3 rounds."}),
+  ]},
+ {name:"Ranger",role:"DPS",res:"FOCUS",maxres:100,regen:28,
+  flavor:"A hunter of steady aimed shots, stings and volleys.",
+  skills:[
+   S("Steady Shot","attack",{cost:15,power:1.5,desc:"A dependable aimed arrow."}),
+   S("Aimed Shot","attack",{cost:35,cd:2,power:3.4,desc:"A slow, devastating precision shot."}),
+   S("Serpent Sting","dot",{cost:20,power:.8,dur:4,desc:"Venom erodes the enemy for 4 rounds."}),
+   S("Multi-Shot","aoe_attack",{cost:30,cd:2,power:1.1,target:"allenemies",desc:"Arrows at every enemy."}),
+   S("Rapid Fire","buff",{cd:7,dur:3,value:.35,target:"self",desc:"+35% damage for 3 rounds."}),
+  ]},
+],
+};
+function findClass(n){for(const r in CLASSES)for(const c of CLASSES[r])if(c.name===n)return c; return null;}
+
+const BOSS_ART = {
+"Gnashtooth the Ravenous":["   (\\____/)","    )    (","   =\\    /=","     )  (","    /    \\","   | GNASH |","   \\ VVVV /","    \\____/"],
+"Hexweaver Sszira":["    .-=-.","   /  o o\\","  |  \\___/ | ~ssss","   \\ '---' /"," .-`,___,-`-."," /  HEXWEAVER \\"," \\_,-~^~-,_,~^~/"],
+"Ironclad Brusk":["  _______"," |[]   []|"," |  IRON |"," | CLAD  |"," |[_____]|","/| BRUSK |\\","d|_______|b"],
+"Voidlord Malach":["   __/\\__","  ' .  . '"," - VOID  -","  . LORD ."," - MALACH -","  ./ || \\.","   /_||_\\"],
+};
+function bossArt(n){return BOSS_ART[n]||["  .-\"\"-.  "," / x  x \\ "," \\ vvvv / ","  '-..-'  "];}
+
+const BOSSES = [
+ {name:"Gnashtooth the Ravenous",title:"The Hungering Maw",hp:52000,autohit:520,enrage:42,
+  intro:"A hulking beast paces the cavern, drool hissing on the stone.",
+  abilities:[
+   {name:"Crushing Bite",kind:"tank_buster",value:2100,every:4},
+   {name:"Deafening Roar",kind:"raid_aoe",value:360,every:6},
+   {name:"Savage Cleave",kind:"cleave",value:900,every:5,heroic:true},
+  ]},
+ {name:"Hexweaver Sszira",title:"Mistress of Spiders",hp:64000,autohit:480,enrage:50,
+  intro:"Webs blanket the hall. Eight eyes gleam from the dark.",
+  abilities:[
+   {name:"Summon Broodlings",kind:"spawn_adds",every:7,addhp:3200,addcount:2,addhit:300},
+   {name:"Venom Nova",kind:"raid_aoe",value:420,every:5},
+   {name:"Wrap",kind:"tank_buster",value:1900,every:4},
+   {name:"Skittering Swarm",kind:"spawn_adds",every:9,addhp:2600,addcount:3,addhit:240,heroic:true},
+  ]},
+ {name:"Ironclad Brusk",title:"The Unbreakable",hp:82000,autohit:560,enrage:40,
+  intro:"A mountain of armour grinds forward, hammer dragging sparks.",
+  abilities:[
+   {name:"Shattering Slam",kind:"tank_buster",value:2700,every:3},
+   {name:"Quake",kind:"raid_aoe",value:450,every:6},
+   {name:"Ground Pound",kind:"cleave",value:1100,every:5,heroic:true},
+  ]},
+ {name:"Voidlord Malach",title:"Herald of the End",hp:76000,autohit:580,enrage:50,phase2:0.5,
+  phase2speech:"Malach tears open the sky — 'WITNESS OBLIVION!'",
+  intro:"Reality buckles. The Voidlord descends, eyes like dead stars.",
+  abilities:[
+   {name:"Void Smash",kind:"tank_buster",value:2600,every:4},
+   {name:"Entropy",kind:"raid_aoe",value:440,every:5},
+   {name:"Summon Voidlings",kind:"spawn_adds",every:7,addhp:3800,addcount:2,addhit:320},
+   {name:"Annihilation",kind:"raid_aoe",value:620,every:4,heroic:true},
+  ]},
+];
+const RAID_NAME="The Sunken Throne";
+const RAID_COMP=["TANK","TANK","HEALER","HEALER","HEALER","DPS","DPS","DPS","DPS","DPS"];
+const BOT_NAMES={
+ TANK:["Thorgar","Brannok","Seraphine","Durok","Maelys"],
+ HEALER:["Liora","Elenwe","Father Crane","Sylune","Oona"],
+ DPS:["Vex","Kaeli","Rhogar","Nyssa","Pip","Garruk","Wren","Talia","Zed"],
+};
+
+/* ========================================================== HELPERS ==== */
+const rint=x=>Math.round(x);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const variance=()=>rnd(.92,1.08);
+function gearStats(avg){const o={};for(const k in GEAR_PER_ILVL)o[k]=GEAR_PER_ILVL[k]*avg;return o;}
+function avgIlvl(g){const v=Object.values(g);return v.reduce((a,b)=>a+b,0)/v.length;}
+function living(a){return a.filter(x=>x&&x.alive);}
+
+/* ========================================================= COMBATANT === */
+class Combatant{
+  constructor(name,role,klass,isEnemy=false){
+    this.name=name; this.role=role; this.klass=klass; this.isEnemy=isEnemy; this.isPlayer=false;
+    this.maxhp=1; this.hp=1; this.power=0; this.crit=0; this.haste=0; this.defense=0;
+    this.restype=klass?klass.res:"NONE"; this.maxres=klass?klass.maxres:0;
+    this.res=this.maxres; this.regen=klass?klass.regen:0;
+    this.cd={}; this.fx=[]; this.threat=0; this.alive=true;
+  }
+  applyStats(base,gear){
+    this.maxhp=rint(base.hp+gear.hp); this.hp=this.maxhp;
+    this.power=base.power+gear.power;
+    this.crit=Math.min(.75,base.crit+gear.crit);
+    this.haste=Math.min(.60,base.haste+gear.haste);
+    this.defense=Math.min(.80,base.defense+gear.defense);
+  }
+  addFx(f){this.fx=this.fx.filter(e=>e.name!==f.name); this.fx.push(f);}
+  drFrac(){let f=this.defense; for(const e of this.fx) if(e.etype==="dr") f=1-(1-f)*(1-e.value); return Math.min(.90,f);}
+  powerMult(){let m=1; for(const e of this.fx) if(e.etype==="power") m+=e.value; return m;}
+  hpPct(){return this.maxhp<=0?0:this.hp/this.maxhp;}
+  takeDamage(amt,mit=true){
+    if(!this.alive)return 0;
+    if(mit)amt*=1-this.drFrac();
+    amt=rint(amt);
+    for(const e of [...this.fx]){
+      if(e.etype==="absorb"&&amt>0){const u=Math.min(e.value,amt);e.value-=u;amt-=u;if(e.value<=0)this.fx=this.fx.filter(x=>x!==e);}
+    }
+    this.hp-=amt; if(this.hp<=0){this.hp=0;this.alive=false;}
+    return amt;
+  }
+  heal(amt){if(!this.alive)return 0;amt=rint(amt);const b=this.hp;this.hp=Math.min(this.maxhp,this.hp+amt);return this.hp-b;}
+  gain(a){this.res=Math.min(this.maxres,this.res+a);}
+  canAfford(s){return this.res>=s.cost && (this.cd[s.name]||0)<=0;}
+  tickStart(){this.gain(this.regen); for(const k in this.cd) if(this.cd[k]>0) this.cd[k]--;}
+  tickFx(){for(const e of [...this.fx]){
+    if(e.etype==="dot"&&this.alive)this.takeDamage((e.src?e.src.power:100)*e.power,false);
+    else if(e.etype==="hot"&&this.alive)this.heal((e.src?e.src.power:100)*e.power);
+    e.dur--; if(e.dur<=0)this.fx=this.fx.filter(x=>x!==e);
+  }}
+}
+
+/* ============================================================= STATE === */
+let G=null;       // current encounter state
+let SAVE=null;
+let PHASE="home";
+let pendingNext=null; // function for continue
+
+function defaultSave(){const g={};GEAR_SLOTS.forEach(s=>g[s]=8);
+  return {name:null,role:null,klass:null,gear:g,cleared:{Normal:[],Heroic:[],Mythic:[]},kills:0};}
+function loadSave(){try{const s=JSON.parse(localStorage.getItem("textraid_save"));
+  if(s){const b=defaultSave();Object.assign(b,s);GEAR_SLOTS.forEach(sl=>{if(b.gear[sl]==null)b.gear[sl]=8;});
+    b.cleared=Object.assign({Normal:[],Heroic:[],Mythic:[]},b.cleared||{});return b;}}catch(e){}
+  return defaultSave();}
+function writeSave(){try{localStorage.setItem("textraid_save",JSON.stringify(SAVE));}catch(e){}}
+
+/* ============================================ COMBAT BUILD / TARGETING == */
+function makeCombatant(name,klass,ilvl,isPlayer=false){
+  const c=new Combatant(name,klass.role,klass); c.applyStats(ROLE_BASE[klass.role],gearStats(ilvl));
+  c.isPlayer=isPlayer; return c;
+}
+function buildRaid(role,klass,name,diff,gearAvg){
+  const raid=[]; const names={TANK:[...BOT_NAMES.TANK],HEALER:[...BOT_NAMES.HEALER],DPS:[...BOT_NAMES.DPS]};
+  const counts={}; RAID_COMP.forEach(r=>counts[r]=(counts[r]||0)+1);
+  const cyc={TANK:0,HEALER:0,DPS:0}; let added=false;
+  ["TANK","HEALER","DPS"].forEach(r=>{
+    for(let i=0;i<(counts[r]||0);i++){
+      if(r===role&&!added){raid.push(makeCombatant(name,klass,gearAvg,true));added=true;}
+      else{const k=CLASSES[r][cyc[r]%CLASSES[r].length];cyc[r]++;
+        const nm=names[r].length?names[r].shift():r+cyc[r]; raid.push(makeCombatant(nm,k,diff.bot));}
+    }
+  });
+  return raid;
+}
+function primaryEnemy(){const la=living(G.adds); if(la.length)return la.reduce((m,a)=>a.hp<m.hp?a:m); return G.boss.alive?G.boss:null;}
+function attackTarget(c){if(c.role==="TANK")return G.boss.alive?G.boss:primaryEnemy(); return primaryEnemy();}
+function lowestAlly(ex){const p=living(G.raid).filter(a=>a!==ex); if(!p.length)return null; return p.reduce((m,a)=>a.hpPct()<m.hpPct()?a:m);}
+function aggroTarget(){const b=G.boss; if(b.tauntT>0&&b.tauntBy&&b.tauntBy.alive)return b.tauntBy;
+  const l=living(G.raid); if(!l.length)return null; return l.reduce((m,a)=>a.threat>m.threat?a:m);}
+function addThreat(c,amt){c.threat+=amt*(c.role==="TANK"?2:1);}
+function magnitude(c,mult){let a=c.power*mult*(1+c.haste*.25)*c.powerMult();const crit=Math.random()<c.crit;if(crit)a*=1.5;return [rint(a*variance()),crit];}
+
+/* ============================================================ LOG ====== */
+function log(html,cls){G.log.push(cls?`<span class="${cls}">${html}</span>`:html); if(G.log.length>120)G.log.shift();}
+const cn=c=>`<span class="${c.role==='TANK'?'c-blue':c.role==='HEALER'?'c-green':'c-red'}">${c.name}</span>`;
+
+/* ===================================================== SKILL RESOLUTION = */
+function resolveSkill(c,s){
+  if(s.cost)c.res-=s.cost; if(s.cd)c.cd[s.name]=s.cd;
+  const k=s.kind;
+  if(k==="attack"||k==="aoe_attack"){
+    const targets= k==="aoe_attack"?[G.boss,...G.adds]:[attackTarget(c)];
+    let total=0,crit=false;
+    for(const t of living(targets)){const [a,cr]=magnitude(c,s.power);const d=t.takeDamage(a);total+=d;crit=crit||cr;addThreat(c,d*s.threat);}
+    log(`${cn(c)} → <b>${s.name}</b> for <span class="c-red">${total}</span> dmg${crit?' <span class="c-yellow">CRIT!</span>':''}`);
+  } else if(k==="dot"){
+    const t=attackTarget(c); if(t){t.addFx({name:s.name,etype:"dot",value:0,dur:s.dur,src:c,power:s.power});
+      addThreat(c,c.power*s.power*s.threat); log(`${cn(c)} afflicts <b>${s.name}</b> (${s.dur})`,"c-mag");}
+  } else if(k==="heal"||k==="aoe_heal"){
+    let targets= s.target==="self"?[c]: k==="aoe_heal"?living(G.raid):[lowestAlly()].filter(Boolean);
+    let total=0,crit=false; for(const t of targets){const [a,cr]=magnitude(c,s.power);total+=t.heal(a);crit=crit||cr;}
+    addThreat(c,total*.15);
+    const who= k==="aoe_heal"?"the raid": s.target==="self"?"self":(targets[0]?targets[0].name:"—");
+    log(`${cn(c)} → <b>${s.name}</b> on ${who}: <span class="c-green">${total}</span> heal${crit?' <span class="c-yellow">CRIT!</span>':''}`);
+  } else if(k==="hot"){
+    const t= s.target==="self"?c:lowestAlly(); if(t){t.addFx({name:s.name,etype:"hot",value:0,dur:s.dur,src:c,power:s.power});
+      log(`${cn(c)} applies <b>${s.name}</b> to ${t.name} (${s.dur})`,"c-green");}
+  } else if(k==="shield"||k==="aoe_shield"){
+    const targets= k==="aoe_shield"?living(G.raid):[lowestAlly()].filter(Boolean);
+    for(const t of targets){const pool=rint(c.power*s.power); if(s.name==="Diagnosis")t.heal(rint(c.power*.8));
+      t.addFx({name:s.name,etype:"absorb",value:pool,dur:s.dur,src:c});}
+    const who= k==="aoe_shield"?"the raid":(targets[0]?targets[0].name:"—");
+    log(`${cn(c)} shields ${who} with <b>${s.name}</b>`,"c-blue");
+  } else if(k==="taunt"){
+    G.boss.tauntBy=c; G.boss.tauntT=2; c.threat=Math.max(0,...living(G.raid).map(a=>a.threat))*1.5+200;
+    log(`${cn(c)} <b>${s.name}</b>s — the boss turns!`,"c-blue");
+  } else if(k==="defensive"){
+    c.addFx({name:s.name,etype:"dr",value:s.value,dur:s.dur}); log(`${cn(c)} braces with <b>${s.name}</b> (-${rint(s.value*100)}% dmg)`,"c-blue");
+  } else if(k==="buff"){
+    c.addFx({name:s.name,etype:"power",value:s.value,dur:s.dur}); log(`${cn(c)} empowers <b>${s.name}</b> (+${rint(s.value*100)}% dmg)`,"c-yellow");
+  }
+}
+function basicAttack(c){const t=attackTarget(c); if(!t)return; const [a,cr]=magnitude(c,.85); const d=t.takeDamage(a);
+  addThreat(c,d); if(["RAGE","ENERGY","FOCUS"].includes(c.restype))c.gain(15);
+  log(`${cn(c)} attacks for <span class="c-red">${d}</span>${cr?' <span class="c-yellow">CRIT!</span>':''}`);}
+
+/* ============================================================ BOT AI === */
+function byKinds(klass,set){return klass.skills.filter(s=>set.includes(s.kind));}
+function bestAfford(c,skills){const u=skills.filter(s=>c.canAfford(s)); if(!u.length)return null;
+  return u.reduce((m,s)=>(s.power+s.value*3)>(m.power+m.value*3)?s:m);}
+function botAction(actor,incoming,mt){
+  const k=actor.klass; const la=living(G.adds);
+  if(actor.role==="TANK"){
+    const cur=aggroTarget();
+    if(actor.hpPct()<.4){const h=bestAfford(actor,byKinds(k,["heal","hot"])); if(h){resolveSkill(actor,h);return;}}
+    if(incoming&&(incoming.kind==="tank_buster"||incoming.kind==="cleave")&&cur===actor){
+      const d=bestAfford(actor,byKinds(k,["defensive"])); if(d){resolveSkill(actor,d);return;}}
+    if(actor===mt&&cur!==actor&&G.boss.tauntT<=0){const t=k.skills.find(s=>s.kind==="taunt"&&actor.canAfford(s)); if(t){resolveSkill(actor,t);return;}}
+    const kinds= la.length?["aoe_attack","dot"]:["attack","dot"];
+    const a=bestAfford(actor,byKinds(k,kinds)); if(a)resolveSkill(actor,a); else basicAttack(actor); return;
+  }
+  if(actor.role==="HEALER"){
+    if(incoming&&incoming.kind==="raid_aoe"){const ao=bestAfford(actor,byKinds(k,["aoe_heal","aoe_shield"]));
+      if(ao&&Math.min(...living(G.raid).map(a=>a.hpPct()))<.9){resolveSkill(actor,ao);return;}}
+    const low=lowestAlly();
+    if(low&&low.hpPct()<.45){const b=bestAfford(actor,byKinds(k,["heal"])); if(b){resolveSkill(actor,b);return;}}
+    if(living(G.raid).filter(a=>a.hpPct()<.7).length>=4){const ao=bestAfford(actor,byKinds(k,["aoe_heal","aoe_shield"])); if(ao){resolveSkill(actor,ao);return;}}
+    if(low&&low.hpPct()<.8){const h=bestAfford(actor,byKinds(k,["heal","hot","shield"])); if(h){resolveSkill(actor,h);return;}}
+    const a=bestAfford(actor,byKinds(k,["attack","dot"])); if(a&&actor.res>actor.maxres*.4)resolveSkill(actor,a); else basicAttack(actor); return;
+  }
+  // DPS
+  const buff=k.skills.find(s=>s.kind==="buff"&&actor.canAfford(s));
+  if(buff&&!actor.fx.some(e=>e.etype==="power")){resolveSkill(actor,buff);return;}
+  if(la.length>=2){const ao=bestAfford(actor,byKinds(k,["aoe_attack"])); if(ao){resolveSkill(actor,ao);return;}}
+  const tgt=attackTarget(actor);
+  const dot=k.skills.find(s=>s.kind==="dot"&&actor.canAfford(s));
+  if(dot&&tgt&&!tgt.fx.some(e=>e.name===dot.name)){resolveSkill(actor,dot);return;}
+  const a=bestAfford(actor,byKinds(k,["attack"])); if(a)resolveSkill(actor,a); else basicAttack(actor);
+}
+
+/* ===================================================== BOSS MECHANICS == */
+function activeAbilities(){return G.boss.def.abilities.filter(ab=>!(ab.heroic&&!G.diff.extra));}
+function bossDmgMult(){let m=G.diff.dmg; if(G.boss.enraged)m*=2.5; if(G.boss.phase===2)m*=1.15; return m;}
+function resolveBossAbility(ab){
+  const mult=bossDmgMult();
+  if(ab.kind==="tank_buster"){const t=aggroTarget(); if(t){const d=t.takeDamage(ab.value*mult); log(`☠ <b>${ab.name}</b> smashes ${t.name} for ${d}!`,"c-red");}}
+  else if(ab.kind==="cleave"){const t=aggroTarget(); const others=living(G.raid).filter(a=>a!==t);
+    const vics=[t]; if(others.length)vics.push(others[rint(rnd(0,others.length-.5))]);
+    vics.forEach(v=>{if(v)v.takeDamage(ab.value*mult);}); log(`☠ <b>${ab.name}</b> cleaves the front line!`,"c-red");}
+  else if(ab.kind==="raid_aoe"){let tot=0; living(G.raid).forEach(a=>tot+=a.takeDamage(ab.value*mult)); log(`☠ <b>${ab.name}</b> hits the raid for ${tot}!`,"c-red");}
+  else if(ab.kind==="spawn_adds"){const sc=Math.sqrt(G.diff.hp);
+    for(let i=0;i<ab.addcount;i++){const a=new Combatant(ab.name.split(" ").pop()+" #"+(G.adds.length+1),"ADD",null,true);
+      a.maxhp=a.hp=rint(ab.addhp*sc); a.hit=ab.addhit*G.diff.dmg; a.restype="NONE"; G.adds.push(a);}
+    log(`☠ <b>${ab.name}</b> — ${ab.addcount} adds appear!`,"c-yellow");}
+}
+
+/* ========================================================= ENCOUNTER === */
+function startEncounter(bossIndex){
+  const def=BOSSES[bossIndex];
+  const boss=new Combatant(def.name,"BOSS",null,true);
+  boss.def=def; boss.maxhp=boss.hp=rint(def.hp*G.diff.hp);
+  boss.autohit=def.autohit*G.diff.dmg; boss.enrage=def.enrage; boss.enraged=false;
+  boss.phase=1; boss.tauntBy=null; boss.tauntT=0; boss.pending=null; boss.timers={};
+  boss.defense=0;
+  G.boss=boss; G.adds=[]; G.bossIndex=bossIndex; G.round=0;
+  activeAbilities().forEach(ab=>boss.timers[ab.name]=ab.every);
+  G.raid.forEach(c=>{c.hp=c.maxhp;c.res=c.maxres;c.fx=[];c.cd={};c.alive=true;c.threat=c.role==="TANK"?600:0;});
+  G.mt=G.raid.find(c=>c.role==="TANK")||G.raid[0];
+  G.log=[]; log(`<span class="c-dim">${def.intro}</span>`);
+  startRound();
+}
+function startRound(){
+  G.round++; G.raid.forEach(c=>c.tickStart());
+  G.incoming=G.boss.pending;
+  PHASE="combat"; render();
+}
+function playerAct(action){
+  const p=G.player;
+  if(p.alive){
+    if(action==="auto")botAction(p,G.incoming,G.mt);
+    else if(action==="basic")basicAttack(p);
+    else if(action==="wait"){p.gain(p.regen); log(`${cn(p)} waits, recovering.`,"c-dim");}
+    else if(typeof action==="number"){resolveSkill(p,p.klass.skills[action]);}
+  }
+  // remaining raid bots
+  for(const a of G.raid){ if(a===p||!a.alive||!G.boss.alive)continue; botAction(a,G.incoming,G.mt); if(!G.boss.alive)break; }
+  G.adds=G.adds.filter(a=>a.alive);
+  if(!G.boss.alive){return endEncounter(true);}
+  // boss turn
+  log(`<span class="c-dim">── the boss acts ──</span>`);
+  if(G.boss.pending){resolveBossAbility(G.boss.pending);G.boss.pending=null;}
+  const tgt=aggroTarget();
+  if(tgt){const d=tgt.takeDamage(G.boss.autohit*(G.boss.enraged?2.5:1)*(G.boss.phase===2?1.15:1));
+    log(`${G.boss.name} strikes ${tgt.name} for <span class="c-red">${d}</span>.`);}
+  for(const a of living(G.adds)){const at=aggroTarget(); if(at)at.takeDamage(a.hit||200);}
+  if(living(G.adds).length)log(`<span class="c-yellow">Adds batter the raid!</span>`);
+  [...G.raid,G.boss,...G.adds].forEach(c=>c.tickFx());
+  if(!G.boss.alive)return endEncounter(true);
+  const def=G.boss.def;
+  if(def.phase2&&G.boss.phase===1&&G.boss.hpPct()<=def.phase2){G.boss.phase=2; log(`✦✦ ${def.phase2speech}`,"c-mag");}
+  activeAbilities().forEach(ab=>{G.boss.timers[ab.name]--; if(G.boss.timers[ab.name]<=0&&G.boss.pending==null){G.boss.pending=ab;G.boss.timers[ab.name]=ab.every;}});
+  if(G.boss.tauntT>0)G.boss.tauntT--;
+  if(!G.boss.enraged&&G.round>=G.boss.enrage){G.boss.enraged=true; log(`⚠⚠ ${G.boss.name} ENRAGES! Burn it down or fall!`,"c-yellow");}
+  if(!living(G.raid).length){return endEncounter(false);}
+  startRound();
+}
+function endEncounter(victory){
+  PHASE="bossresult";
+  if(victory){
+    const def=G.boss.def;
+    if(!SAVE.cleared[G.diff.name].includes(def.name))SAVE.cleared[G.diff.name].push(def.name);
+    SAVE.kills++; G.loot=awardLoot(G.bossIndex); writeSave();
+  }
+  G.victory=victory; render();
+}
+function awardLoot(idx){
+  const base=G.diff.loot+idx*2; const drop=base+rint(rnd(0,4)); const slot=GEAR_SLOTS[rint(rnd(0,GEAR_SLOTS.length-.5))];
+  const cur=SAVE.gear[slot];
+  if(drop>cur){SAVE.gear[slot]=drop; return {slot,from:cur,to:drop,upgrade:true};}
+  return {slot,drop,upgrade:false};
+}
+
+/* ============================================================ RENDER === */
+const app=()=>document.getElementById("app");
+function el(html){const d=document.createElement("div"); d.innerHTML=html; return d;}
+function on(id,fn){const e=document.getElementById(id); if(e)e.onclick=fn;}
+
+function hpBar(cur,mx,color){
+  const f=Math.max(0,Math.min(100,mx<=0?0:cur/mx*100));
+  const c=color||(f>50?'var(--green)':f>25?'var(--yellow)':'var(--red)');
+  return `<div class="hpwrap"><div class="hpfill" style="width:${f}%;background:${c}"></div>
+    <div class="hptext">${Math.max(0,rint(cur))} / ${rint(mx)}</div></div>`;
+}
+function fxIcons(c){const m={dr:"🛡",absorb:"◊",hot:"✚",dot:"☠",power:"⚔"};
+  return c.fx.map(e=>m[e.etype]||"•").join(" ");}
+
+function render(){
+  if(PHASE==="home")return renderHome();
+  if(PHASE==="role")return renderRole();
+  if(PHASE==="class")return renderClass();
+  if(PHASE==="difficulty")return renderDifficulty();
+  if(PHASE==="pre")return renderPre();
+  if(PHASE==="combat")return renderCombat();
+  if(PHASE==="bossresult")return renderBossResult();
+  if(PHASE==="raidresult")return renderRaidResult();
+}
+
+function titleBlock(){return `<div class="title"><div class="big">⚔️ TEXT RAIDING</div>
+  <div class="sub">${RAID_NAME}</div></div>`;}
+
+function renderHome(){
+  let h=titleBlock();
+  if(SAVE.name&&SAVE.klass){
+    const cl=Math.max(...["Normal","Heroic","Mythic"].map(d=>SAVE.cleared[d].length));
+    h+=`<div class="panel"><div class="row between"><b class="you">${SAVE.name}</b>
+      <span class="pill">ilvl ${avgIlvl(SAVE.gear).toFixed(0)}</span></div>
+      <div class="small dim">${SAVE.klass} · ${SAVE.role} · ${SAVE.kills} lifetime kills</div></div>
+      <button id="play" class="primary choice">▶ Enter the Raid</button>
+      <button id="rechar" class="choice">↻ New Character</button>`;
+  } else {
+    h+=`<div class="panel small dim">You are one member of a 10-player raid — the other nine are
+      AI allies. Pick a role &amp; class, gear up, and clear all 4 bosses across three difficulties.
+      Watch the ⚠ warning: it telegraphs the boss's next big move so you can react.</div>
+      <button id="new" class="primary choice">▶ Create Character</button>`;
+  }
+  app().innerHTML=h;
+  on("new",()=>{PHASE="role";render();});
+  on("rechar",()=>{PHASE="role";render();});
+  on("play",()=>{const c=findClass(SAVE.klass);G.tmp={role:SAVE.role,klass:c,name:SAVE.name};PHASE="difficulty";render();});
+}
+function renderRole(){
+  let h=titleBlock()+`<h3 class="center">Choose your Role</h3>`;
+  const desc={TANK:"Hold the boss's attention, soak big hits, taunt.",
+    HEALER:"Keep the raid alive against incoming damage.",
+    DPS:"Deal damage, kill adds, beat the enrage timer."};
+  ["TANK","HEALER","DPS"].forEach(r=>{
+    h+=`<button class="choice rolebtn" data-r="${r}"><div class="btn-title tag ${r}">${r}</div>
+      <div class="btn-desc">${desc[r]}</div></button>`;});
+  h+=`<button id="back" class="choice dim">← Back</button>`;
+  app().innerHTML=h;
+  document.querySelectorAll(".rolebtn").forEach(b=>b.onclick=()=>{G.tmp={role:b.dataset.r};PHASE="class";render();});
+  on("back",()=>{PHASE="home";render();});
+}
+function renderClass(){
+  const role=G.tmp.role;
+  let h=titleBlock()+`<h3 class="center">Choose your <span class="tag ${role}">${role}</span> Class</h3>`;
+  CLASSES[role].forEach((k,i)=>{
+    h+=`<button class="choice classbtn" data-i="${i}"><div class="btn-title">${k.name}
+      <span class="pill">${k.res}</span></div><div class="btn-desc">${k.flavor}</div>
+      <div class="btn-desc">${k.skills.map(s=>s.name).join(" · ")}</div></button>`;});
+  h+=`<div class="panel tight"><div class="small dim">Name your hero</div>
+     <input id="nm" type="text" maxlength="14" placeholder="Hero" value="${SAVE.name||''}"></div>
+     <button id="back" class="choice dim">← Back</button>`;
+  app().innerHTML=h;
+  document.querySelectorAll(".classbtn").forEach(b=>b.onclick=()=>{
+    const k=CLASSES[role][+b.dataset.i]; let nm=(document.getElementById("nm").value||"Hero").trim()||"Hero";
+    G.tmp.klass=k; G.tmp.name=nm;
+    SAVE.name=nm; SAVE.role=role; SAVE.klass=k.name; writeSave();
+    PHASE="difficulty"; render();});
+  on("back",()=>{PHASE="role";render();});
+}
+function renderDifficulty(){
+  let h=titleBlock()+`<h3 class="center">Choose Difficulty</h3>`;
+  const order=["Normal","Heroic","Mythic"];
+  order.forEach((nm,i)=>{
+    const d=DIFFICULTIES[nm]; const cleared=SAVE.cleared[nm].length;
+    const locked= (nm==="Heroic"&&!SAVE.cleared.Normal.length) || (nm==="Mythic"&&!SAVE.cleared.Heroic.length);
+    h+=`<button class="choice diffbtn" data-d="${nm}" ${locked?'disabled':''}>
+      <div class="btn-title c-mag">${nm} ${locked?'<span class="pill">🔒 locked</span>':cleared?`<span class="pill">${cleared}/4 cleared</span>`:''}</div>
+      <div class="btn-desc">boss HP ×${d.hp} · boss dmg ×${d.dmg} · loot ilvl ${d.loot} · allies ilvl ${d.bot}</div></button>`;});
+  h+=`<button id="back" class="choice dim">← Back</button>`;
+  app().innerHTML=h;
+  document.querySelectorAll(".diffbtn").forEach(b=>{if(b.disabled)return;b.onclick=()=>{
+    G.diff=DIFFICULTIES[b.dataset.d]; PHASE="pre"; render();};});
+  on("back",()=>{PHASE="home";render();});
+}
+function renderPre(){
+  const t=G.tmp; const gearAvg=avgIlvl(SAVE.gear);
+  G.raid=buildRaid(t.role,t.klass,t.name,G.diff,gearAvg);
+  G.player=G.raid.find(c=>c.isPlayer);
+  let h=titleBlock()+`<div class="panel center"><b>${RAID_NAME} — ${G.diff.name}</b><br>
+    <span class="small dim">${t.name} the ${t.klass.name} · ilvl ${gearAvg.toFixed(0)}</span></div>
+    <div class="panel roster"><div class="small dim" style="margin-bottom:6px">Your raid (you + 9 allies):</div>`;
+  G.raid.forEach(c=>{h+=`<div class="row between member"><span><span class="tag ${c.role}">●</span>
+    ${c.isPlayer?`<span class="you">${c.name} (you)</span>`:c.name}</span>
+    <span class="small dim">${c.klass.name} · ${c.role}</span></div>`;});
+  h+=`</div><button id="go" class="primary choice">⚔ Pull Boss 1</button>
+    <button id="back" class="choice dim">← Difficulty</button>`;
+  app().innerHTML=h;
+  on("go",()=>{startEncounter(0);});
+  on("back",()=>{PHASE="difficulty";render();});
+}
+function renderCombat(){
+  const b=G.boss; const art=bossArt(b.name).join("\n");
+  let h=`<div class="panel tight">
+    <div class="row" style="align-items:flex-start;gap:10px">
+      <div class="bossart">${art}</div>
+      <div style="flex:1">
+        <div class="bossname">${b.name}</div><div class="bosssub">${b.def.title}</div>
+        <div style="margin:6px 0">${hpBar(b.hp,b.maxhp,'var(--red)')}</div>
+        <div class="small dim">${rint(b.hpPct()*100)}% · Round ${G.round}
+          ${b.enraged?'<span class="enr">⚠ ENRAGED</span>':''}
+          ${b.phase===2?'<span class="ph2">✦ PHASE 2</span>':''}</div>
+      </div>
+    </div>`;
+  living(G.adds).forEach(a=>{h+=`<div class="row" style="gap:6px;margin-top:5px">
+    <span class="c-yellow small" style="min-width:78px">${a.name}</span>
+    <div style="flex:1">${hpBar(a.hp,a.maxhp,'var(--yellow)')}</div></div>`;});
+  if(G.incoming){const d={tank_buster:"huge tank hit — tanks pop a defensive!",raid_aoe:"raid-wide damage — healers heal/shield!",
+    spawn_adds:"adds incoming — DPS get ready to swap!",cleave:"frontal cleave on the tank &amp; others!"}[G.incoming.kind]||"";
+    h+=`<div class="warn">⚠ INCOMING: ${G.incoming.name} — ${d}</div>`;}
+  h+=`</div>`;
+  // raid
+  h+=`<div class="panel tight">`;
+  G.raid.forEach(c=>{
+    if(!c.alive){h+=`<div class="member"><span class="dead">☠ ${c.name}</span></div>`;return;}
+    h+=`<div class="member"><div class="mtop"><span>${c.isPlayer?'<span class="you">➤ '+c.name+'</span>':c.name}
+      <span class="tag ${c.role}">${c.klass.name}</span> <span class="fx">${fxIcons(c)}</span></span></div>
+      ${hpBar(c.hp,c.maxhp)}`;
+    if(c.maxres)h+=`<div class="resbar"><div class="resfill" style="width:${c.res/c.maxres*100}%;
+      background:${c.restype==='RAGE'?'#ff7a4d':c.restype==='ENERGY'?'#ffe06b':c.restype==='FOCUS'?'#9ad17a':'var(--cyan)'}"></div></div>`;
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  // log
+  h+=`<div id="log">${G.log.slice(-40).map(l=>`<div>${l}</div>`).join("")}</div>`;
+  // actions
+  h+=`<div class="actbar">`;
+  const p=G.player;
+  if(!p.alive){
+    h+=`<div class="panel center small">💀 You have fallen — your raid fights on.</div>
+      <button id="cont" class="primary">Continue ▶</button>`;
+  } else {
+    h+=`<div class="grid2">`;
+    p.klass.skills.forEach((s,i)=>{
+      const cd=p.cd[s.name]||0; const aff=p.res>=s.cost; const ready=cd<=0&&aff;
+      const meta= cd>0?`CD ${cd}`: !aff?`need ${s.cost}`:(s.cost?`${s.cost}`:'free');
+      h+=`<button class="skillbtn skill" data-i="${i}" ${ready?'':'disabled'}>
+        <span class="meta">${meta}</span><div class="btn-title">${s.name}</div>
+        <div class="btn-desc">${s.desc}</div></button>`;});
+    h+=`</div><div class="grid2" style="margin-top:8px">
+      <button id="basic">👊 Basic Attack<div class="btn-desc">free, builds resource</div></button>
+      <button id="wait">⏳ Wait / Regen<div class="btn-desc">recover resource</div></button></div>`;
+  }
+  h+=`</div>`;
+  app().innerHTML=h;
+  const lg=document.getElementById("log"); if(lg)lg.scrollTop=lg.scrollHeight;
+  document.querySelectorAll(".skill").forEach(btn=>{if(btn.disabled)return;btn.onclick=()=>playerAct(+btn.dataset.i);});
+  on("basic",()=>playerAct("basic"));
+  on("wait",()=>playerAct("wait"));
+  on("cont",()=>playerAct(null));
+}
+function renderBossResult(){
+  const v=G.victory; let h=titleBlock();
+  if(v){
+    h+=`<div class="banner win"><div class="h c-green">VICTORY</div>
+      <div>${G.boss.name} falls!</div><div class="small dim">${living(G.raid).length}/10 raiders standing</div></div>`;
+    const L=G.loot;
+    h+=`<div class="panel center">`+ (L.upgrade
+      ? `<span class="c-gold">✦ Looted <b>${L.slot}</b> (ilvl ${L.from} → ${L.to})! Equipped.</span>`
+      : `<span class="dim">A ${L.slot} (ilvl ${L.drop}) drops, but yours is better.</span>`)
+      +`<div class="small dim" style="margin-top:6px">Average item level: ${avgIlvl(SAVE.gear).toFixed(1)}</div></div>`;
+    if(G.bossIndex<BOSSES.length-1){
+      h+=`<button id="next" class="primary choice">⚔ Pull Boss ${G.bossIndex+2}</button>`;
+    } else {
+      // raid cleared
+      G.raidCleared=true;
+      h+=`<button id="next" class="primary choice">🏆 Finish Raid</button>`;
+    }
+  } else {
+    h+=`<div class="banner lose"><div class="h c-red">WIPE</div>
+      <div>${G.boss.name} stands at ${rint(G.boss.hpPct()*100)}% health.</div>
+      <div class="small dim">Re-gear, re-strategise, try again.</div></div>
+      <button id="retry" class="primary choice">↻ Retry this Boss</button>
+      <button id="bail" class="choice">↩ Leave Raid</button>`;
+  }
+  app().innerHTML=h;
+  on("next",()=>{ if(G.raidCleared){PHASE="raidresult";render();} else {
+    // refresh player stats for any gear change, restore raid, advance
+    G.player.applyStats(ROLE_BASE[G.player.klass.role],gearStats(avgIlvl(SAVE.gear)));
+    startEncounter(G.bossIndex+1);} });
+  on("retry",()=>{G.player.applyStats(ROLE_BASE[G.player.klass.role],gearStats(avgIlvl(SAVE.gear)));startEncounter(G.bossIndex);});
+  on("bail",()=>{PHASE="home";render();});
+}
+function renderRaidResult(){
+  let h=titleBlock()+`<div class="banner win"><div class="h c-gold">RAID CLEARED!</div>
+    <div>${G.diff.name} ${RAID_NAME} complete!</div>
+    <div class="small dim">All 4 bosses down · ${SAVE.kills} lifetime kills</div></div>`;
+  const nxt={Normal:"Heroic",Heroic:"Mythic"}[G.diff.name];
+  if(nxt && SAVE.cleared[G.diff.name].length>=4) h+=`<div class="panel center c-yellow">✦ ${nxt} difficulty unlocked!</div>`;
+  h+=`<button id="again" class="primary choice">↻ Raid Again</button>
+     <button id="home" class="choice">🏠 Home</button>`;
+  app().innerHTML=h;
+  on("again",()=>{PHASE="difficulty";render();});
+  on("home",()=>{PHASE="home";render();});
+}
+
+/* ============================================================== BOOT === */
+SAVE=loadSave(); G={tmp:{}};
+PHASE="home"; render();
+</script>
+</body>
+</html>

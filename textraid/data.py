@@ -280,8 +280,8 @@ class Difficulty:
 
 DIFFICULTIES = {
     "Normal": Difficulty("Normal", 1.00, 1.00, loot_ilvl=24, bot_ilvl=16, extra_mechanics=False),
-    "Heroic": Difficulty("Heroic", 1.40, 1.28, loot_ilvl=40, bot_ilvl=33, extra_mechanics=True),
-    "Mythic": Difficulty("Mythic", 1.85, 1.55, loot_ilvl=56, bot_ilvl=47, extra_mechanics=True),
+    "Heroic": Difficulty("Heroic", 1.40, 1.28, loot_ilvl=40, bot_ilvl=38, extra_mechanics=True),
+    "Mythic": Difficulty("Mythic", 1.85, 1.55, loot_ilvl=56, bot_ilvl=54, extra_mechanics=True),
 }
 
 

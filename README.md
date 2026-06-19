@@ -15,12 +15,26 @@ and push from **Normal → Heroic → Mythic**.
 
 ## Play
 
+### 📱 On iPhone / any browser (recommended for mobile)
+
+Open **`index.html`** — a single self-contained web version with big touch
+buttons, the same 9 classes, 4 bosses, gearing and difficulty tiers. Nothing to
+install; tap **Share → Add to Home Screen** in Safari to play it like a real app.
+Progress saves to the browser automatically.
+
+To get it on your phone, host it (e.g. GitHub Pages) and open the URL — see
+[PLAY_ON_IPHONE.md](PLAY_ON_IPHONE.md).
+
+### 💻 In a terminal (Python)
+
 ```bash
 python3 play.py
 ```
 
 No dependencies — just Python 3.8+. Disable colours with `NO_COLOR=1`, and speed
 up message pacing with `TEXTRAID_FAST=1`.
+
+The browser and terminal versions share identical game data and balance.
 
 Your progress (character, gear, cleared bosses) is saved automatically to
 `textraid_save.json` in the working directory.
