@@ -85,6 +85,7 @@
     <div class="row"><button id="btnReset">🌍 New world</button><button id="btnReseed">🧬 Reseed life</button></div>
     <div class="row"><button id="btnView">🗺 View: land</button><button id="btnColor">🎨 diet</button></div>
     <div class="row"><button id="btnDrought" class="warn">🔥 Drought</button><button id="btnMeteor" class="warn">☄ Impact</button></div>
+    <div class="row"><button id="btnHard">🦎 Let it ride (hard mode): OFF</button></div>
 
     <div class="ctl"><label>Simulation speed <span class="val" id="vSpeed"></span></label><input type="range" id="speed" min="1" max="6" step="1"></div>
 
@@ -298,6 +299,16 @@ function envStep(dt){
 //  ORGANISMS  — assembled from elements, carrying DNA
 // ===========================================================================
 let plants=[], animals=[], tick=0, generation=0, nextId=1;
+// "let it ride": harsh world + no rescue. Lineages must adapt from their own
+// DNA or go extinct — immigration and fresh ancestral genomes are switched off.
+let letItRide=false, savedP=null;
+const HARD={ rain:35, warm:40, volc:25, meta:4, photo:72, immig:20, mut:16, indel:8, pmut:35, tilt:78 };
+// seed bank: genomes of recently-successful animals. New arrivals descend from
+// these (like dormant seeds), so adaptation survives crashes instead of resetting
+// to the primordial ancestor every time the population dips.
+const seedBank=[]; const BANKMAX=60;
+function remember(g){ seedBank.push(g); if(seedBank.length>BANKMAX) seedBank.shift(); }
+function bankOr(anc){ return (seedBank.length && Math.random()<0.75) ? seedBank[(Math.random()*seedBank.length)|0] : anc; }
 
 function makePlant(x,y,genome){ const d=decodePlant(genome);
   return { id:nextId++, kind:'plant', x, y, genome,
@@ -311,7 +322,7 @@ function makeAnimal(x,y,genome,gen,ef){ const d=decodeAnimal(genome);
     op:d.op, arg:d.arg, clen:d.clen, bio:repro*(ef||1)*0.3, energy:repro*(ef||1), age:0 };
 }
 function seedLife(){
-  animals=[]; tick=0; generation=0;
+  animals=[]; tick=0; generation=0; seedBank.length=0;
   const nH=Math.round(P.a0*0.85), nC=P.a0-nH;
   for(let i=0;i<nH;i++){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_HERB,P.mut,P.indel),0,1.1)); }
   for(let i=0;i<nC;i++){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_CARN,P.mut,P.indel),0,1.1)); }
@@ -379,13 +390,14 @@ function step(){
   plants=plants.filter(p=>!p.dead).concat(newSeeds);
 
   // ---- immigration of flora into bare fertile ground keeps continents green ----
-  for(let k=0;k<6;k++){ if(plants.length<P.fcap*0.9 && Math.random()<0.5){ const [x,y]=landSpot(); if(x>=0) plants.push(makePlant(x,y,mutate(ANC_PLANT,P.pmut,P.indel))); } }
+  // (disabled under "let it ride": flora must reseed itself from evolved stock)
+  if(!letItRide) for(let k=0;k<6;k++){ if(plants.length<P.fcap*0.9 && Math.random()<0.5){ const [x,y]=landSpot(); if(x>=0) plants.push(makePlant(x,y,mutate(ANC_PLANT,P.pmut,P.indel))); } }
 
   // ---- ANIMALS: behave via DNA code, eat building blocks, respire, die ----
   const plantGrid=buildGrid(plants), aniGrid=buildGrid(animals), newborns=[];
   if(P.immig>0){ const f=P.immig/100;
-    if(animals.length<P.fcap*0.3 && Math.random()<f*0.08){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_HERB,P.mut,P.indel),0,1.1)); }
-    if(animals.length>40 && Math.random()<f*0.04){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(ANC_CARN,P.mut,P.indel),0,1.1)); }
+    if(animals.length<P.fcap*0.3 && Math.random()<f*0.08){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(bankOr(ANC_HERB),P.mut,P.indel),0,1.1)); }
+    if(animals.length>40 && Math.random()<f*0.04){ const [x,y]=landSpot(); if(x>=0) animals.push(makeAnimal(x,y,mutate(bankOr(ANC_CARN),P.mut,P.indel),0,1.1)); }
   }
   for(const e of animals){
     if(e.dead) continue;
@@ -415,7 +427,8 @@ function step(){
     // reproduce
     if(e.energy>repro*1.5 && animals.length+newborns.length<2600){ e.energy-=repro;
       const g=mutate(e.genome,P.mut,P.indel); const c=makeAnimal(clamp(e.x+rand(24,-24),0,WORLD.w),clamp(e.y+rand(24,-24),0,WORLD.h),g,e.gen+1,0.9);
-      generation=Math.max(generation,c.gen); newborns.push(c); }
+      generation=Math.max(generation,c.gen); newborns.push(c);
+      if(Math.random()<0.15) remember(e.genome); }    // bank a proven survivor's DNA
     if(e.energy<=0 || e.age>2500){ e.dead=true; det[id]+=e.bio*0.7+0.5; minrl[id]+=e.bio*0.1; CO2+=e.bio*0.2; O2-=e.bio*0.2; }
   }
   animals=animals.filter(e=>!e.dead).concat(newborns);
@@ -535,6 +548,14 @@ $('btnReset').addEventListener('click',()=> newWorld());
 $('btnReseed').addEventListener('click',()=> seedLife());
 $('btnView').addEventListener('click',()=>{ viewMode=VIEWS[(VIEWS.indexOf(viewMode)+1)%VIEWS.length]; $('btnView').textContent='🗺 View: '+viewMode; mapAge=999; });
 $('btnColor').addEventListener('click',()=>{ colorMode= colorMode==='diet'?'lineage':colorMode==='lineage'?'temp':'diet'; $('btnColor').textContent='🎨 '+colorMode; });
+$('btnHard').addEventListener('click',()=>{
+  letItRide=!letItRide;
+  if(letItRide){ savedP={}; for(const k in HARD){ savedP[k]=P[k]; P[k]=HARD[k]; } }
+  else { for(const k in HARD) P[k]=savedP[k]; }
+  syncUI();
+  $('btnHard').textContent='🦎 Let it ride (hard mode): '+(letItRide?'ON':'OFF');
+  $('btnHard').classList.toggle('primary', letItRide);
+});
 $('btnDrought').addEventListener('click',()=>{ for(let i=0;i<GN;i++) water[i]*=0.25; });
 $('btnMeteor').addEventListener('click',()=>{ animals=animals.filter(()=>Math.random()>0.8); plants=plants.filter(()=>Math.random()>0.6); CO2+=40000; });
 $('toggle').addEventListener('click',()=> $('panel').classList.toggle('collapsed'));
