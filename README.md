@@ -83,6 +83,14 @@ shields, defensives and damage cooldowns, all on resource costs and cooldowns.
 3. **Ironclad Brusk** — brutal tank-buster damage; defensives matter.
 4. **Voidlord Malach** — two-phase finale and a real DPS + survival check.
 
+## Also in here: 🔮 Orcs & Apertures
+
+A separate first-person demo in [`portal-orcs/`](portal-orcs/) — Portal's
+aperture mechanics in a medieval test chamber, where you cast spells from one
+outstretched finger and cut portals with the other hand, and the orcs die of
+momentum. Open `portal-orcs/portal-orcs.html` in a browser; no install, no
+dependencies, every pixel and sound generated at runtime.
+
 ## Project layout
 
 ```

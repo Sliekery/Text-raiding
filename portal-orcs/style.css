@@ -1,0 +1,193 @@
+/* ── Orcs & Apertures ─────────────────────────────────────────────────────
+   One committed visual world: a torch-lit test chamber. Painted explicitly,
+   so it holds on any host background.                                      */
+
+:root {
+  --void:      #0b0a12;
+  --stone:     #1e1c26;
+  --stone-hi:  #2b2836;
+  --parchment: #e8dfc8;
+  --parch-dim: #9d9484;
+  --gold:      #e3b23c;
+  --blue:      #4ec3ff;
+  --orange:    #ff8a3c;
+  --orc:       #8fcb43;
+  --blood:     #b3243a;
+
+  --display: "Grenze Gotisch", "Palatino Linotype", Palatino, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--parchment);
+  font-family: var(--mono);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #17141f 0%, var(--void) 70%);
+}
+
+#frame {
+  position: relative;
+  line-height: 0;
+  box-shadow: 0 0 0 1px #3a3446, 0 0 60px rgba(0, 0, 0, .9);
+}
+
+canvas#view {
+  display: block;
+  image-rendering: pixelated;
+  cursor: none;
+  touch-action: none;
+  background: var(--void);
+}
+
+/* ── Chamber sign overlays ─────────────────────────────────────────────── */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 4vmin, 40px);
+  background: rgba(6, 5, 11, .68);
+  backdrop-filter: blur(2px);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.overlay[hidden] { display: none; }
+
+.sign {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  border: 1px solid #46405a;
+  border-top: 3px solid var(--gold);
+  background: linear-gradient(180deg, #171422 0%, #100e18 100%);
+  padding: clamp(16px, 3.4vmin, 30px) clamp(18px, 4vmin, 36px);
+  box-shadow: inset 0 1px 0 rgba(232, 223, 200, .07);
+  text-align: center;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .34em;
+  text-transform: uppercase;
+  color: var(--parch-dim);
+  margin: 0 0 10px;
+}
+
+.sign h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(34px, 8vmin, 60px);
+  line-height: .95;
+  margin: 0;
+  text-wrap: balance;
+  color: var(--parchment);
+  text-shadow: 0 0 24px rgba(78, 195, 255, .28), 0 0 44px rgba(255, 138, 60, .18);
+}
+
+.sign h1 .amp { color: var(--gold); font-size: .7em; vertical-align: .12em; }
+
+.tagline {
+  font-family: var(--display);
+  font-size: clamp(15px, 2.5vmin, 19px);
+  color: var(--gold);
+  margin: 8px 0 20px;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 16px;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--parch-dim);
+  border-top: 1px solid #322c42;
+  border-bottom: 1px solid #322c42;
+  padding: 16px 2px;
+  margin: 0 0 18px;
+}
+
+.keys dt { color: var(--parchment); white-space: nowrap; }
+.keys dd { margin: 0; }
+.keys .b { color: var(--blue); }
+.keys .o { color: var(--orange); }
+
+kbd {
+  font: inherit;
+  border: 1px solid #4b4460;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 5px;
+  background: #221e2e;
+  color: var(--parchment);
+}
+
+.start {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--gold);
+  border: 0;
+  padding: 12px 26px;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+
+.start:hover, .start:focus-visible { filter: brightness(1.12); transform: translateY(-1px); }
+.start:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+.fineprint {
+  font-size: 11px;
+  color: #6c6579;
+  margin: 16px 0 0;
+  letter-spacing: .04em;
+}
+
+#deathSign h1 { color: var(--blood); text-shadow: 0 0 30px rgba(179, 36, 58, .5); }
+#deathSign .tagline { color: var(--parch-dim); }
+
+.tally {
+  display: flex;
+  justify-content: center;
+  gap: clamp(18px, 6vmin, 44px);
+  margin: 18px 0 22px;
+}
+
+.tally div { text-align: center; }
+.tally b {
+  display: block;
+  font-family: var(--mono);
+  font-size: clamp(22px, 5vmin, 32px);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-weight: 500;
+}
+.tally span {
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--parch-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start { transition: none; }
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orcs &amp; Apertures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <div id="frame">
+    <canvas id="view" width="960" height="600"></canvas>
+
+    <div class="overlay" id="startSign">
+      <div class="sign">
+        <p class="eyebrow">Testing Chamber XIV · Anno 1387</p>
+        <h1>Orcs <span class="amp">&amp;</span> Apertures</h1>
+        <p class="tagline">Speedy thing goes in the portal. Speedy orc goes splat.</p>
+        <dl class="keys">
+          <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>walk · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump</dd>
+          <dt>Mouse</dt><dd>aim the pointing finger</dd>
+          <dt>Left click</dt><dd>cast <b>Arcane Shove</b> — hold to charge a bigger blast</dd>
+          <dt>Right click</dt><dd>open the aperture glowing in your left palm — it alternates</dd>
+          <dt><kbd>Q</kbd> · <kbd>E</kbd></dt><dd><span class="b"><b>blue</b></span> · <span class="o"><b>orange</b></span> aperture on demand</dd>
+          <dt><kbd>R</kbd> · <kbd>M</kbd></dt><dd>close both apertures · mute</dd>
+        </dl>
+        <p class="fineprint" style="margin:0 0 18px">Apertures only take on the pale rune-panels. Mossy stone rejects the enchantment.</p>
+        <button class="start" id="startBtn" type="button">Enter the chamber</button>
+        <p class="fineprint">Click the view to capture the mouse · <kbd>Esc</kbd> releases it</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="deathSign" hidden>
+      <div class="sign">
+        <p class="eyebrow">Chamber log · subject deceased</p>
+        <h1>The Horde Wins</h1>
+        <p class="tagline" id="deathLine">A goblin hit you with a stick. Repeatedly.</p>
+        <div class="tally">
+          <div><b id="finalScore">0</b><span>Score</span></div>
+          <div><b id="finalWave">1</b><span>Wave</span></div>
+          <div><b id="finalSplats">0</b><span>Splats</span></div>
+        </div>
+        <button class="start" id="againBtn" type="button">Cast again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="src/audio.js"></script>
+<script src="src/art.js"></script>
+<script src="src/world.js"></script>
+<script src="src/render.js"></script>
+<script src="src/game.js"></script>
+</body>
+</html>
