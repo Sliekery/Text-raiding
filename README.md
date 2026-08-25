@@ -89,7 +89,8 @@ A separate first-person demo in [`portal-orcs/`](portal-orcs/) — Portal's
 aperture mechanics in a medieval test chamber, where you cast spells from one
 outstretched finger and cut portals with the other hand, and the orcs die of
 momentum. Open `portal-orcs/portal-orcs.html` in a browser; no install, no
-dependencies, every pixel and sound generated at runtime.
+dependencies, every pixel and sound generated at runtime. Plays on a phone
+too — hold it sideways for thumbstick and thumb-button controls.
 
 ## Project layout
 

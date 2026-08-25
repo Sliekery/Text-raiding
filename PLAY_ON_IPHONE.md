@@ -52,3 +52,20 @@ use Option A or C instead.)
 - Progress (character, gear, cleared bosses) is stored in the browser, so use the
   same browser/app each time. "New Character" resets it.
 - Works great in portrait mode; rotate-lock recommended.
+
+---
+
+## Also playable on the phone: 🔮 Orcs & Apertures
+
+The other demo in this repo, [`portal-orcs/`](portal-orcs/), is a first-person
+portal-and-spellcasting chamber and it is touch-native too. Same three options
+above, pointing at **`portal-orcs/portal-orcs.html`** instead — for Option B the
+link is:
+
+```
+https://raw.githack.com/sliekery/text-raiding/claude/portal-mechanics-magic-demo-mdng49/portal-orcs/portal-orcs.html
+```
+
+Hold the phone **sideways** for that one: left thumb walks, right thumb turns
+and taps to cast, and the buttons in the corner open apertures and jump. Add it
+to your home screen to lose the browser chrome and gain the full screen.

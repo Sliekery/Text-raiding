@@ -67,9 +67,19 @@ var Sfx = (function () {
   }
 
   var API = {
+    /* iOS only starts an AudioContext inside a gesture, and only really
+       wakes it once something has been played through it. */
     resume: function () {
       var c = ensure();
-      if (c && c.state === 'suspended') c.resume();
+      if (!c) return;
+      if (c.state === 'suspended' && c.resume) c.resume();
+      if (!API._unlocked) {
+        API._unlocked = true;
+        var s = c.createBufferSource();
+        s.buffer = c.createBuffer(1, 1, c.sampleRate);
+        s.connect(c.destination);
+        s.start(0);
+      }
     },
     setMuted: function (m) {
       muted = m;

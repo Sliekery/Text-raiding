@@ -43,6 +43,30 @@ Scoring rewards physics over damage: a plain splat is worth its base value, a
 is worth 2.5×, and every kill inside three seconds of the last one extends a
 **chain multiplier**. Charged blasts into a tight group are how you get a ×9.
 
+### On an iPhone or iPad
+
+It plays properly on a phone — hold it **sideways** and the chamber fills the
+glass, with the controls drawn on the canvas and inset past the notch and the
+home indicator:
+
+| Thumb | Effect |
+| --- | --- |
+| Left, anywhere | the stick springs up under your thumb — push a little to walk, all the way to sprint |
+| Right, drag | turn |
+| Right, tap | quick bolt |
+| ✦ button | hold to charge Arcane Shove, release to cast |
+| ◯ ◯ buttons | open the blue and orange apertures (a gold halo means they are linked) |
+| ⌃ button | jump |
+
+Because thumbs aim coarsely, a bolt cast on touch bends onto an orc already
+near the crosshair — it will never find one you are not facing.
+
+The chamber renders fewer columns on a phone and drops portal recursion depth
+if the frame rate sags, then climbs back when it can. For the best of it, open
+the page in Safari and **Share → Add to Home Screen**: launched from the home
+screen it runs full-screen with no browser chrome. If you hear nothing, check
+the silent switch — iOS routes Web Audio through the ringer.
+
 ## How it works
 
 No engine, no assets, no dependencies — every pixel is drawn by canvas paths
@@ -53,7 +77,7 @@ at boot and every sound is synthesised by WebAudio on the fly.
 | `src/world.js` | the chamber grid, the DDA ray marcher, and aperture maths |
 | `src/render.js` | the column raycaster, scanline floor/ceiling, portal recursion |
 | `src/art.js` | procedural wall textures, orc actors, gibs, and the mage's hands |
-| `src/game.js` | ragdolls, orc brains, waves, scoring, HUD, input |
+| `src/game.js` | ragdolls, orc brains, waves, scoring, HUD, thumb controls |
 | `src/audio.js` | every sound effect, synthesised |
 
 **Portal rendering is the real thing, not a texture.** An aperture is an oval

@@ -514,7 +514,7 @@ var Art = (function () {
      Drawn live at display resolution so they stay crisp over the chunky
      world. All geometry is expressed against h so any aspect works.      */
 
-  var HAND_K = 0.7;
+  var HAND_K = 0.7;   // hands pull back toward their corners on small screens
   var SKIN = '#d8a071', SKIN_D = '#a06a44', SKIN_L = '#f2c79c';
   var SLEEVE = '#2c2044', SLEEVE_D = '#1a1230', TRIM = '#e3b23c';
   var INK = 'rgba(16,12,22,0.9)';
@@ -561,6 +561,7 @@ var Art = (function () {
     var pulse = 1 + Math.sin(st.time * 9) * 0.06 * charge;
 
     g.save();
+    g.translate(st.dx || 0, st.dy || 0);
     // pull the whole arm toward its screen corner so it frames the view
     g.translate(w, h); g.scale(HAND_K, HAND_K); g.translate(-w, -h);
     // recoil kicks the hand back down-right along the pointing axis
@@ -668,6 +669,7 @@ var Art = (function () {
     var breathe = Math.cos(st.time * 1.4) * 4 * s;
 
     g.save();
+    g.translate(st.dx || 0, st.dy || 0);
     g.translate(0, h); g.scale(HAND_K, HAND_K); g.translate(0, -h);
     g.translate(-flare * 26 * s, -flare * 30 * s + breathe);
     g.lineJoin = 'round'; g.lineCap = 'round';
@@ -737,6 +739,7 @@ var Art = (function () {
   }
 
   return {
+    setHandScale: function (k) { HAND_K = k; },
     TS: TS,
     ORC_W: ORC_W, ORC_H: ORC_H,
     SPECIES: SPECIES,

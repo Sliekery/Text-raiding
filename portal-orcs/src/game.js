@@ -39,7 +39,7 @@
     running: false, over: false, time: 0, score: 0, wave: 0, splats: 0,
     combo: 0, comboT: 0, banner: '', bannerSub: '', bannerT: 0,
     nextWaveT: 0, spawnQueue: [], spawnT: 0, shake: 0, flash: 0, warp: 0,
-    nextHue: 'blue', muted: false
+    nextHue: 'blue', muted: false, paused: false, laggardT: 0
   };
 
   var hand = { recoil: 0, charge: 0, charging: false, cool: 0, flare: 0 };
@@ -57,28 +57,108 @@
     return c;
   })();
 
-  /* ── Sizing ───────────────────────────────────────────────────────────*/
-  var dispW = 960, dispH = 600, hudS = 1;
+  /* ── Sizing ───────────────────────────────────────────────────────────
+     On a pointer machine the chamber sits in a 16:10 frame. On a phone it
+     fills the glass, insets its controls past the notch and the home
+     indicator, and renders fewer columns to keep the frame rate up.      */
+  var dispW = 960, dispH = 600, hudS = 1, K = 1;
+  var touchMode = false, portrait = false, ignorePortrait = false;
+  var renderH = 300;
+  var safe = { t: 0, r: 0, b: 0, l: 0 };
+  var probe = document.getElementById('safeProbe');
+
+  /* Quality ladder: recursion depth first, then columns. */
+  var QUALITY = [
+    { depth: 0, res: 0.66 },
+    { depth: 1, res: 0.80 },
+    { depth: 1, res: 1.00 },
+    { depth: 2, res: 1.00 }
+  ];
+  var quality = 3;
+
+  function applyQuality() {
+    var Q = QUALITY[quality < 0 ? 0 : quality > 3 ? 3 : quality];
+    Render.setMaxDepth(Q.depth);
+    var rh = Math.max(150, Math.round(renderH * Q.res));
+    var rw = Math.round(rh * (view.width / view.height));
+    if (rw % 2) rw++;              // the scanline caster writes pixel pairs
+    Render.setSize(rw, rh);
+  }
+
+  function viewport() {
+    var vv = window.visualViewport;
+    return {
+      w: Math.round(vv ? vv.width : window.innerWidth),
+      h: Math.round(vv ? vv.height : window.innerHeight)
+    };
+  }
 
   function resize() {
-    var pad = window.innerWidth < 700 ? 0 : 32;
-    var availW = window.innerWidth - pad, availH = window.innerHeight - pad;
-    var w = Math.min(availW, 1180), h = w / 1.6;
-    if (h > availH) { h = availH; w = h * 1.6; }
-    dispW = Math.round(w); dispH = Math.round(h);
-    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (probe) {
+      var cs = getComputedStyle(probe);
+      safe.t = parseFloat(cs.paddingTop) || 0;
+      safe.r = parseFloat(cs.paddingRight) || 0;
+      safe.b = parseFloat(cs.paddingBottom) || 0;
+      safe.l = parseFloat(cs.paddingLeft) || 0;
+    }
+    var vp = viewport(), dpr;
+    portrait = vp.h > vp.w;
+
+    if (touchMode) {
+      dispW = vp.w; dispH = vp.h;
+      dpr = Math.min(1.6, window.devicePixelRatio || 1);
+      renderH = Math.min(vp.h, vp.w) < 500 ? 232 : 268;
+    } else {
+      var pad = vp.w < 700 ? 0 : 32;
+      var w = Math.min(vp.w - pad, 1180), h = w / 1.6;
+      if (h > vp.h - pad) { h = vp.h - pad; w = h * 1.6; }
+      dispW = Math.round(w); dispH = Math.round(h);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      renderH = 300;
+    }
+
     view.width = Math.round(dispW * dpr);
     view.height = Math.round(dispH * dpr);
     view.style.width = dispW + 'px';
     view.style.height = dispH + 'px';
     frameEl.style.width = dispW + 'px';
     frameEl.style.height = dispH + 'px';
+    K = view.width / dispW;
     hudS = view.height / 600;
     vg.imageSmoothingEnabled = false;
-    var rh = 300, rw = Math.round(rh * (view.width / view.height));
-    Render.setSize(rw, rh);
+    applyQuality();
+    checkOrientation();
+    if (S.running) draw();     // a rotation must not leave a blank chamber
   }
+
+  function checkOrientation() {
+    var wrong = touchMode && portrait && !ignorePortrait;
+    S.paused = wrong && S.running;
+    var sign = document.getElementById('rotateSign');
+    if (sign) sign.hidden = !wrong || !S.running;
+  }
+
+  /* The first real touch decides the layout, whatever the media query said. */
+  function goTouch() {
+    if (touchMode) return;
+    touchMode = true;
+    document.body.classList.add('touch');
+    Art.setHandScale(0.52);
+    quality = 2;
+    resize();
+  }
+
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches &&
+      ('ontouchstart' in window)) {
+    document.body.classList.add('touch');
+    touchMode = true;
+    quality = 2;
+    Art.setHandScale(0.52);
+  }
+
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
 
   /* ── Helpers ──────────────────────────────────────────────────────────*/
   function rand(a, b) { return a + Math.random() * (b - a); }
@@ -169,8 +249,29 @@
   }
 
   /* ── Casting ──────────────────────────────────────────────────────────*/
+  /* Thumb aiming is coarse, so on touch a bolt bends onto an orc that is
+     already close to the crosshair. It never finds one you are not facing. */
+  function assistAngle() {
+    if (!touchMode) return player.ang;
+    var best = null, bestOff = 0.20;
+    for (var i = 0; i < orcs.length; i++) {
+      var o = orcs[i];
+      if (o.dead || o.state === 'ragdoll') continue;
+      var d = dist2p(o, player);
+      if (d > 15 || d < 0.5) continue;
+      var a = Math.atan2(o.y - player.y, o.x - player.x);
+      var off = Math.atan2(Math.sin(a - player.ang), Math.cos(a - player.ang));
+      if (Math.abs(off) < bestOff && World.clearPath(player.x, player.y, o.x, o.y)) {
+        bestOff = Math.abs(off);
+        best = a;
+      }
+    }
+    return best == null ? player.ang : best;
+  }
+
   function castBolt(power) {
-    var dx = Math.cos(player.ang), dy = Math.sin(player.ang);
+    var ang = assistAngle();
+    var dx = Math.cos(ang), dy = Math.sin(ang);
     bolts.push({
       x: player.x + dx * 0.35, y: player.y + dy * 0.35, z: player.z - 0.03,
       vx: dx * 27, vy: dy * 27, vz: 0.4,
@@ -555,13 +656,15 @@
     if (keys['KeyD']) { fx -= sa; fy += ca; }
     if (keys['ArrowLeft']) player.ang -= 2.4 * dt;
     if (keys['ArrowRight']) player.ang += 2.4 * dt;
-    if (touch.mx || touch.my) {
-      fx += ca * touch.my - sa * touch.mx;
-      fy += sa * touch.my + ca * touch.mx;
+    if (move.x || move.y) {
+      fx += ca * move.y - sa * move.x;
+      fy += sa * move.y + ca * move.x;
     }
 
     var len = Math.hypot(fx, fy);
     var sprint = (keys['ShiftLeft'] || keys['ShiftRight']) ? 1.55 : 1;
+    // the stick is analogue: a small push walks, a full push sprints
+    if (touchMode && len > 0.01) sprint = 0.62 + Math.min(1, len) * 0.93;
     var target = 3.1 * sprint;
     if (len > 0.01) { fx /= len; fy /= len; }
 
@@ -576,10 +679,10 @@
       player.vx *= damp; player.vy *= damp;
     }
 
-    if ((keys['Space'] || touch.jump) && grounded) {
+    if ((keys['Space'] || move.jump) && grounded) {
       player.vz = 4.4;
       player.onGround = false;
-      touch.jump = false;
+      move.jump = false;
     }
 
     var px = player.x, py = player.y, pz = player.z;
@@ -764,11 +867,15 @@
   /* ── HUD ──────────────────────────────────────────────────────────────*/
   var proj = {};
 
+  /* A phone is physically small but pixel-dense: sizing the chrome in
+     design units there makes it microscopic, so switch to CSS pixels. */
+  function uiS() { return touchMode ? K : hudS; }
+
   function hudFont(size, weight) {
-    return (weight || 400) + ' ' + Math.round(size * hudS) + 'px "IBM Plex Mono", ui-monospace, monospace';
+    return (weight || 400) + ' ' + Math.round(size * uiS()) + 'px "IBM Plex Mono", ui-monospace, monospace';
   }
   function dispFont(size, weight) {
-    return (weight || 600) + ' ' + Math.round(size * hudS) + 'px "Grenze Gotisch", Palatino, serif';
+    return (weight || 600) + ' ' + Math.round(size * uiS()) + 'px "Grenze Gotisch", Palatino, serif';
   }
 
   function drawPopups() {
@@ -785,7 +892,7 @@
       vg.globalAlpha = a;
       vg.font = dispFont(size, 700);
       vg.textAlign = 'center';
-      vg.lineWidth = 4 * hudS;
+      vg.lineWidth = 4 * uiS();
       vg.strokeStyle = 'rgba(7,6,12,0.85)';
       vg.strokeText(p.text, proj.sx * kx, proj.sy * ky);
       vg.fillStyle = p.color;
@@ -800,60 +907,62 @@
     vg.fillStyle = fill;
     vg.fillRect(x, y, w * clamp(frac, 0, 1), h);
     vg.strokeStyle = 'rgba(232,223,200,0.35)';
-    vg.lineWidth = Math.max(1, hudS);
+    vg.lineWidth = Math.max(1, uiS());
     vg.strokeRect(x + 0.5, y + 0.5, w, h);
   }
 
   function drawHUD() {
-    var W = view.width, H = view.height, s = hudS;
+    var W = view.width, H = view.height, s = uiS();
+    var inL = safe.l * K, inR = safe.r * K, inT = safe.t * K, lift = safe.b * K;
 
     // a scrim so the readouts stay legible against a lit wall
-    var top = vg.createLinearGradient(0, 0, 0, 96 * s);
+    var top = vg.createLinearGradient(0, 0, 0, 96 * s + inT);
     top.addColorStop(0, 'rgba(7,6,12,0.62)');
     top.addColorStop(1, 'rgba(7,6,12,0)');
     vg.fillStyle = top;
-    vg.fillRect(0, 0, W, 96 * s);
+    vg.fillRect(0, 0, W, 96 * s + inT);
 
     // ── vitality
     vg.save();
     vg.font = hudFont(10);
     vg.fillStyle = '#9d9484';
     vg.textAlign = 'left';
-    vg.fillText('V I T A L I T Y', 26 * s, 34 * s);
+    vg.fillText('V I T A L I T Y', 26 * s + inL, 34 * s + inT);
     var hpc = player.hp > 55 ? '#8fcb43' : player.hp > 25 ? '#e3b23c' : '#b3243a';
-    bar(26 * s, 42 * s, 190 * s, 12 * s, player.hp / 100, hpc, 'rgba(20,18,28,0.75)');
+    bar(26 * s + inL, 42 * s + inT, 190 * s, 12 * s, player.hp / 100, hpc, 'rgba(20,18,28,0.75)');
 
     // ── wave + horde
     vg.textAlign = 'center';
     vg.font = dispFont(26, 700);
     vg.fillStyle = '#e8dfc8';
-    vg.fillText('Wave ' + Math.max(1, S.wave), W / 2, 40 * s);
+    vg.fillText('Wave ' + Math.max(1, S.wave), W / 2, 40 * s + inT);
     vg.font = hudFont(11);
     vg.fillStyle = '#9d9484';
     var left = orcs.length + S.spawnQueue.length;
-    vg.fillText(left ? left + ' ORCS STANDING' : 'CHAMBER CLEAR', W / 2, 58 * s);
+    vg.fillText(left ? left + ' ORCS STANDING' : 'CHAMBER CLEAR', W / 2, 58 * s + inT);
 
     // ── score
     vg.textAlign = 'right';
     vg.font = hudFont(10);
     vg.fillStyle = '#9d9484';
-    vg.fillText('S C O R E', W - 26 * s, 34 * s);
+    vg.fillText('S C O R E', W - 26 * s - inR, 34 * s + inT);
     vg.font = hudFont(24, 500);
     vg.fillStyle = '#e3b23c';
-    vg.fillText(String(S.score), W - 26 * s, 60 * s);
+    vg.fillText(String(S.score), W - 26 * s - inR, 60 * s + inT);
     if (S.combo > 1) {
       vg.font = dispFont(19, 700);
       vg.fillStyle = '#ff8a3c';
       vg.globalAlpha = clamp(S.comboT / 1.4, 0, 1);
-      vg.fillText('×' + S.combo + ' chain', W - 26 * s, 82 * s);
+      vg.fillText('×' + S.combo + ' chain', W - 26 * s - inR, 82 * s + inT);
       vg.globalAlpha = 1;
     }
     vg.font = hudFont(10);
     vg.fillStyle = '#6c6579';
-    vg.fillText(S.splats + ' SPLATS', W - 26 * s, H - 22 * s);
+    if (!touchMode) vg.fillText(S.splats + ' SPLATS', W - 26 * s - inR, H - 22 * s);
 
-    // ── aperture status
-    var cxp = W / 2, cyp = H - 34 * s;
+    // ── aperture status (on a phone the thumb buttons already show it)
+    var cxp = W / 2, cyp = H - 34 * s - lift;
+    if (!touchMode) {
     ['blue', 'orange'].forEach(function (key, i) {
       var p = World.portals[key];
       var col = World.COLORS[key];
@@ -872,7 +981,8 @@
     vg.textAlign = 'center';
     vg.font = hudFont(9);
     vg.fillStyle = World.linked() ? '#8fcb43' : '#6c6579';
-    vg.fillText(World.linked() ? 'LINKED' : 'OPEN BOTH TO LINK', cxp, H - 12 * s);
+    vg.fillText(World.linked() ? 'LINKED' : 'OPEN BOTH TO LINK', cxp, H - 12 * s - lift);
+    }
 
     // ── crosshair rune
     var ch = 12 * s * (1 + hand.charge * 0.7);
@@ -901,7 +1011,7 @@
       vg.save();
       vg.globalAlpha = a2;
       vg.textAlign = 'center';
-      vg.font = dispFont(58, 700);
+      vg.font = dispFont(touchMode ? 40 : 58, 700);
       vg.fillStyle = '#e8dfc8';
       vg.shadowColor = 'rgba(255,138,60,0.55)';
       vg.shadowBlur = 24 * s;
@@ -913,6 +1023,116 @@
       vg.restore();
     }
     vg.restore();
+    if (touchMode) drawTouchUI();
+  }
+
+  /* ── Thumb controls, drawn ────────────────────────────────────────────*/
+  function ctlRing(x, y, r, alpha, col) {
+    vg.beginPath();
+    vg.arc(x, y, r, 0, Math.PI * 2);
+    vg.fillStyle = 'rgba(10,9,16,' + (0.24 + alpha * 0.30).toFixed(3) + ')';
+    vg.fill();
+    vg.lineWidth = Math.max(1.2, 2 * K);
+    vg.strokeStyle = col;
+    vg.globalAlpha = 0.38 + alpha * 0.6;
+    vg.stroke();
+    vg.globalAlpha = 1;
+  }
+
+  function drawTouchUI() {
+    var u = layout();
+    var g = vg;
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+
+    // ── movement stick
+    var sx = (stick.on ? stick.cx : u.home.x) * K;
+    var sy = (stick.on ? stick.cy : u.home.y) * K;
+    var sr = u.sr * K;
+    g.globalAlpha = stick.on ? 0.85 : 0.4;
+    ctlRing(sx, sy, sr, stick.on ? 0.5 : 0, 'rgba(232,223,200,0.6)');
+    var kx = sx, ky = sy;
+    if (stick.on) {
+      var dx = stick.kx * K - sx, dy = stick.ky * K - sy;
+      var len = Math.hypot(dx, dy), reach = sr * 0.78;
+      if (len > reach) { dx *= reach / len; dy *= reach / len; }
+      kx += dx; ky += dy;
+    }
+    g.beginPath();
+    g.arc(kx, ky, sr * 0.38, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(227,178,60,' + (stick.on ? 0.5 : 0.26) + ')';
+    g.fill();
+    g.lineWidth = Math.max(1.2, 2 * K);
+    g.strokeStyle = 'rgba(232,223,200,' + (stick.on ? 0.85 : 0.45) + ')';
+    g.stroke();
+    g.globalAlpha = 1;
+
+    // ── cast: a rune circle with the pointing finger, and a charge arc
+    var c = u.cast, cr = c.r * K;
+    ctlRing(c.x * K, c.y * K, cr, press.cast, 'rgba(140,220,255,0.75)');
+    g.save();
+    g.translate(c.x * K, c.y * K);
+    var skin = 'rgba(216,160,113,' + (0.6 + press.cast * 0.35) + ')';
+    var ink = 'rgba(16,12,22,0.55)';
+    g.lineWidth = 1.6 * K;
+    // a small pointing hand: fist, finger, lit tip
+    g.beginPath();
+    g.arc(cr * 0.14, cr * 0.30, cr * 0.30, 0, Math.PI * 2);
+    g.fillStyle = skin; g.fill();
+    g.strokeStyle = ink; g.stroke();
+    Art.capsule(g, cr * 0.06, cr * 0.20, -cr * 0.22, -cr * 0.40, cr * 0.14, cr * 0.11);
+    g.fillStyle = skin; g.fill();
+    g.strokeStyle = ink; g.stroke();
+    g.beginPath();
+    g.arc(-cr * 0.24, -cr * 0.44, cr * 0.15 * (1 + hand.charge * 0.5), 0, Math.PI * 2);
+    g.fillStyle = 'rgba(160,225,255,' + (0.6 + hand.charge * 0.4) + ')';
+    g.fill();
+    g.restore();
+
+    if (hand.charge > 0.02) {
+      g.beginPath();
+      g.arc(c.x * K, c.y * K, cr * 1.16, -Math.PI / 2, -Math.PI / 2 + hand.charge * Math.PI * 2);
+      g.strokeStyle = '#8fe3ff';
+      g.lineWidth = 3.4 * K;
+      g.stroke();
+    }
+
+    // ── aperture buttons
+    [['blue', u.blue], ['orange', u.orange]].forEach(function (pair) {
+      var key = pair[0], b = pair[1], col = World.COLORS[key];
+      var bx = b.x * K, by = b.y * K, br = b.r * K;
+      ctlRing(bx, by, br, press[key], col.bright);
+      g.beginPath();
+      g.ellipse(bx, by, br * 0.42, br * 0.56, 0, 0, Math.PI * 2);
+      g.fillStyle = World.portals[key] ? col.deep : 'rgba(20,18,28,0.6)';
+      g.fill();
+      g.lineWidth = Math.max(1.4, 2.4 * K);
+      g.strokeStyle = col.bright;
+      g.globalAlpha = World.portals[key] ? 1 : 0.6;
+      g.stroke();
+      g.globalAlpha = 1;
+      if (World.linked()) {
+        g.beginPath();
+        g.arc(bx, by, br * 1.2, 0, Math.PI * 2);
+        g.strokeStyle = 'rgba(227,178,60,0.7)';
+        g.lineWidth = 1.6 * K;
+        g.stroke();
+      }
+    });
+
+    // ── jump
+    var j = u.jump, jx = j.x * K, jy = j.y * K, jr = j.r * K;
+    ctlRing(jx, jy, jr, press.jump, 'rgba(232,223,200,0.6)');
+    g.beginPath();
+    g.moveTo(jx - jr * 0.36, jy + jr * 0.18);
+    g.lineTo(jx, jy - jr * 0.30);
+    g.lineTo(jx + jr * 0.36, jy + jr * 0.18);
+    g.strokeStyle = 'rgba(232,223,200,0.8)';
+    g.lineWidth = 3 * K;
+    g.stroke();
+
+    g.restore();
   }
 
   function drawOverlays() {
@@ -961,11 +1181,15 @@
     drawOverlays();
 
     if (show.hands) {
+      var offX = touchMode ? view.width * 0.11 : 0;
+      var offY = touchMode ? view.height * 0.05 : 0;
       Art.drawPortalHand(vg, view.width, view.height, {
-        time: S.time, flare: hand.flare, color: World.COLORS[S.nextHue]
+        time: S.time, flare: hand.flare, color: World.COLORS[S.nextHue],
+        dx: offX, dy: offY
       });
       Art.drawCastHand(vg, view.width, view.height, {
-        time: S.time, recoil: hand.recoil, charge: hand.charge
+        time: S.time, recoil: hand.recoil, charge: hand.charge,
+        dx: -offX, dy: offY
       });
     }
 
@@ -980,7 +1204,7 @@
     if (!last) last = ts;
     var dt = Math.min(0.045, Math.max(0.0008, (ts - last) / 1000));
     last = ts;
-    if (!S.running) return;
+    if (!S.running || S.paused) return;
 
     update(dt);
     draw();
@@ -990,19 +1214,16 @@
     if (acc > 1.2) {
       var fps = frames / acc;
       acc = 0; frames = 0;
-      if (fps < 34 && quality > 0) { quality--; Render.setMaxDepth(quality); }
-      else if (fps > 56 && quality < 2) { quality++; Render.setMaxDepth(quality); }
+      if (fps < 32 && quality > 0) { quality--; applyQuality(); }
+      else if (fps > 54 && quality < 3) { quality++; applyQuality(); }
     }
   }
 
   /* ── Input ────────────────────────────────────────────────────────────*/
-  var touch = { mx: 0, my: 0, jump: false, id: -1, lookId: -1, lx: 0, ly: 0, ox: 0, oy: 0, moved: 0 };
+  var move = { x: 0, y: 0, jump: false };
   var locked = false, dragging = false;
 
-  function look(dx, dy) {
-    player.ang += dx * 0.0026;
-    void dy;
-  }
+  function look(dx) { player.ang += dx * 0.0026; }
 
   document.addEventListener('keydown', function (e) {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
@@ -1016,9 +1237,10 @@
   document.addEventListener('keyup', function (e) { keys[e.code] = false; });
 
   view.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 
   view.addEventListener('mousedown', function (e) {
-    if (!S.running) return;
+    if (!S.running || touchMode) return;
     e.preventDefault();
     if (!locked && view.requestPointerLock) {
       try {
@@ -1032,6 +1254,7 @@
   });
 
   window.addEventListener('mouseup', function (e) {
+    if (touchMode) return;
     if (e.button === 0 && hand.charging) {
       hand.charging = false;
       if (S.running && hand.cool <= 0) {
@@ -1048,60 +1271,134 @@
   });
 
   window.addEventListener('mousemove', function (e) {
-    if (!S.running) return;
-    if (locked) look(e.movementX || 0, e.movementY || 0);
-    else if (dragging) look(e.movementX || 0, e.movementY || 0);
+    if (!S.running || touchMode) return;
+    if (locked || dragging) look(e.movementX || 0);
   });
 
-  /* touch: left thumb walks, right thumb looks, tap casts */
-  view.addEventListener('touchstart', function (e) {
-    if (!S.running) return;
-    e.preventDefault();
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      var rect = view.getBoundingClientRect();
-      var x = t.clientX - rect.left;
-      if (x < rect.width * 0.4 && touch.id < 0) {
-        touch.id = t.identifier; touch.ox = t.clientX; touch.oy = t.clientY;
-      } else if (touch.lookId < 0) {
-        touch.lookId = t.identifier; touch.lx = t.clientX; touch.ly = t.clientY;
-        touch.moved = 0;
-      }
-    }
-  }, { passive: false });
+  /* ── Thumb controls ───────────────────────────────────────────────────
+     Laid out in CSS pixels inside the canvas box, inset past the notch and
+     the home indicator, then drawn on the canvas at device scale.        */
+  var ui = null;
 
-  view.addEventListener('touchmove', function (e) {
-    if (!S.running) return;
-    e.preventDefault();
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      if (t.identifier === touch.id) {
-        touch.mx = clamp((t.clientX - touch.ox) / 60, -1, 1);
-        touch.my = clamp(-(t.clientY - touch.oy) / 60, -1, 1);
-      } else if (t.identifier === touch.lookId) {
-        look((t.clientX - touch.lx) * 1.6, 0);
-        touch.moved += Math.abs(t.clientX - touch.lx);
-        touch.lx = t.clientX; touch.ly = t.clientY;
-      }
-    }
-  }, { passive: false });
+  function layout() {
+    var w = dispW, h = dispH, m = 16;
+    var sr = clamp(h * 0.19, 52, 78);          // stick radius
+    var br = clamp(h * 0.105, 32, 44);         // cast button radius
+    var pr = br * 0.62;                        // secondary buttons
+    var L = safe.l + m, R = w - safe.r - m, B = h - safe.b - m;
+    var cx = R - br, cy = B - br;
+    ui = {
+      sr: sr, br: br, pr: pr,
+      home: { x: L + sr, y: B - sr },
+      cast: { x: cx, y: cy, r: br, key: 'cast' },
+      blue: { x: cx - br * 2.30, y: cy - br * 0.15, r: pr, key: 'blue' },
+      jump: { x: cx - br * 1.85, y: cy - br * 1.85, r: pr, key: 'jump' },
+      orange: { x: cx - br * 0.20, y: cy - br * 2.35, r: pr, key: 'orange' }
+    };
+    return ui;
+  }
 
-  function endTouch(e) {
+  var stick = { on: false, cx: 0, cy: 0, kx: 0, ky: 0 };
+  var press = { cast: 0, blue: 0, orange: 0, jump: 0 };
+  var pointers = {};
+
+  function localPos(t) {
+    var r = view.getBoundingClientRect();
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function hitButton(p) {
+    var u = layout();
+    var list = [u.cast, u.blue, u.orange, u.jump];
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i];
+      if (Math.hypot(p.x - b.x, p.y - b.y) < b.r * 1.35) return b;
+    }
+    return null;
+  }
+
+  function onTouchStart(e) {
+    goTouch();
+    Sfx.resume();
+    if (!S.running || S.paused) return;
+    e.preventDefault();
+    var u = layout();
     for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      if (t.identifier === touch.id) { touch.id = -1; touch.mx = 0; touch.my = 0; }
-      else if (t.identifier === touch.lookId) {
-        if (touch.moved < 12 && S.running) {
-          var rect = view.getBoundingClientRect();
-          if (t.clientY - rect.top > rect.height * 0.72) firePortal(S.nextHue);
-          else { hand.charge = 0.2; castBolt(0.2); }
-        }
-        touch.lookId = -1;
+      var t = e.changedTouches[i], p = localPos(t);
+      var b = hitButton(p);
+      if (b) {
+        pointers[t.identifier] = { role: b.key };
+        press[b.key] = 1;
+        if (b.key === 'cast') { hand.charging = true; hand.charge = 0; }
+        else if (b.key === 'jump') move.jump = true;
+        else firePortal(b.key);
+        continue;
+      }
+      // left half, lower two thirds: the stick springs up under the thumb
+      if (!stick.on && p.x < dispW * 0.46 && p.y > dispH * 0.26) {
+        stick.on = true;
+        stick.cx = clamp(p.x, u.sr * 0.7, dispW * 0.5);
+        stick.cy = clamp(p.y, u.sr * 0.7, dispH - u.sr * 0.5);
+        stick.kx = p.x; stick.ky = p.y;
+        pointers[t.identifier] = { role: 'stick' };
+        continue;
+      }
+      pointers[t.identifier] = { role: 'look', x: p.x, y: p.y, moved: 0, t: performance.now() };
+    }
+  }
+
+  function onTouchMove(e) {
+    if (!S.running || S.paused) return;
+    e.preventDefault();
+    var u = ui || layout();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i], q = pointers[t.identifier];
+      if (!q) continue;
+      var p = localPos(t);
+      if (q.role === 'stick') {
+        stick.kx = p.x; stick.ky = p.y;
+        var dx = p.x - stick.cx, dy = p.y - stick.cy;
+        var len = Math.hypot(dx, dy), reach = u.sr * 0.78;
+        var f = len > reach ? reach / len : 1;
+        move.x = clamp((dx * f) / reach, -1, 1);
+        move.y = clamp((-dy * f) / reach, -1, 1);
+      } else if (q.role === 'look') {
+        look((p.x - q.x) * 1.72);
+        q.moved += Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+        q.x = p.x; q.y = p.y;
       }
     }
   }
-  view.addEventListener('touchend', endTouch);
-  view.addEventListener('touchcancel', endTouch);
+
+  function onTouchEnd(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i], q = pointers[t.identifier];
+      if (!q) continue;
+      delete pointers[t.identifier];
+
+      if (q.role === 'stick') {
+        stick.on = false; move.x = 0; move.y = 0;
+      } else if (q.role === 'cast') {
+        press.cast = 0;
+        hand.charging = false;
+        if (S.running && hand.cool <= 0) { hand.cool = 0.16; castBolt(hand.charge); }
+        hand.charge = 0;
+      } else if (q.role === 'look') {
+        // a tap that did not turn the view is a quick bolt
+        if (q.moved < 14 && performance.now() - q.t < 320 && S.running && hand.cool <= 0) {
+          hand.cool = 0.16;
+          castBolt(0.15);
+        }
+      } else if (q.role) {
+        press[q.role] = 0;
+      }
+    }
+  }
+
+  view.addEventListener('touchstart', onTouchStart, { passive: false });
+  view.addEventListener('touchmove', onTouchMove, { passive: false });
+  view.addEventListener('touchend', onTouchEnd);
+  view.addEventListener('touchcancel', onTouchEnd);
 
   /* ── Lifecycle ────────────────────────────────────────────────────────*/
   function reset() {
@@ -1117,6 +1414,10 @@
     S.flash = 0; S.shake = 0; S.warp = 0; S.over = false;
     S.laggardT = 0; S.nextHue = 'blue';
     hand.charge = 0; hand.charging = false;
+    move.x = 0; move.y = 0; move.jump = false;
+    stick.on = false;
+    press.cast = press.blue = press.orange = press.jump = 0;
+    pointers = {};
 
     // The chamber opens with a linked pair already cut into the panels:
     // one in the test cube ahead, one in the alcove behind. Stand between
@@ -1132,6 +1433,7 @@
     S.running = true;
     last = 0;
     Sfx.resume();
+    checkOrientation();
     startWave();
   }
 
@@ -1143,11 +1445,23 @@
     S.over = true;
     Sfx.death();
     if (document.exitPointerLock) document.exitPointerLock();
+    S.paused = false;
+    var rot = document.getElementById('rotateSign');
+    if (rot) rot.hidden = true;
     document.getElementById('finalScore').textContent = String(S.score);
     document.getElementById('finalWave').textContent = String(S.wave);
     document.getElementById('finalSplats').textContent = String(S.splats);
     document.getElementById('deathLine').textContent = pick(DEATHS);
     deathSign.hidden = false;
+  }
+
+  var anyway = document.getElementById('anywayBtn');
+  if (anyway) {
+    anyway.addEventListener('click', function (e) {
+      e.stopPropagation();
+      ignorePortrait = true;
+      checkOrientation();
+    });
   }
 
   startSign.addEventListener('click', begin);
@@ -1166,7 +1480,9 @@
     fling: function (o, f) {
       shove(o, rand(-1, 1) * f, rand(-1, 1) * f, f * 0.6, 0);
     },
-    kill: function () { hurtPlayer(999, 0, 0); }
+    kill: function () { hurtPlayer(999, 0, 0); },
+    quality: function () { return quality; },
+    touch: function () { return touchMode; }
   };
 
   resize();

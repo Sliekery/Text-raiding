@@ -20,8 +20,31 @@
 
 * { box-sizing: border-box; }
 
+/* iOS: no rubber-band, no double-tap zoom, no text callouts mid-fight. */
+html {
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Reads env() back out in resolved pixels so the canvas can inset its
+   thumb controls past the notch and the home indicator. */
+#safeProbe {
+  position: fixed;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 body {
   margin: 0;
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+  touch-action: none;
   background: var(--void);
   color: var(--parchment);
   font-family: var(--mono);
@@ -61,7 +84,11 @@ canvas#view {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 4vmin, 40px);
+  padding:
+    max(clamp(10px, 4vmin, 40px), env(safe-area-inset-top))
+    max(clamp(10px, 4vmin, 40px), env(safe-area-inset-right))
+    max(clamp(10px, 4vmin, 40px), env(safe-area-inset-bottom))
+    max(clamp(10px, 4vmin, 40px), env(safe-area-inset-left));
   background: rgba(6, 5, 11, .68);
   backdrop-filter: blur(2px);
   line-height: 1.5;
@@ -74,6 +101,8 @@ canvas#view {
   width: min(560px, 100%);
   max-height: 100%;
   overflow-y: auto;
+  touch-action: pan-y;              /* the body blocks touch, the card scrolls */
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #46405a;
   border-top: 3px solid var(--gold);
   background: linear-gradient(180deg, #171422 0%, #100e18 100%);
@@ -190,4 +219,37 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .start { transition: none; }
+}
+
+/* ── Touch layout ───────────────────────────────────────────────────────
+   On a phone the chamber fills the glass: no frame, no letterbox, and the
+   thumb controls live on the canvas itself.                              */
+
+.keys.touch, .fineprint.touch, .keys .rune { display: none; }
+.keys .rune { color: var(--gold); }
+
+body.touch .keys.touch { display: grid; }
+body.touch .keys .rune { display: inline; font-size: 15px; }
+body.touch .fineprint.touch { display: block; }
+body.touch .keys.desk, body.touch .fineprint.desk { display: none; }
+
+body.touch #stage { background: var(--void); }
+body.touch #frame { box-shadow: none; }
+body.touch canvas#view { cursor: default; }
+
+/* A phone in portrait sees a letterbox slit, so ask for a turn first. */
+body.touch .sign { padding: clamp(14px, 3vmin, 26px) clamp(16px, 4vmin, 30px); }
+body.touch .keys { padding: 12px 2px; gap: 6px 14px; font-size: 12px; }
+
+/* A phone held sideways is about 390pt tall: the whole sign has to fit. */
+@media (max-height: 520px) {
+  .eyebrow { font-size: 9px; letter-spacing: .28em; margin-bottom: 4px; }
+  .sign h1 { font-size: clamp(24px, 9vmin, 36px); }
+  .tagline { margin: 4px 0 10px; font-size: 13px; }
+  .keys { padding: 8px 2px; gap: 4px 12px; font-size: 11px; margin-bottom: 8px; }
+  body.touch .keys { padding: 9px 2px; gap: 4px 12px; font-size: 11px; }
+  .start { padding: 9px 18px; font-size: 11px; }
+  .fineprint { margin-top: 6px; font-size: 10px; }
+  .tally { margin: 10px 0 14px; }
+  .tally b { font-size: 22px; }
 }

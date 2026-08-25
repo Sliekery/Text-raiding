@@ -27,7 +27,13 @@ const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">`;
 
-const head = `<title>Orcs &amp; Apertures</title>\n${fonts}\n<style>\n${css}</style>`;
+// The standalone page keeps index.html's own head (mobile web-app tags and
+// all) with the stylesheet folded in; the artifact build gets only what is
+// legal inside a body, since the host supplies the shell.
+const headSrc = html.match(/<head>([\s\S]*?)<\/head>/)[1];
+const inlineStyle = `<style>\n${css}</style>`;
+const fullHead = headSrc.replace('<link rel="stylesheet" href="style.css">', inlineStyle).trim();
+const head = `<title>Orcs &amp; Apertures</title>\n${fonts}\n${inlineStyle}`;
 const main = `${body}\n\n<script>\n${js}\n</script>`;
 
 if (bodyOnly) {
@@ -38,9 +44,7 @@ if (bodyOnly) {
     '<!doctype html>',
     '<html lang="en">',
     '<head>',
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
-    head,
+    fullHead,
     '</head>',
     '<body>',
     main,

@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orcs &amp; Apertures">
 <title>Orcs &amp; Apertures</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="safeProbe" aria-hidden="true"></div>
 <div id="stage">
   <div id="frame">
     <canvas id="view" width="960" height="600"></canvas>
@@ -19,7 +25,7 @@
         <p class="eyebrow">Testing Chamber XIV · Anno 1387</p>
         <h1>Orcs <span class="amp">&amp;</span> Apertures</h1>
         <p class="tagline">Speedy thing goes in the portal. Speedy orc goes splat.</p>
-        <dl class="keys">
+        <dl class="keys desk">
           <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>walk · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump</dd>
           <dt>Mouse</dt><dd>aim the pointing finger</dd>
           <dt>Left click</dt><dd>cast <b>Arcane Shove</b> — hold to charge a bigger blast</dd>
@@ -27,9 +33,26 @@
           <dt><kbd>Q</kbd> · <kbd>E</kbd></dt><dd><span class="b"><b>blue</b></span> · <span class="o"><b>orange</b></span> aperture on demand</dd>
           <dt><kbd>R</kbd> · <kbd>M</kbd></dt><dd>close both apertures · mute</dd>
         </dl>
+        <dl class="keys touch">
+          <dt>Left thumb</dt><dd>press anywhere on the left to walk — the stick appears under your thumb</dd>
+          <dt>Right thumb</dt><dd>drag to turn · tap to cast a quick bolt</dd>
+          <dt><span class="rune">✦</span></dt><dd>cast <b>Arcane Shove</b> — <b>hold</b> to charge a bigger blast</dd>
+          <dt><span class="b">◯</span> <span class="o">◯</span></dt><dd>open the <span class="b">blue</span> and <span class="o">orange</span> apertures</dd>
+          <dt><span class="rune">⌃</span></dt><dd>jump</dd>
+        </dl>
         <p class="fineprint" style="margin:0 0 18px">Apertures only take on the pale rune-panels. Mossy stone rejects the enchantment.</p>
         <button class="start" id="startBtn" type="button">Enter the chamber</button>
-        <p class="fineprint">Click the view to capture the mouse · <kbd>Esc</kbd> releases it</p>
+        <p class="fineprint desk">Click the view to capture the mouse · <kbd>Esc</kbd> releases it</p>
+        <p class="fineprint touch">Turn the phone sideways · add to your home screen for a full-screen chamber</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="rotateSign" hidden>
+      <div class="sign">
+        <p class="eyebrow">Chamber alignment</p>
+        <h1>Turn Sideways</h1>
+        <p class="tagline">The chamber is wider than it is tall, and so are you, held this way.</p>
+        <button class="start" id="anywayBtn" type="button">Play upright anyway</button>
       </div>
     </div>
 
