@@ -86,11 +86,14 @@ shields, defensives and damage cooldowns, all on resource costs and cooldowns.
 ## Also in here: 🔮 Orcs & Apertures
 
 A separate first-person demo in [`portal-orcs/`](portal-orcs/) — Portal's
-aperture mechanics in a medieval test chamber, where you cast spells from one
-outstretched finger and cut portals with the other hand, and the orcs die of
-momentum. Open `portal-orcs/portal-orcs.html` in a browser; no install, no
-dependencies, every pixel and sound generated at runtime. Plays on a phone
-too — hold it sideways for thumbstick and thumb-button controls.
+aperture mechanics in a medieval test chamber. You cast bolts and fireballs
+from one outstretched finger, cut portals with the other hand, and defend two
+rune fonts at opposite corners of a chamber too wide to cross on foot: the
+apertures are the only way to cover both. The orcs die of momentum, of fire,
+or of being fed through a pair of facing portals until they come apart. Open
+`portal-orcs/portal-orcs.html` in a browser; no install, no dependencies, every
+pixel and sound generated at runtime. Plays on a phone too — hold it sideways
+for thumbstick and thumb-button controls.
 
 ## Project layout
 

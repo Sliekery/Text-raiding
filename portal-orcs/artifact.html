@@ -145,6 +145,15 @@ canvas#view {
   margin: 8px 0 20px;
 }
 
+.brief {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--parch-dim);
+  margin: 0 0 4px;
+  text-align: left;
+}
+.brief b { color: var(--parchment); }
+
 .keys {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -250,11 +259,12 @@ body.touch .keys { padding: 12px 2px; gap: 6px 14px; font-size: 12px; }
 @media (max-height: 520px) {
   .eyebrow { font-size: 9px; letter-spacing: .28em; margin-bottom: 4px; }
   .sign h1 { font-size: clamp(24px, 9vmin, 36px); }
-  .tagline { margin: 4px 0 10px; font-size: 13px; }
-  .keys { padding: 8px 2px; gap: 4px 12px; font-size: 11px; margin-bottom: 8px; }
-  body.touch .keys { padding: 9px 2px; gap: 4px 12px; font-size: 11px; }
+  .tagline { margin: 3px 0 8px; font-size: 12.5px; }
+  .keys { padding: 7px 2px; gap: 3px 10px; font-size: 10.5px; margin-bottom: 7px; }
+  body.touch .keys { padding: 7px 2px; gap: 3px 10px; font-size: 10.5px; }
   .start { padding: 9px 18px; font-size: 11px; }
   .fineprint { margin-top: 6px; font-size: 10px; }
+  .brief { display: none; }        /* the legend carries it on a short screen */
   .tally { margin: 10px 0 14px; }
   .tally b { font-size: 22px; }
 }
@@ -270,6 +280,9 @@ body.touch .keys { padding: 12px 2px; gap: 6px 14px; font-size: 12px; }
         <p class="eyebrow">Testing Chamber XIV · Anno 1387</p>
         <h1>Orcs <span class="amp">&amp;</span> Apertures</h1>
         <p class="tagline">Speedy thing goes in the portal. Speedy orc goes splat.</p>
+        <p class="brief">The horde is marching on your two <b>rune fonts</b>, at opposite ends of a
+        chamber far too wide to cross on foot. Apertures are how you defend both — and how you
+        kill: shove an orc in, and whatever it hits at the far end does the rest.</p>
         <dl class="keys desk">
           <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>walk · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump</dd>
           <dt>Mouse</dt><dd>aim the pointing finger</dd>
@@ -277,13 +290,14 @@ body.touch .keys { padding: 12px 2px; gap: 6px 14px; font-size: 12px; }
           <dt>Right click</dt><dd>open the aperture glowing in your left palm — it alternates</dd>
           <dt><kbd>Q</kbd> · <kbd>E</kbd></dt><dd><span class="b"><b>blue</b></span> · <span class="o"><b>orange</b></span> aperture on demand</dd>
           <dt><kbd>R</kbd> · <kbd>M</kbd></dt><dd>close both apertures · mute</dd>
+          <dt>Through it</dt><dd>a spell fired through an aperture comes out <b>banked</b> — wider, harder, and it kills like a portal kill</dd>
         </dl>
         <dl class="keys touch">
-          <dt>Left thumb</dt><dd>press anywhere on the left to walk — the stick appears under your thumb</dd>
-          <dt>Right thumb</dt><dd>drag to turn · tap to cast a quick bolt</dd>
-          <dt><span class="rune">✦</span></dt><dd>cast <b>Arcane Shove</b> — <b>hold</b> to charge a bigger blast</dd>
-          <dt><span class="b">◯</span> <span class="o">◯</span></dt><dd>open the <span class="b">blue</span> and <span class="o">orange</span> apertures</dd>
-          <dt><span class="rune">⌃</span></dt><dd>jump</dd>
+          <dt>The job</dt><dd>defend two <b>rune fonts</b> at opposite corners — apertures are the only way to cover both</dd>
+          <dt>Left thumb</dt><dd>walk; the stick appears under it</dd>
+          <dt>Right thumb</dt><dd>drag to turn · tap to cast</dd>
+          <dt><span class="rune">✦</span> <span class="b">◯</span><span class="o">◯</span> <span class="rune">⌃</span></dt><dd>hold <span class="rune">✦</span> to charge a fireball · <span class="b">◯</span><span class="o">◯</span> open apertures · <span class="rune">⌃</span> jump</dd>
+          <dt>Through it</dt><dd>a spell fired through an aperture comes out <b>banked</b></dd>
         </dl>
         <p class="fineprint" style="margin:0 0 18px">Apertures only take on the pale rune-panels. Mossy stone rejects the enchantment.</p>
         <button class="start" id="startBtn" type="button">Enter the chamber</button>
@@ -503,6 +517,58 @@ var Sfx = (function () {
       var t = now(), f = 660 * Math.pow(1.122, Math.min(8, n || 0));
       tone('triangle', f, f, t, 0.18, 0.08);
       tone('sine', f * 2, f * 2, t + 0.02, 0.14, 0.04);
+    },
+
+    /* A fireball leaving the hand: a roar with a body of noise. */
+    fire: function (charge) {
+      if (!ensure() || muted) return;
+      var t = now(), c = charge || 0;
+      noiseBurst(t, 0.42 + c * 0.2, 0.2, 'lowpass', 900, 180);
+      tone('sawtooth', 320 + c * 160, 90, t, 0.34, 0.14);
+      tone('triangle', 120, 50, t, 0.4, 0.1);
+    },
+
+    /* A fireball landing: a soft whump and a crackle. */
+    boom: function (dist, size) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist), k = 0.8 + (size || 0) * 0.6;
+      noiseBurst(t, 0.5 * k, 0.3 * g, 'lowpass', 1400, 90);
+      tone('triangle', 110, 34, t, 0.44 * k, 0.24 * g);
+      noiseBurst(t + 0.08, 0.6, 0.1 * g, 'bandpass', 2400, 700);
+    },
+
+    /* Something catches. */
+    ignite: function (dist) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist);
+      noiseBurst(t, 0.3, 0.14 * g, 'bandpass', 1800, 600);
+      tone('sine', 420, 900, t, 0.16, 0.05 * g);
+    },
+
+    /* A spell coming back out of an aperture, hotter than it went in. */
+    bank: function () {
+      if (!ensure() || muted) return;
+      var t = now();
+      tone('triangle', 520, 1180, t, 0.22, 0.12);
+      tone('sine', 780, 1560, t + 0.04, 0.2, 0.07);
+    },
+
+    /* A club against the rune font. */
+    fontHit: function (dist) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist);
+      tone('triangle', 640, 300, t, 0.3, 0.14 * g);
+      tone('sine', 180, 120, t, 0.4, 0.12 * g);
+      noiseBurst(t, 0.14, 0.1 * g, 'bandpass', 2600, 900);
+    },
+
+    /* A font going out. */
+    fontBreak: function () {
+      if (!ensure() || muted) return;
+      var t = now();
+      noiseBurst(t, 0.7, 0.3, 'bandpass', 3200, 300);
+      tone('sawtooth', 300, 40, t, 0.9, 0.2);
+      tone('sine', 90, 30, t + 0.05, 1.2, 0.18);
     },
 
     death: function () {
@@ -1029,6 +1095,106 @@ var Art = (function () {
     return c;
   }
 
+
+  /* ── Rune font ────────────────────────────────────────────────────────
+     The thing the horde is actually marching on: a stone plinth holding a
+     bound flame. Three states, so its condition reads across the room.   */
+  var fontCache = {};
+  function fontSprite(state) {
+    if (fontCache[state]) return fontCache[state];
+    var W = 96, H = 148, c = make(W, H), g = ctxOf(c);
+    var m = W / 2;
+    var ink = 'rgba(14,11,20,0.92)';
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.strokeStyle = ink;
+    g.lineWidth = 2.6;
+
+    // plinth
+    g.beginPath();
+    g.moveTo(m - 30, H - 4);
+    g.lineTo(m - 20, H - 74);
+    g.lineTo(m + 20, H - 74);
+    g.lineTo(m + 30, H - 4);
+    g.closePath();
+    var pg = g.createLinearGradient(m - 30, 0, m + 30, 0);
+    pg.addColorStop(0, '#3b3648');
+    pg.addColorStop(0.45, '#6b6478');
+    pg.addColorStop(1, '#2c2836');
+    g.fillStyle = pg; g.fill(); g.stroke();
+
+    // carved band
+    g.fillStyle = state === 'dark' ? 'rgba(90,84,100,0.5)' : 'rgba(227,178,60,0.55)';
+    g.fillRect(m - 23, H - 56, 46, 5);
+    g.fillRect(m - 21, H - 40, 42, 4);
+
+    // bowl
+    g.beginPath();
+    g.ellipse(m, H - 78, 30, 11, 0, 0, Math.PI * 2);
+    g.fillStyle = '#7c7488'; g.fill(); g.stroke();
+    g.beginPath();
+    g.ellipse(m, H - 80, 22, 7, 0, 0, Math.PI * 2);
+    g.fillStyle = state === 'dark' ? '#241f2c' : '#20161a'; g.fill();
+
+    if (state !== 'dark') {
+      // the bound flame: a floating orb inside a rune ring
+      var hot = state === 'full' ? '#ffd98a' : '#ff8a3c';
+      var core = state === 'full' ? '#fff6d8' : '#ffd0a0';
+      g.beginPath();
+      g.ellipse(m, H - 104, 17, 21, 0, 0, Math.PI * 2);
+      var og = g.createRadialGradient(m - 4, H - 110, 2, m, H - 104, 22);
+      og.addColorStop(0, core);
+      og.addColorStop(0.5, hot);
+      og.addColorStop(1, 'rgba(255,120,40,0.15)');
+      g.fillStyle = og; g.fill();
+
+      g.strokeStyle = state === 'full' ? '#e3b23c' : '#b3243a';
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.ellipse(m, H - 104, 27, 10, 0, 0, Math.PI * 2);
+      g.stroke();
+      for (var i = 0; i < 6; i++) {
+        var a = i / 6 * Math.PI * 2;
+        g.fillStyle = state === 'full' ? '#e3b23c' : '#b3243a';
+        g.fillRect(m + Math.cos(a) * 27 - 2, H - 104 + Math.sin(a) * 10 - 2, 4, 4);
+      }
+    } else {
+      // snuffed: a cracked, cold stone
+      g.strokeStyle = 'rgba(60,55,72,0.9)';
+      g.lineWidth = 2.4;
+      g.beginPath();
+      g.moveTo(m - 14, H - 92); g.lineTo(m - 3, H - 76);
+      g.lineTo(m + 6, H - 90); g.lineTo(m + 16, H - 72);
+      g.stroke();
+    }
+    fontCache[state] = c;
+    return c;
+  }
+
+  /* ── Flame ────────────────────────────────────────────────────────────
+     Used for burning orcs, burning fonts, and fireball trails.          */
+  var flameCache = {};
+  function flameSprite(frame) {
+    if (flameCache[frame]) return flameCache[frame];
+    var S = 40, c = make(S, S), g = ctxOf(c);
+    seed = 4400 + frame * 131;
+    var m = S / 2;
+    function tongue(h, wid, off, fill) {
+      g.beginPath();
+      g.moveTo(m + off, S - 2);
+      g.bezierCurveTo(m + off - wid, S - h * 0.45, m + off - wid * 0.55, S - h * 0.8, m + off + wid * 0.1, S - h);
+      g.bezierCurveTo(m + off + wid * 0.65, S - h * 0.78, m + off + wid, S - h * 0.4, m + off, S - 2);
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+    }
+    tongue(S * 0.94, 12 + rnd() * 4, (rnd() - 0.5) * 5, 'rgba(255,96,20,0.85)');
+    tongue(S * 0.70, 8 + rnd() * 3, (rnd() - 0.5) * 6, 'rgba(255,168,40,0.9)');
+    tongue(S * 0.44, 5 + rnd() * 2, (rnd() - 0.5) * 5, 'rgba(255,238,170,0.95)');
+    flameCache[frame] = c;
+    return c;
+  }
+
   /* ── The mage's hands ─────────────────────────────────────────────────
      Drawn live at display resolution so they stay crisp over the chunky
      world. All geometry is expressed against h so any aspect works.      */
@@ -1266,6 +1432,8 @@ var Art = (function () {
     texPanel: runePanel(),
     texFloor: flagstone(),
     orc: orcSprite,
+    font: fontSprite,
+    flame: flameSprite,
     gib: gibSprite,
     splat: splatSprite,
     drawCastHand: drawCastHand,
@@ -1317,9 +1485,11 @@ var World = (function () {
     // The test cube at the heart of the chamber: panel on every face.
     rect(14, 10, 4, 4, PANEL);
 
-    // Two free-standing panel walls to bank shots off.
-    rect(7, 6, 6, 1, PANEL);
-    rect(19, 17, 6, 1, PANEL);
+    // Two free-standing panel walls to bank shots off. Each runs past a
+    // rune font, so there is always a surface to open an aperture beside
+    // the thing you are defending.
+    rect(4, 6, 9, 1, PANEL);
+    rect(19, 17, 9, 1, PANEL);
 
     // Stone buttresses that refuse the enchantment.
     rect(6, 15, 1, 4, STONE);
@@ -2089,15 +2259,56 @@ var Render = (function () {
   var EYE = 0.55, PR = 0.22;
   var GRAV = 13.5;
   var SPLAT_V = 7.0, HURT_V = 3.6;
+  var FIRE_G = 2.2;              // fireballs arc; arcane bolts fly flat
 
   var KIND = {
-    grunt:  { h: 0.62, hp: 3, speed: 1.75, mass: 1.0,  dmg: 7,  voice: 1.0,  score: 100 },
-    goblin: { h: 0.44, hp: 2, speed: 2.75, mass: 0.55, dmg: 4,  voice: 1.55, score: 120 },
-    brute:  { h: 0.94, hp: 7, speed: 1.15, mass: 2.6,  dmg: 15, voice: 0.62, score: 220 },
-    shaman: { h: 0.66, hp: 3, speed: 1.35, mass: 0.9,  dmg: 9,  voice: 1.2,  score: 180 }
+    grunt:  { h: 0.62, hp: 3, speed: 1.20, mass: 1.0,  dmg: 6,  voice: 1.0,  score: 100 },
+    goblin: { h: 0.44, hp: 2, speed: 1.85, mass: 0.55, dmg: 4,  voice: 1.55, score: 120 },
+    brute:  { h: 0.94, hp: 7, speed: 0.82, mass: 2.6,  dmg: 13, voice: 0.62, score: 220 },
+    shaman: { h: 0.66, hp: 3, speed: 0.95, mass: 0.9,  dmg: 9,  voice: 1.2,  score: 180 }
   };
 
+  /* ── The rune fonts ───────────────────────────────────────────────────
+     The horde is not here for you. It is here for these, at opposite ends
+     of a chamber too wide to cross on foot — which is what apertures are
+     for. Lose both and the chamber goes dark.                            */
+  var FONT_SITES = [
+    { name: 'Dawn', x: 5.5, y: 4.5 },
+    { name: 'Vesper', x: 26.5, y: 19.5 }
+  ];
+  var fonts = [];
+
+  function resetFonts() {
+    fonts.length = 0;
+    for (var i = 0; i < FONT_SITES.length; i++) {
+      var f = FONT_SITES[i];
+      fonts.push({ name: f.name, x: f.x, y: f.y, hp: 240, max: 240, hit: 0, dead: false, t: Math.random() * 6 });
+    }
+  }
+
+  function aliveFonts() {
+    var n = 0;
+    for (var i = 0; i < fonts.length; i++) if (!fonts[i].dead) n++;
+    return n;
+  }
+
+  function nearestFont(x, y) {
+    var best = null, bd = 1e9;
+    for (var i = 0; i < fonts.length; i++) {
+      var f = fonts[i];
+      if (f.dead) continue;
+      var d = Math.hypot(f.x - x, f.y - y);
+      if (d < bd) { bd = d; best = f; }
+    }
+    return best;
+  }
+
   var SPLATS = ['SPLORCH!', 'KERSPLAT!', 'GRONK!', 'THWUMP!', 'SQUELCH!', 'YEET!', 'BONK!', 'OOF!'];
+  var DARK = [
+    'Both fonts are out. The chamber belongs to the orcs now.',
+    'They were never coming for you. You just kept getting in the way.',
+    'Two fonts, one mage, no apertures worth speaking of.'
+  ];
   var DEATHS = [
     'A goblin hit you with a stick. Repeatedly.',
     'You were out-thought by something with two brain cells and a club.',
@@ -2110,7 +2321,7 @@ var Render = (function () {
     hp: 100, onGround: true, bob: 0, hurtT: 99, dead: false
   };
 
-  var orcs = [], bolts = [], gibs = [], pops = [], decals = [], tracers = [], sparks = [];
+  var orcs = [], bolts = [], gibs = [], pops = [], decals = [], tracers = [], sparks = [], flames = [];
   var S = {
     running: false, over: false, time: 0, score: 0, wave: 0, splats: 0,
     combo: 0, comboT: 0, banner: '', bannerSub: '', bannerT: 0,
@@ -2248,8 +2459,20 @@ var Render = (function () {
   }
 
   function popup(x, y, z, text, color, size) {
-    pops.push({ x: x, y: y, z: z, text: text, color: color, t: 0, life: 1.5, size: size || 1 });
-    if (pops.length > 24) pops.shift();
+    // one shout per patch of floor: overlapping labels read as noise
+    for (var i = 0; i < pops.length; i++) {
+      var q = pops[i];
+      if (q.t < 0.5 && Math.hypot(q.x - x, q.y - y) < 1.1) {
+        if ((q.size || 1) >= (size || 1)) return;
+        pops.splice(i, 1);
+        break;
+      }
+    }
+    pops.push({
+      x: x, y: y, z: z, text: text, color: color,
+      t: 0, life: 1.4, size: size || 1
+    });
+    if (pops.length > 14) pops.shift();
   }
 
   function addSplatDecal(x, y, type) {
@@ -2277,6 +2500,7 @@ var Render = (function () {
       hp: k.hp, maxhp: k.hp, mass: k.mass, speed: k.speed * rand(0.9, 1.12),
       state: 'walk', t: rand(0, 3), frame: 0, rot: 0, spin: 0,
       sideT: 0, side: 1, markX: null, markY: null, stuckT: 0,
+      burn: 0, aggroT: 0, passes: 0, kick: 0, atkFont: null, atkCd: 0,
       settle: 0, stunT: 0, atkT: 0, castT: rand(1, 4),
       portalT: -99, curious: Math.random() < 0.32, voice: KIND[type].voice * rand(0.92, 1.08),
       gruntT: rand(1, 5), face: 0
@@ -2285,7 +2509,7 @@ var Render = (function () {
 
   function waveComp(n) {
     var list = [];
-    var count = Math.min(17, 3 + Math.round(n * 1.7));
+    var count = Math.min(14, 3 + Math.round(n * 1.3));
     for (var i = 0; i < count; i++) {
       var r = Math.random();
       if (n >= 3 && r < 0.14) list.push('brute');
@@ -2300,11 +2524,13 @@ var Render = (function () {
     S.wave++;
     S.spawnQueue = waveComp(S.wave);
     S.spawnT = 0;
-    S.banner = 'Wave ' + S.wave;
-    S.bannerSub = S.wave === 1 ? 'They are not here to test.' :
+    S.banner = S.wave === 1 ? 'Defend Both Fonts' : 'Wave ' + S.wave;
+    S.bannerSub = S.wave === 1 ? 'You cannot walk it in time. Cut an aperture at each.' :
+      S.wave === 2 ? 'They are marching on the fonts, not on you.' :
       S.wave === 3 ? 'Something heavier is coming.' :
       S.wave === 5 ? 'The shamans have opinions.' :
-      pick(['The horde thickens.', 'More volunteers.', 'Subjects incoming.', 'Fresh test material.']);
+      pick(['The horde thickens.', 'More volunteers.', 'Shove one through. See what happens.',
+            'Fresh test material.', 'Dawn and Vesper are counting.']);
     S.bannerT = 2.6;
     Sfx.horn();
   }
@@ -2312,12 +2538,14 @@ var Render = (function () {
   function spawnNext() {
     var type = S.spawnQueue.shift();
     if (!type) return;
-    var best = null, bestD = -1;
-    for (var i = 0; i < 6; i++) {
-      var p = World.randomSpawn();
-      var d = Math.hypot(p[0] - player.x, p[1] - player.y);
-      if (d > bestD) { bestD = d; best = p; }
-    }
+    // Never drop a wave on top of the mage: rank the gates by distance and
+    // pick from the far half.
+    var gates = World.SPAWNS.slice().sort(function (a, b) {
+      return Math.hypot(b[0] - player.x, b[1] - player.y) -
+             Math.hypot(a[0] - player.x, a[1] - player.y);
+    });
+    var pool = gates.slice(0, Math.max(3, Math.ceil(gates.length / 2)));
+    var best = pool[(Math.random() * pool.length) | 0];
     var o = makeOrc(type, best[0] + rand(-0.3, 0.3), best[1] + rand(-0.3, 0.3));
     orcs.push(o);
     spark(o.x, o.y, 0.25, 12, 'rgba(143,203,67,0.8)', 1.6);
@@ -2325,37 +2553,68 @@ var Render = (function () {
   }
 
   /* ── Casting ──────────────────────────────────────────────────────────*/
-  /* Thumb aiming is coarse, so on touch a bolt bends onto an orc that is
-     already close to the crosshair. It never finds one you are not facing. */
-  function assistAngle() {
-    if (!touchMode) return player.ang;
-    var best = null, bestOff = 0.20;
+  /* Aiming. There is no vertical aim in a raycaster, so a spell fired from
+     the hand used to sail over every orc's head: they are waist-high. Now
+     the cast finds a target and leads it in height, always — and on touch
+     it also bends horizontally onto one already near the crosshair. */
+  var aim = { hit: false, ang: 0, z: 0, dist: 0 };
+
+  function findTarget() {
+    aim.hit = false;
+    aim.ang = player.ang;
+    var cone = touchMode ? 0.22 : 0.16;
+    var best = null, bestOff = cone;
     for (var i = 0; i < orcs.length; i++) {
       var o = orcs[i];
-      if (o.dead || o.state === 'ragdoll') continue;
+      if (o.dead) continue;
       var d = dist2p(o, player);
-      if (d > 15 || d < 0.5) continue;
+      if (d > 16 || d < 0.4) continue;
       var a = Math.atan2(o.y - player.y, o.x - player.x);
-      var off = Math.atan2(Math.sin(a - player.ang), Math.cos(a - player.ang));
-      if (Math.abs(off) < bestOff && World.clearPath(player.x, player.y, o.x, o.y)) {
-        bestOff = Math.abs(off);
-        best = a;
+      var off = Math.abs(Math.atan2(Math.sin(a - player.ang), Math.cos(a - player.ang)));
+      if (off < bestOff && World.clearPath(player.x, player.y, o.x, o.y)) {
+        bestOff = off; best = o; aim.dist = d; aim.z = o.z;
       }
     }
-    return best == null ? player.ang : best;
+    if (best) {
+      aim.hit = true;
+      // thumbs get the angle too; a mouse keeps its own aim
+      aim.ang = touchMode ? Math.atan2(best.y - player.y, best.x - player.x) : player.ang;
+    }
+    return aim;
+  }
+
+  function launch(ang, power, isFire, spread) {
+    var a = ang + (spread || 0);
+    var dx = Math.cos(a), dy = Math.sin(a);
+    var speed = isFire ? 19 : 26;
+    var muzzle = player.z - 0.16;              // the hand, not the eye
+    var vz;
+    if (aim.hit && !spread) {
+      var tt = Math.max(0.05, aim.dist / speed);
+      vz = (aim.z - muzzle) / tt + (isFire ? 0.5 * FIRE_G * tt : 0);
+      vz = clamp(vz, -2.4, 2.4);
+    } else {
+      vz = isFire ? 0.45 : -0.22;              // fireballs arc, bolts drift
+    }
+    bolts.push({
+      x: player.x + dx * 0.35, y: player.y + dy * 0.35, z: muzzle,
+      vx: dx * speed, vy: dy * speed, vz: vz,
+      power: power, fire: isFire, banked: false, t: 0, trail: []
+    });
   }
 
   function castBolt(power) {
-    var ang = assistAngle();
-    var dx = Math.cos(ang), dy = Math.sin(ang);
-    bolts.push({
-      x: player.x + dx * 0.35, y: player.y + dy * 0.35, z: player.z - 0.03,
-      vx: dx * 27, vy: dy * 27, vz: 0.4,
-      power: power, t: 0, trail: []
-    });
+    findTarget();
+    var isFire = power >= 0.45;
+    launch(aim.ang, power, isFire, 0);
+    // a full charge splits into a three-fireball fan
+    if (isFire && power > 0.92) {
+      launch(aim.ang, power, true, -0.15);
+      launch(aim.ang, power, true, 0.15);
+    }
     hand.recoil = 1;
-    S.shake = Math.max(S.shake, 0.25 + power * 0.5);
-    Sfx.zap(power);
+    S.shake = Math.max(S.shake, (isFire ? 0.35 : 0.22) + power * 0.4);
+    if (isFire) Sfx.fire(power); else Sfx.zap(power);
   }
 
   function firePortal(hue) {
@@ -2380,7 +2639,7 @@ var Render = (function () {
   }
 
   /* ── Impulses and gore ────────────────────────────────────────────────*/
-  function shove(o, ix, iy, iz, dmg) {
+  function shove(o, ix, iy, iz, dmg, credit) {
     o.state = 'ragdoll';
     o.settle = 0;
     o.stunT = 0;
@@ -2388,28 +2647,58 @@ var Render = (function () {
     o.vy += iy / o.mass;
     o.vz += iz / o.mass;
     o.spin = clamp((o.vx + o.vy) * 0.9 + rand(-4, 4), -13, 13);
+    o.aggroT = 7;                      // whoever threw that is the problem now
     if (dmg) o.hp -= dmg;
+    // a spell that came out of an aperture kills like a portal kill
+    if (credit) o.portalT = S.time;
     if (Math.random() < 0.5) Sfx.grunt(dist2p(o, player), o.voice, true);
+  }
+
+  /* ── Fire ─────────────────────────────────────────────────────────────
+     A burning orc panics, runs, and sets light to whatever it bumps into.
+     Fire travels through apertures as happily as anything else.          */
+  function ignite(o, secs) {
+    if (o.dead) return;
+    var fresh = !(o.burn > 0);
+    o.burn = Math.max(o.burn || 0, secs);
+    if (fresh) {
+      Sfx.ignite(dist2p(o, player));
+      if (Math.random() < 0.35) {
+        popup(o.x, o.y, o.z + 0.42, pick(['AAAA!', 'HOT!', 'AIEEE', 'not again']), '#ff8a3c', 0.8);
+      }
+    }
+  }
+
+  function igniteArea(x, y, z, r, secs) {
+    for (var i = 0; i < orcs.length; i++) {
+      var o = orcs[i];
+      if (o.dead) continue;
+      if (Math.hypot(o.x - x, o.y - y, o.z - z) < r + o.r) ignite(o, secs);
+    }
   }
 
   function dist2p(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-  function gib(o, speedy) {
+  function gib(o, speedy, cause) {
     var d = dist2p(o, player);
-    Sfx.splat(d, speedy);
+    if (cause === 'fire') Sfx.boom(d, 0.4); else Sfx.splat(d, speedy);
     S.splats++;
     var portalled = (S.time - o.portalT) < 3.2;
 
     var base = KIND[o.type].score;
     S.combo++;
     S.comboT = 3.0;
-    var pts = Math.round(base * (portalled ? 2.5 : 1) * (1 + (S.combo - 1) * 0.35));
+    var mult = cause === 'spun' ? 4 : portalled ? 2.5 : cause === 'fire' ? 1.4 : 1;
+    var pts = Math.round(base * mult * (1 + (S.combo - 1) * 0.35));
     S.score += pts;
     Sfx.chime(S.combo);
 
-    var label = portalled ? 'PORTAL SPLAT' : pick(SPLATS);
-    popup(o.x, o.y, o.z + 0.35, label + '  +' + pts, portalled ? '#8fe3ff' : '#e3b23c', portalled ? 1.25 : 1);
-    if (S.combo > 1) popup(o.x, o.y, o.z + 0.62, '×' + S.combo + ' chain', '#ff8a3c', 0.85);
+    var label = cause === 'spun' ? 'SPUN OUT'
+      : portalled ? 'PORTAL SPLAT'
+      : cause === 'fire' ? pick(['EXTRA CRISPY', 'WELL DONE', 'ROASTED'])
+      : pick(SPLATS);
+    var labelCol = cause === 'spun' ? '#e3b23c' : portalled ? '#8fe3ff' : cause === 'fire' ? '#ff8a3c' : '#e3b23c';
+    popup(o.x, o.y, o.z + 0.35, label + '  +' + pts, labelCol, portalled || cause ? 1.25 : 1);
 
     var parts = ['head', 'arm', 'arm', 'leg', 'leg', 'tusk', 'chunk', 'chunk'];
     if (Art.SPECIES[o.type].helm) parts.push('helm');
@@ -2426,9 +2715,11 @@ var Render = (function () {
       });
     }
     if (gibs.length > 130) gibs.splice(0, gibs.length - 130);
-    spark(o.x, o.y, o.z, 14, 'rgba(143,203,67,0.75)', 2.4);
+    spark(o.x, o.y, o.z, 14, cause === 'fire' ? 'rgba(255,150,50,0.85)' : 'rgba(143,203,67,0.75)', 2.4);
     addSplatDecal(o.x, o.y, o.type);
     S.shake = Math.max(S.shake, 0.4);
+    // a burning orc bursting throws fire at whoever was standing too close
+    if (cause === 'fire') igniteArea(o.x, o.y, o.z, 1.0, 3);
   }
 
   /* ── Physics for anything that flies ─────────────────────────────────*/
@@ -2460,6 +2751,19 @@ var Render = (function () {
     var went = World.transfer(b, px, py, pz);
     if (went) {
       b.portalT = S.time;
+      b.justWent = went;
+      // passes decay, so only a real loop counts as a loop
+      if (S.time - (b.passT || -99) > 3.5) b.passes = 0;
+      b.passes = (b.passes || 0) + 1;
+      b.passT = S.time;
+      // the aperture spits: a facing pair becomes a grinder
+      if (b.kick) {
+        var sp = Math.hypot(b.vx, b.vy);
+        if (sp > 1.5 && sp < 24) {
+          var k = Math.min(b.kick, 24 / sp);
+          b.vx *= k; b.vy *= k;
+        }
+      }
       Sfx.whoosh(dist2p(b, player));
       spark(b.x, b.y, b.z, 6, went.color.glow, 1.2);
       impact = 0;
@@ -2470,14 +2774,42 @@ var Render = (function () {
   /* ── Orc brains ───────────────────────────────────────────────────────*/
   function updateOrc(o, dt) {
     o.t += dt;
+    o.aggroT = Math.max(0, (o.aggroT || 0) - dt);
+
+    // ── burning: cooks, panics, and spreads
+    if (o.burn > 0) {
+      o.burn -= dt;
+      o.hp -= 1.5 * dt;
+      o.emberT = (o.emberT || 0) - dt;
+      if (o.emberT <= 0) {
+        o.emberT = 0.06;
+        sparks.push({
+          x: o.x + rand(-0.12, 0.12), y: o.y + rand(-0.12, 0.12), z: o.z + rand(-0.1, 0.3),
+          vx: rand(-0.4, 0.4), vy: rand(-0.4, 0.4), vz: rand(0.6, 1.8),
+          t: 0, life: rand(0.3, 0.7), c: 'rgba(255,150,40,0.9)', r: rand(0.04, 0.1)
+        });
+      }
+      if (o.hp <= 0) { gib(o, 0.9, 'fire'); o.dead = true; return; }
+    }
 
     if (o.state === 'walk' || o.state === 'attack') {
-      var dx = player.x - o.x, dy = player.y - o.y;
+      // ── who is this orc marching on?
+      var dPlayer = dist2p(o, player);
+      var font = null, tgtX, tgtY;
+      if (o.aggroT > 0 || dPlayer < 3.2 || !aliveFonts()) {
+        tgtX = player.x; tgtY = player.y;
+      } else {
+        font = nearestFont(o.x, o.y);
+        if (font) { tgtX = font.x; tgtY = font.y; }
+        else { tgtX = player.x; tgtY = player.y; }
+      }
+
+      var dx = tgtX - o.x, dy = tgtY - o.y;
       var d = Math.hypot(dx, dy) || 1;
       var tx = dx / d, ty = dy / d;
 
       // Curious orcs make straight for an open aperture. It never ends well.
-      if (o.curious && World.linked()) {
+      if (o.curious && World.linked() && o.aggroT <= 0 && !(o.burn > 0)) {
         o.targetT = (o.targetT || 0) - dt;
         if (o.targetT <= 0) { o.targetKey = Math.random() < 0.5 ? 'blue' : 'orange'; o.targetT = rand(3, 6); }
         var target = World.portals[o.targetKey || 'blue'];
@@ -2485,41 +2817,59 @@ var Render = (function () {
           var ax = target.cx + target.nx * 0.45 - o.x;
           var ay = target.cy + target.ny * 0.45 - o.y;
           var ad = Math.hypot(ax, ay);
-          if (ad < 6.5 && World.clearPath(o.x, o.y, target.cx + target.nx * 0.3, target.cy + target.ny * 0.3)) {
+          if (ad < 7 && World.clearPath(o.x, o.y, target.cx + target.nx * 0.3, target.cy + target.ny * 0.3)) {
             tx = ax / (ad || 1); ty = ay / (ad || 1);
+            font = null;
             if (ad < 0.7 && Math.random() < 0.1) popup(o.x, o.y, o.z + 0.4, 'ooooh', '#8fe3ff', 0.7);
           }
         }
       }
 
       o.face = Math.atan2(ty, tx);
+      o.atkCd = Math.max(0, (o.atkCd || 0) - dt);
       var spd = o.speed;
 
-      if (o.state === 'attack') {
+      // ── on fire: no more marching orders, just running and screaming
+      if (o.burn > 0) {
+        spd *= 1.75;
+        var weave = Math.sin(o.t * 9) * 0.7;
+        var cw = Math.cos(weave), sw = Math.sin(weave);
+        var wx = tx * cw - ty * sw, wy = tx * sw + ty * cw;
+        tx = wx; ty = wy;
+        if (o.state === 'attack') { o.state = 'walk'; o.atkT = 0; }
+      } else if (o.state === 'attack') {
         o.atkT -= dt;
         spd *= 0.25;
         if (o.atkT <= 0) {
-          if (d < 1.15) hurtPlayer(KIND[o.type].dmg, tx, ty);
+          if (o.atkFont && !o.atkFont.dead) {
+            if (Math.hypot(o.atkFont.x - o.x, o.atkFont.y - o.y) < 1.7) damageFont(o.atkFont, KIND[o.type].dmg * 0.5);
+          } else if (!o.atkFont && d < 1.3) {
+            hurtPlayer(KIND[o.type].dmg, tx, ty);
+          }
           o.state = 'walk';
           o.atkT = 0;
+          o.atkFont = null;
         }
-      } else if (d < 0.95 && Math.abs(o.z - EYE) < 0.9) {
+      } else if (d < (font ? 1.4 : 1.0) && o.atkCd <= 0 && (font || Math.abs(o.z - EYE) < 0.9)) {
         o.state = 'attack';
-        o.atkT = 0.42;
-        Sfx.grunt(d, o.voice, true);
+        o.atkT = 0.62;                   // a longer wind-up: you can answer it
+        o.atkCd = font ? 1.15 : 0.75;    // and a beat between swings
+        o.atkFont = font;
+        Sfx.grunt(dist2p(o, player), o.voice, true);
       }
 
       // shamans lob goo from range
-      if (o.type === 'shaman') {
+      if (o.type === 'shaman' && !(o.burn > 0)) {
         o.castT -= dt;
-        if (o.castT <= 0 && d > 2 && d < 12 && World.clearPath(o.x, o.y, player.x, player.y)) {
-          o.castT = rand(2.6, 4.4);
-          var vz = 1.6 + d * 0.16;
+        if (o.castT <= 0 && dPlayer > 2 && dPlayer < 12 && World.clearPath(o.x, o.y, player.x, player.y)) {
+          o.castT = rand(3.4, 5.4);
+          var pdx = (player.x - o.x) / dPlayer, pdy = (player.y - o.y) / dPlayer;
           bolts.push({
-            x: o.x + tx * 0.3, y: o.y + ty * 0.3, z: o.z + 0.25,
-            vx: tx * 7.4, vy: ty * 7.4, vz: vz, enemy: true, power: 0, t: 0, trail: []
+            x: o.x + pdx * 0.3, y: o.y + pdy * 0.3, z: o.z + 0.25,
+            vx: pdx * 7.4, vy: pdy * 7.4, vz: 1.6 + dPlayer * 0.16,
+            enemy: true, power: 0, t: 0, trail: []
           });
-          Sfx.grunt(d, o.voice * 0.85, true);
+          Sfx.grunt(dPlayer, o.voice * 0.85, true);
         }
       }
 
@@ -2555,35 +2905,53 @@ var Render = (function () {
       if (went) {
         o.portalT = S.time;
         Sfx.whoosh(dist2p(o, player));
-        if (Math.random() < 0.4) popup(o.x, o.y, o.z + 0.4, pick(['wheee', 'wot', '?!', 'nooo']), '#ffc48a', 0.75);
+        // walking into an aperture leaves an orc badly confused
+        o.state = 'stun';
+        o.stunT = rand(0.7, 1.1);
+        o.atkFont = null;
+        popup(o.x, o.y, o.z + 0.4, pick(['wheee', 'wot', '?!', 'nooo', 'where']), '#ffc48a', 0.75);
       }
       o.rot *= 0.8;
-      o.frame = (Math.floor(o.t * o.speed * 4.4) % 4);
+      o.frame = (Math.floor(o.t * (o.burn > 0 ? 2.6 : 1) * o.speed * 4.4) % 4);
 
       o.gruntT -= dt;
       if (o.gruntT <= 0) {
         o.gruntT = rand(3, 8);
-        if (d < 14) Sfx.grunt(d, o.voice, false);
+        if (dPlayer < 14) Sfx.grunt(dPlayer, o.voice, o.burn > 0);
       }
 
     } else if (o.state === 'ragdoll') {
+      o.kick = 1.16;                       // the aperture spits it out faster
       var imp = stepBody(o, dt, 0.46, 0.66);
+
+      if (o.justWent) {
+        o.justWent = null;
+        popup(o.x, o.y, o.z + 0.4, 'PASS ×' + o.passes, '#8fe3ff', 0.8);
+        Sfx.chime(o.passes);
+        if (o.passes >= 3) {
+          S.score += 400;
+          gib(o, 1.6, 'spun');
+          o.dead = true;
+          return;
+        }
+      }
+
       o.rot += o.spin * dt;
       o.spin *= (1 - dt * 0.7);
       if (imp > SPLAT_V) {
-        gib(o, imp / SPLAT_V);
+        gib(o, imp / SPLAT_V, o.burn > 0 ? 'fire' : null);
         o.dead = true;
         return;
       } else if (imp > HURT_V) {
         o.hp -= (imp - HURT_V) * 0.9;
         Sfx.thud(dist2p(o, player));
-        if (o.hp <= 0) { gib(o, 1); o.dead = true; return; }
+        if (o.hp <= 0) { gib(o, 1, o.burn > 0 ? 'fire' : null); o.dead = true; return; }
       }
       var sp = Math.hypot(o.vx, o.vy, o.vz);
       if (o.onGround && sp < 1.0) {
         o.settle += dt;
         if (o.settle > 0.45) {
-          if (o.hp <= 0) { gib(o, 0.8); o.dead = true; return; }
+          if (o.hp <= 0) { gib(o, 0.8, o.burn > 0 ? 'fire' : null); o.dead = true; return; }
           o.state = 'stun';
           o.stunT = rand(0.9, 1.7);
           o.vx = o.vy = 0;
@@ -2618,6 +2986,11 @@ var Render = (function () {
         a.x -= nx * overlap * (mb / mt); a.y -= ny * overlap * (mb / mt);
         b.x += nx * overlap * (ma / mt); b.y += ny * overlap * (ma / mt);
 
+        if ((a.burn > 0) !== (b.burn > 0)) {
+          var lit = a.burn > 0 ? a : b, cold = a.burn > 0 ? b : a;
+          ignite(cold, Math.max(2.2, lit.burn * 0.7));
+        }
+
         var rel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
         if (rel > 3.2 && (a.state === 'ragdoll' || b.state === 'ragdoll')) {
           var hitter = a.state === 'ragdoll' ? a : b;
@@ -2645,6 +3018,7 @@ var Render = (function () {
         var sdt = dt / steps;
         var px = b.x, py = b.y, pz = b.z;
         if (b.enemy) b.vz -= GRAV * 0.42 * sdt;
+        else if (b.fire) b.vz -= FIRE_G * sdt;
         b.x += b.vx * sdt; b.y += b.vy * sdt; b.z += b.vz * sdt;
 
         if (World.blocked(b.x, b.y, b.z) || b.z < 0.02 || b.z > 0.98) hitWall = true;
@@ -2658,11 +3032,22 @@ var Render = (function () {
           for (var k = 0; k < orcs.length; k++) {
             var o = orcs[k];
             if (o.dead) continue;
-            if (Math.hypot(b.x - o.x, b.y - o.y) < o.r + 0.1 && Math.abs(b.z - o.z) < o.h * 0.55) { hit = o; break; }
+            // generous vertically: orcs are waist-high and thumbs are coarse
+            if (Math.hypot(b.x - o.x, b.y - o.y) < o.r + 0.16 &&
+                Math.abs(b.z - o.z) < o.h * 0.6 + 0.16) { hit = o; break; }
           }
         }
         var t2 = World.transfer(b, px, py, pz);
-        if (t2) { b.portalT = S.time; Sfx.whoosh(dist2p(b, player)); }
+        if (t2) {
+          b.portalT = S.time;
+          Sfx.whoosh(dist2p(b, player));
+          // a spell that has been through an aperture comes out hotter
+          if (!b.enemy && !b.banked) {
+            b.banked = true;
+            b.t = Math.min(b.t, 1.2);
+            Sfx.bank();
+          }
+        }
       }
 
       b.trail.push(b.x, b.y, b.z);
@@ -2683,11 +3068,33 @@ var Render = (function () {
   }
 
   function detonate(b, direct) {
-    var R = 1.25 + b.power * 1.15;
-    var force = 11 + b.power * 15;
-    spark(b.x, b.y, b.z, 12 + (b.power * 14) | 0, 'rgba(140,220,255,0.85)', 2 + b.power * 2);
-    Sfx.thud(dist2p(b, player));
-    S.shake = Math.max(S.shake, 0.2 + b.power * 0.35);
+    var banked = !!b.banked;
+    var bk = banked ? 1.6 : 1;
+    var R = (b.fire ? 1.85 : 1.25 + b.power * 0.9) * (banked ? 1.45 : 1);
+    var force = (b.fire ? 5.5 : 10 + b.power * 12) * bk;
+    var dmg = (b.fire ? 2.2 : 1 + b.power * 1.4) * (banked ? 2 : 1);
+
+    if (b.fire) {
+      Sfx.boom(dist2p(b, player), b.power);
+      spark(b.x, b.y, b.z, 18 + (b.power * 12) | 0, banked ? 'rgba(150,220,255,0.9)' : 'rgba(255,150,45,0.9)', 2.4);
+      for (var f = 0; f < 5; f++) {
+        flames.push({
+          x: b.x + rand(-R * 0.5, R * 0.5), y: b.y + rand(-R * 0.5, R * 0.5),
+          z: 0.05, t: 0, life: rand(0.6, 1.5), s: rand(0.35, 0.7)
+        });
+      }
+      igniteArea(b.x, b.y, b.z, R * 0.95, banked ? 6 : 4.2);
+    } else {
+      spark(b.x, b.y, b.z, 12 + (b.power * 14) | 0,
+        banked ? 'rgba(200,180,255,0.9)' : 'rgba(140,220,255,0.85)', 2 + b.power * 2);
+      Sfx.thud(dist2p(b, player));
+    }
+    S.shake = Math.max(S.shake, (b.fire ? 0.3 : 0.2) + b.power * 0.35);
+
+    if (banked) {
+      popup(b.x, b.y, b.z + 0.5, 'BANKED', '#8fe3ff', 1.1);
+      S.score += 60;
+    }
 
     for (var i = 0; i < orcs.length; i++) {
       var o = orcs[i];
@@ -2697,9 +3104,9 @@ var Render = (function () {
       if (d > R + o.r) continue;
       var fall = 1 - clamp((d - o.r) / R, 0, 1);
       var nx = (dx || rand(-1, 1)) / (d || 1), ny = (dy || rand(-1, 1)) / (d || 1);
-      var f = force * (0.45 + fall * 0.75) * (o === direct ? 1.35 : 1);
-      shove(o, nx * f, ny * f, 3.4 + fall * 3.6 + b.power * 3, 1 + b.power * 1.6);
-      if (o === direct) popup(o.x, o.y, o.z + 0.45, pick(['WHOMP', 'SHOVE', 'AWAY!']), '#8fe3ff', 0.8);
+      var fv = force * (0.45 + fall * 0.75) * (o === direct ? 1.35 : 1);
+      shove(o, nx * fv, ny * fv, (b.fire ? 1.6 : 3.4) + fall * (b.fire ? 1.4 : 3.6) + b.power * (b.fire ? 1 : 3), dmg, banked);
+      if (o === direct && !b.fire && Math.random() < 0.5) popup(o.x, o.y, o.z + 0.45, pick(['WHOMP', 'SHOVE', 'AWAY!']), '#8fe3ff', 0.8);
     }
 
     // the caster feels it too, at close range
@@ -2708,6 +3115,32 @@ var Render = (function () {
       var pf = (1 - pd / 1.5) * (2.6 + b.power * 4);
       var ax = (player.x - b.x) / (pd || 1), ay = (player.y - b.y) / (pd || 1);
       player.vx += ax * pf; player.vy += ay * pf; player.vz += 1.6 + b.power * 1.4;
+      if (b.fire && pd < 1.0) hurtPlayer(6, 0, 0);
+    }
+  }
+
+  /* ── The fonts under the hammer ───────────────────────────────────────*/
+  function damageFont(f, dmg) {
+    if (f.dead || !S.running) return;
+    f.hp -= dmg;
+    f.hit = 1;
+    S.fontFlash = 1;
+    Sfx.fontHit(Math.hypot(f.x - player.x, f.y - player.y));
+    S.shake = Math.max(S.shake, 0.18);
+    if (f.hp > 0) return;
+
+    f.hp = 0;
+    f.dead = true;
+    Sfx.fontBreak();
+    S.shake = Math.max(S.shake, 0.7);
+    spark(f.x, f.y, 0.5, 26, 'rgba(255,150,45,0.9)', 3);
+    popup(f.x, f.y, 0.9, f.name.toUpperCase() + ' IS OUT', '#b3243a', 1.3);
+    if (aliveFonts()) {
+      S.banner = f.name + ' Has Fallen';
+      S.bannerSub = 'One font left. They will all go for it now.';
+      S.bannerT = 3;
+    } else {
+      endGame('fonts');
     }
   }
 
@@ -2740,8 +3173,8 @@ var Render = (function () {
     var len = Math.hypot(fx, fy);
     var sprint = (keys['ShiftLeft'] || keys['ShiftRight']) ? 1.55 : 1;
     // the stick is analogue: a small push walks, a full push sprints
-    if (touchMode && len > 0.01) sprint = 0.62 + Math.min(1, len) * 0.93;
-    var target = 3.1 * sprint;
+    if (touchMode && len > 0.01) sprint = 0.60 + Math.min(1, len) * 0.85;
+    var target = 2.5 * sprint;
     if (len > 0.01) { fx /= len; fy /= len; }
 
     var grounded = player.onGround;
@@ -2797,7 +3230,7 @@ var Render = (function () {
     hand.cool -= dt;
     hand.recoil *= Math.max(0, 1 - dt * 7);
     hand.flare *= Math.max(0, 1 - dt * 6);
-    if (hand.charging) hand.charge = Math.min(1, hand.charge + dt / 0.9);
+    if (hand.charging) hand.charge = Math.min(1, hand.charge + dt / 0.55);
 
     for (var i = orcs.length - 1; i >= 0; i--) {
       updateOrc(orcs[i], dt);
@@ -2821,6 +3254,18 @@ var Render = (function () {
       if (p.t > p.life) gibs.splice(g, 1);
     }
 
+    for (var fl = flames.length - 1; fl >= 0; fl--) {
+      var fp = flames[fl];
+      fp.t += dt;
+      fp.lickT = (fp.lickT || 0) - dt;
+      if (fp.lickT <= 0) {
+        fp.lickT = 0.35;
+        igniteArea(fp.x, fp.y, 0.2, 0.55, 2.4);
+      }
+      if (fp.t > fp.life) flames.splice(fl, 1);
+    }
+    if (flames.length > 40) flames.splice(0, flames.length - 40);
+
     for (var s = sparks.length - 1; s >= 0; s--) {
       var sp = sparks[s];
       sp.t += dt;
@@ -2838,6 +3283,13 @@ var Render = (function () {
       pops[q].t += dt;
       if (pops[q].t > pops[q].life) pops.splice(q, 1);
     }
+
+    for (var fi = 0; fi < fonts.length; fi++) {
+      var ff = fonts[fi];
+      ff.t += dt;
+      ff.hit *= Math.max(0, 1 - dt * 3);
+    }
+    S.fontFlash *= Math.max(0, 1 - dt * 1.8);
 
     S.comboT -= dt;
     if (S.comboT <= 0 && S.combo) S.combo = 0;
@@ -2870,14 +3322,30 @@ var Render = (function () {
     // wave flow
     if (S.spawnQueue.length) {
       S.spawnT -= dt;
-      if (S.spawnT <= 0 && orcs.length < 18) {
-        S.spawnT = rand(0.35, 0.9);
+      if (S.spawnT <= 0 && orcs.length < 15) {
+        S.spawnT = rand(0.7, 1.5);
         spawnNext();
       }
     } else if (!orcs.length && !player.dead) {
       S.nextWaveT -= dt;
+      if (!S.tallied) {
+        S.tallied = true;
+        // the fonts recover a little, and pay out for surviving
+        var kept = 0;
+        for (var ti = 0; ti < fonts.length; ti++) {
+          if (fonts[ti].dead) continue;
+          kept += Math.round(fonts[ti].hp * 0.5);
+          fonts[ti].hp = Math.min(fonts[ti].max, fonts[ti].hp + 45);
+        }
+        if (kept && S.wave) {
+          S.score += kept;
+          popup(player.x + Math.cos(player.ang) * 2, player.y + Math.sin(player.ang) * 2,
+            player.z, 'FONTS HELD  +' + kept, '#e3b23c', 1.1);
+        }
+      }
       if (S.nextWaveT <= 0) {
-        S.nextWaveT = 4.5;
+        S.nextWaveT = 6.5;
+        S.tallied = false;
         startWave();
       }
     }
@@ -2891,6 +3359,35 @@ var Render = (function () {
       Render.addDecal(decals[d].img, decals[d].x, decals[d].y, decals[d].s, decals[d].a);
     }
 
+    // ── the rune fonts, and the light they throw
+    for (var fi = 0; fi < fonts.length; fi++) {
+      var f = fonts[fi];
+      var state = f.dead ? 'dark' : f.hp > 45 ? 'full' : 'hurt';
+      Render.addDecal(shadowImg, f.x, f.y, 1.1, f.dead ? 0.35 : 0.5);
+      Render.addSprite(Art.font(state), f.x, f.y, 0.5, 0.66, 1.0, 0, 1);
+      if (!f.dead) {
+        var pulse = 0.75 + Math.sin(f.t * 2.4) * 0.12 + f.hit * 0.5;
+        var col = f.hp > 45 ? 'rgba(255,200,90,0.5)' : 'rgba(255,110,60,0.55)';
+        Render.addGlow(f.x, f.y, 0.72, 1.5 * pulse, col, 0.8);
+        // a column of light so it can be found across the chamber
+        Render.addGlow(f.x, f.y, 1.6, 0.9, col, 0.22);
+        Render.addGlow(f.x, f.y, 2.6, 0.7, col, 0.12);
+        var fl = Art.flame((Math.floor(f.t * 12) % 4));
+        Render.addSprite(fl, f.x, f.y, 0.66, 0.26, 0.30, 0, 0.9);
+      } else {
+        Render.addGlow(f.x, f.y, 0.7, 0.6, 'rgba(60,60,80,0.4)', 0.4);
+      }
+    }
+
+    // ── ground fire left by fireballs
+    for (var gf = 0; gf < flames.length; gf++) {
+      var fp = flames[gf];
+      var k = clamp(1 - fp.t / fp.life, 0, 1);
+      var img = Art.flame((Math.floor(fp.t * 14 + gf) % 4));
+      Render.addSprite(img, fp.x, fp.y, fp.s * 0.5 * k, fp.s * k, fp.s * k, 0, 0.9 * k);
+      Render.addGlow(fp.x, fp.y, 0.25, fp.s * 2.2 * k, 'rgba(255,140,40,0.6)', 0.7 * k);
+    }
+
     for (var i = 0; i < orcs.length; i++) {
       var o = orcs[i];
       var pose = o.state === 'ragdoll' ? 'flail' : o.state === 'stun' ? 'stun' : o.state === 'attack' ? 'attack' : 'walk';
@@ -2898,6 +3395,11 @@ var Render = (function () {
       Render.addSprite(Art.orc(o.type, pose, pose === 'walk' ? o.frame : 0), o.x, o.y, o.z, o.w, o.h, o.rot, 1);
       if (S.time - o.portalT < 0.35) {
         Render.addGlow(o.x, o.y, o.z, o.h * 1.1, 'rgba(140,200,255,0.35)', 1 - (S.time - o.portalT) / 0.35);
+      }
+      if (o.burn > 0) {
+        var ff2 = Art.flame((Math.floor(o.t * 15 + i) % 4));
+        Render.addSprite(ff2, o.x, o.y, o.z + o.h * 0.45, o.w * 0.9, o.h * 0.95, 0, 0.92);
+        Render.addGlow(o.x, o.y, o.z + 0.1, o.h * 1.5, 'rgba(255,140,40,0.55)', 0.75);
       }
     }
 
@@ -2909,8 +3411,13 @@ var Render = (function () {
 
     for (var b = 0; b < bolts.length; b++) {
       var bo = bolts[b];
-      var col = bo.enemy ? 'rgba(150,230,90,0.85)' : 'rgba(120,200,255,0.9)';
-      Render.addGlow(bo.x, bo.y, bo.z, bo.enemy ? 0.28 : 0.22 + bo.power * 0.16, col, 1);
+      var col = bo.enemy ? 'rgba(150,230,90,0.85)'
+        : bo.banked ? 'rgba(210,180,255,0.95)'
+        : bo.fire ? 'rgba(255,150,45,0.95)' : 'rgba(120,200,255,0.9)';
+      Render.addGlow(bo.x, bo.y, bo.z, (bo.enemy ? 0.28 : 0.22 + bo.power * 0.16) * (bo.fire ? 1.6 : 1) * (bo.banked ? 1.3 : 1), col, 1);
+      if (bo.fire) {
+        Render.addSprite(Art.flame((Math.floor(S.time * 18 + b) % 4)), bo.x, bo.y, bo.z, 0.34, 0.38, 0, 0.9);
+      }
       for (var tr = 0; tr < bo.trail.length; tr += 3) {
         var a = (tr / bo.trail.length) * 0.5;
         Render.addGlow(bo.trail[tr], bo.trail[tr + 1], bo.trail[tr + 2], 0.1 + a * 0.2, col, a);
@@ -2987,6 +3494,68 @@ var Render = (function () {
     vg.strokeRect(x + 0.5, y + 0.5, w, h);
   }
 
+  /* Each font gets a marker: in view it sits over the font, out of view it
+     pins to the edge it lies past, with an arrow. Health is the ring. */
+  function drawFontMarkers(W, H, s, inT) {
+    var kx = W / Render.width, ky = H / Render.height;
+    var top = 104 * s + inT;
+    for (var i = 0; i < fonts.length; i++) {
+      var f = fonts[i];
+      Render.project(player, f.x, f.y, 0.95, proj);
+      var x, y = top, behind = !proj.vis || proj.tz <= 0.3;
+      if (behind) {
+        // which side is it on?
+        var dx = f.x - player.x, dy = f.y - player.y;
+        var rel = -dx * Math.sin(player.ang) + dy * Math.cos(player.ang);
+        x = rel > 0 ? W - 34 * s : 34 * s;
+      } else {
+        x = clamp(proj.sx * kx, 34 * s, W - 34 * s);
+        y = clamp(proj.sy * ky, top, H - 90 * s);
+      }
+      var r = 15 * s;
+      var frac = f.hp / f.max;
+      var col = f.dead ? '#6c6579' : frac > 0.45 ? '#e3b23c' : '#b3243a';
+
+      vg.save();
+      vg.globalAlpha = f.dead ? 0.5 : 0.92;
+      vg.beginPath();
+      vg.arc(x, y, r, 0, Math.PI * 2);
+      vg.fillStyle = 'rgba(10,9,16,0.62)';
+      vg.fill();
+      vg.lineWidth = 2 * s;
+      vg.strokeStyle = 'rgba(232,223,200,0.28)';
+      vg.stroke();
+      if (!f.dead) {
+        vg.beginPath();
+        vg.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+        vg.strokeStyle = col;
+        vg.lineWidth = 3 * s + f.hit * 3 * s;
+        vg.stroke();
+      }
+      vg.fillStyle = col;
+      vg.font = dispFont(15, 700);
+      vg.textAlign = 'center';
+      vg.textBaseline = 'middle';
+      vg.fillText(f.dead ? '×' : f.name[0], x, y + 1 * s);
+      vg.textBaseline = 'alphabetic';
+      vg.font = hudFont(9);
+      vg.fillStyle = f.dead ? '#6c6579' : f.hit > 0.25 ? '#ff8a3c' : '#9d9484';
+      vg.fillText(f.dead ? 'OUT' : f.hit > 0.25 ? f.name.toUpperCase() + ' HIT' : Math.round(f.hp) + '',
+        x, y + r + 12 * s);
+      if (behind) {
+        var dir = x < W / 2 ? -1 : 1;
+        vg.beginPath();
+        vg.moveTo(x + dir * (r + 5 * s), y);
+        vg.lineTo(x + dir * (r + 1 * s), y - 5 * s);
+        vg.lineTo(x + dir * (r + 1 * s), y + 5 * s);
+        vg.closePath();
+        vg.fillStyle = col;
+        vg.fill();
+      }
+      vg.restore();
+    }
+  }
+
   function drawHUD() {
     var W = view.width, H = view.height, s = uiS();
     var inL = safe.l * K, inR = safe.r * K, inT = safe.t * K, lift = safe.b * K;
@@ -3059,6 +3628,9 @@ var Render = (function () {
     vg.fillStyle = World.linked() ? '#8fcb43' : '#6c6579';
     vg.fillText(World.linked() ? 'LINKED' : 'OPEN BOTH TO LINK', cxp, H - 12 * s - lift);
     }
+
+    // ── font trackers: where they are, how they are holding up
+    drawFontMarkers(W, H, s, inT);
 
     // ── crosshair rune
     var ch = 12 * s * (1 + hand.charge * 0.7);
@@ -3224,6 +3796,13 @@ var Render = (function () {
       vg.fillStyle = 'rgba(150,215,255,' + (0.3 * S.warp).toFixed(3) + ')';
       vg.fillRect(0, 0, W, H);
     }
+    if (S.fontFlash > 0.01) {
+      var fg = vg.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.85);
+      fg.addColorStop(0, 'rgba(227,178,60,0)');
+      fg.addColorStop(1, 'rgba(227,110,40,' + (0.4 * S.fontFlash).toFixed(3) + ')');
+      vg.fillStyle = fg;
+      vg.fillRect(0, 0, W, H);
+    }
     // chamber vignette
     var v = vg.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.92);
     v.addColorStop(0, 'rgba(7,6,12,0)');
@@ -3299,7 +3878,7 @@ var Render = (function () {
   var move = { x: 0, y: 0, jump: false };
   var locked = false, dragging = false;
 
-  function look(dx) { player.ang += dx * 0.0026; }
+  function look(dx) { player.ang += dx * 0.0022; }
 
   document.addEventListener('keydown', function (e) {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
@@ -3439,7 +4018,7 @@ var Render = (function () {
         move.x = clamp((dx * f) / reach, -1, 1);
         move.y = clamp((-dy * f) / reach, -1, 1);
       } else if (q.role === 'look') {
-        look((p.x - q.x) * 1.72);
+        look((p.x - q.x) * 1.25);
         q.moved += Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
         q.x = p.x; q.y = p.y;
       }
@@ -3481,25 +4060,28 @@ var Render = (function () {
     orcs.length = 0; bolts.length = 0; gibs.length = 0;
     pops.length = 0; decals.length = 0; sparks.length = 0; tracers.length = 0;
     World.clear();
-    player.x = 16.5; player.y = 19.5; player.z = EYE;
+    resetFonts();
+    flames.length = 0;
+    player.x = 27.6; player.y = 21.6; player.z = EYE;
     player.vx = player.vy = player.vz = 0;
-    player.ang = -Math.PI / 2;
+    player.ang = -1.95;
     player.hp = 100; player.dead = false; player.hurtT = 99;
     S.score = 0; S.wave = 0; S.splats = 0; S.combo = 0;
     S.time = 0; S.nextWaveT = 1.2; S.spawnQueue = [];
     S.flash = 0; S.shake = 0; S.warp = 0; S.over = false;
-    S.laggardT = 0; S.nextHue = 'blue';
+    S.laggardT = 0; S.nextHue = 'blue'; S.fontFlash = 0; S.tallied = true;
     hand.charge = 0; hand.charging = false;
     move.x = 0; move.y = 0; move.jump = false;
     stick.on = false;
     press.cast = press.blue = press.orange = press.jump = 0;
     pointers = {};
 
-    // The chamber opens with a linked pair already cut into the panels:
-    // one in the test cube ahead, one in the alcove behind. Stand between
-    // them and the corridor goes on forever.
-    World.place('blue', { hit: true, tileV: World.PANEL, mapX: 16, mapY: 13, nx: 0, ny: 1, x: 16.5, y: 14 }, 0);
-    World.place('orange', { hit: true, tileV: World.PANEL, mapX: 16, mapY: 21, nx: 0, ny: -1, x: 16.5, y: 21 }, 0);
+    // The chamber opens with the pair already cut where it matters: one in
+    // the wall behind Dawn, one in the wall behind Vesper. Walk into either
+    // and you are at the other font. That is the whole game in one step —
+    // and the player is free to re-cut them anywhere better.
+    World.place('blue', { hit: true, tileV: World.PANEL, mapX: 5, mapY: 6, nx: 0, ny: -1, x: 5.5, y: 6 }, 0);
+    World.place('orange', { hit: true, tileV: World.PANEL, mapX: 26, mapY: 17, nx: 0, ny: 1, x: 26.5, y: 18 }, 0);
   }
 
   function begin() {
@@ -3513,9 +4095,10 @@ var Render = (function () {
     startWave();
   }
 
-  function endGame() {
-    player.dead = true;
-    player.hp = 0;
+  function endGame(reason) {
+    if (!S.running) return;
+    player.dead = reason !== 'fonts';
+    if (reason === 'fonts') { S.paused = false; } else { player.hp = 0; }
     draw();                       // one last frame, with the bar at empty
     S.running = false;
     S.over = true;
@@ -3527,7 +4110,10 @@ var Render = (function () {
     document.getElementById('finalScore').textContent = String(S.score);
     document.getElementById('finalWave').textContent = String(S.wave);
     document.getElementById('finalSplats').textContent = String(S.splats);
-    document.getElementById('deathLine').textContent = pick(DEATHS);
+    document.getElementById('deathLine').textContent =
+      reason === 'fonts' ? pick(DARK) : pick(DEATHS);
+    document.querySelector('#deathSign h1').textContent =
+      reason === 'fonts' ? 'The Chamber Goes Dark' : 'The Horde Wins';
     deathSign.hidden = false;
   }
 
@@ -3548,6 +4134,9 @@ var Render = (function () {
   // A small hatch into the chamber, for tuning and for testing.
   window.Demo = {
     player: player, orcs: orcs, state: S, hand: hand, show: show,
+    fonts: fonts, bolts: bolts, flames: flames,
+    cast: function (p) { castBolt(p); },
+    ignite: function (o, t) { ignite(o, t || 4); },
     spawn: function (type, dx, dy) {
       var o = makeOrc(type || 'grunt', player.x + dx, player.y + dy);
       orcs.push(o);

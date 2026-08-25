@@ -510,6 +510,106 @@ var Art = (function () {
     return c;
   }
 
+
+  /* ── Rune font ────────────────────────────────────────────────────────
+     The thing the horde is actually marching on: a stone plinth holding a
+     bound flame. Three states, so its condition reads across the room.   */
+  var fontCache = {};
+  function fontSprite(state) {
+    if (fontCache[state]) return fontCache[state];
+    var W = 96, H = 148, c = make(W, H), g = ctxOf(c);
+    var m = W / 2;
+    var ink = 'rgba(14,11,20,0.92)';
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.strokeStyle = ink;
+    g.lineWidth = 2.6;
+
+    // plinth
+    g.beginPath();
+    g.moveTo(m - 30, H - 4);
+    g.lineTo(m - 20, H - 74);
+    g.lineTo(m + 20, H - 74);
+    g.lineTo(m + 30, H - 4);
+    g.closePath();
+    var pg = g.createLinearGradient(m - 30, 0, m + 30, 0);
+    pg.addColorStop(0, '#3b3648');
+    pg.addColorStop(0.45, '#6b6478');
+    pg.addColorStop(1, '#2c2836');
+    g.fillStyle = pg; g.fill(); g.stroke();
+
+    // carved band
+    g.fillStyle = state === 'dark' ? 'rgba(90,84,100,0.5)' : 'rgba(227,178,60,0.55)';
+    g.fillRect(m - 23, H - 56, 46, 5);
+    g.fillRect(m - 21, H - 40, 42, 4);
+
+    // bowl
+    g.beginPath();
+    g.ellipse(m, H - 78, 30, 11, 0, 0, Math.PI * 2);
+    g.fillStyle = '#7c7488'; g.fill(); g.stroke();
+    g.beginPath();
+    g.ellipse(m, H - 80, 22, 7, 0, 0, Math.PI * 2);
+    g.fillStyle = state === 'dark' ? '#241f2c' : '#20161a'; g.fill();
+
+    if (state !== 'dark') {
+      // the bound flame: a floating orb inside a rune ring
+      var hot = state === 'full' ? '#ffd98a' : '#ff8a3c';
+      var core = state === 'full' ? '#fff6d8' : '#ffd0a0';
+      g.beginPath();
+      g.ellipse(m, H - 104, 17, 21, 0, 0, Math.PI * 2);
+      var og = g.createRadialGradient(m - 4, H - 110, 2, m, H - 104, 22);
+      og.addColorStop(0, core);
+      og.addColorStop(0.5, hot);
+      og.addColorStop(1, 'rgba(255,120,40,0.15)');
+      g.fillStyle = og; g.fill();
+
+      g.strokeStyle = state === 'full' ? '#e3b23c' : '#b3243a';
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.ellipse(m, H - 104, 27, 10, 0, 0, Math.PI * 2);
+      g.stroke();
+      for (var i = 0; i < 6; i++) {
+        var a = i / 6 * Math.PI * 2;
+        g.fillStyle = state === 'full' ? '#e3b23c' : '#b3243a';
+        g.fillRect(m + Math.cos(a) * 27 - 2, H - 104 + Math.sin(a) * 10 - 2, 4, 4);
+      }
+    } else {
+      // snuffed: a cracked, cold stone
+      g.strokeStyle = 'rgba(60,55,72,0.9)';
+      g.lineWidth = 2.4;
+      g.beginPath();
+      g.moveTo(m - 14, H - 92); g.lineTo(m - 3, H - 76);
+      g.lineTo(m + 6, H - 90); g.lineTo(m + 16, H - 72);
+      g.stroke();
+    }
+    fontCache[state] = c;
+    return c;
+  }
+
+  /* ── Flame ────────────────────────────────────────────────────────────
+     Used for burning orcs, burning fonts, and fireball trails.          */
+  var flameCache = {};
+  function flameSprite(frame) {
+    if (flameCache[frame]) return flameCache[frame];
+    var S = 40, c = make(S, S), g = ctxOf(c);
+    seed = 4400 + frame * 131;
+    var m = S / 2;
+    function tongue(h, wid, off, fill) {
+      g.beginPath();
+      g.moveTo(m + off, S - 2);
+      g.bezierCurveTo(m + off - wid, S - h * 0.45, m + off - wid * 0.55, S - h * 0.8, m + off + wid * 0.1, S - h);
+      g.bezierCurveTo(m + off + wid * 0.65, S - h * 0.78, m + off + wid, S - h * 0.4, m + off, S - 2);
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+    }
+    tongue(S * 0.94, 12 + rnd() * 4, (rnd() - 0.5) * 5, 'rgba(255,96,20,0.85)');
+    tongue(S * 0.70, 8 + rnd() * 3, (rnd() - 0.5) * 6, 'rgba(255,168,40,0.9)');
+    tongue(S * 0.44, 5 + rnd() * 2, (rnd() - 0.5) * 5, 'rgba(255,238,170,0.95)');
+    flameCache[frame] = c;
+    return c;
+  }
+
   /* ── The mage's hands ─────────────────────────────────────────────────
      Drawn live at display resolution so they stay crisp over the chunky
      world. All geometry is expressed against h so any aspect works.      */
@@ -747,6 +847,8 @@ var Art = (function () {
     texPanel: runePanel(),
     texFloor: flagstone(),
     orc: orcSprite,
+    font: fontSprite,
+    flame: flameSprite,
     gib: gibSprite,
     splat: splatSprite,
     drawCastHand: drawCastHand,

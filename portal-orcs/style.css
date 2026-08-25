@@ -140,6 +140,15 @@ canvas#view {
   margin: 8px 0 20px;
 }
 
+.brief {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--parch-dim);
+  margin: 0 0 4px;
+  text-align: left;
+}
+.brief b { color: var(--parchment); }
+
 .keys {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -245,11 +254,12 @@ body.touch .keys { padding: 12px 2px; gap: 6px 14px; font-size: 12px; }
 @media (max-height: 520px) {
   .eyebrow { font-size: 9px; letter-spacing: .28em; margin-bottom: 4px; }
   .sign h1 { font-size: clamp(24px, 9vmin, 36px); }
-  .tagline { margin: 4px 0 10px; font-size: 13px; }
-  .keys { padding: 8px 2px; gap: 4px 12px; font-size: 11px; margin-bottom: 8px; }
-  body.touch .keys { padding: 9px 2px; gap: 4px 12px; font-size: 11px; }
+  .tagline { margin: 3px 0 8px; font-size: 12.5px; }
+  .keys { padding: 7px 2px; gap: 3px 10px; font-size: 10.5px; margin-bottom: 7px; }
+  body.touch .keys { padding: 7px 2px; gap: 3px 10px; font-size: 10.5px; }
   .start { padding: 9px 18px; font-size: 11px; }
   .fineprint { margin-top: 6px; font-size: 10px; }
+  .brief { display: none; }        /* the legend carries it on a short screen */
   .tally { margin: 10px 0 14px; }
   .tally b { font-size: 22px; }
 }

@@ -37,9 +37,11 @@ var World = (function () {
     // The test cube at the heart of the chamber: panel on every face.
     rect(14, 10, 4, 4, PANEL);
 
-    // Two free-standing panel walls to bank shots off.
-    rect(7, 6, 6, 1, PANEL);
-    rect(19, 17, 6, 1, PANEL);
+    // Two free-standing panel walls to bank shots off. Each runs past a
+    // rune font, so there is always a surface to open an aperture beside
+    // the thing you are defending.
+    rect(4, 6, 9, 1, PANEL);
+    rect(19, 17, 9, 1, PANEL);
 
     // Stone buttresses that refuse the enchantment.
     rect(6, 15, 1, 4, STONE);

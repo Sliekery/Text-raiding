@@ -184,6 +184,58 @@ var Sfx = (function () {
       tone('sine', f * 2, f * 2, t + 0.02, 0.14, 0.04);
     },
 
+    /* A fireball leaving the hand: a roar with a body of noise. */
+    fire: function (charge) {
+      if (!ensure() || muted) return;
+      var t = now(), c = charge || 0;
+      noiseBurst(t, 0.42 + c * 0.2, 0.2, 'lowpass', 900, 180);
+      tone('sawtooth', 320 + c * 160, 90, t, 0.34, 0.14);
+      tone('triangle', 120, 50, t, 0.4, 0.1);
+    },
+
+    /* A fireball landing: a soft whump and a crackle. */
+    boom: function (dist, size) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist), k = 0.8 + (size || 0) * 0.6;
+      noiseBurst(t, 0.5 * k, 0.3 * g, 'lowpass', 1400, 90);
+      tone('triangle', 110, 34, t, 0.44 * k, 0.24 * g);
+      noiseBurst(t + 0.08, 0.6, 0.1 * g, 'bandpass', 2400, 700);
+    },
+
+    /* Something catches. */
+    ignite: function (dist) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist);
+      noiseBurst(t, 0.3, 0.14 * g, 'bandpass', 1800, 600);
+      tone('sine', 420, 900, t, 0.16, 0.05 * g);
+    },
+
+    /* A spell coming back out of an aperture, hotter than it went in. */
+    bank: function () {
+      if (!ensure() || muted) return;
+      var t = now();
+      tone('triangle', 520, 1180, t, 0.22, 0.12);
+      tone('sine', 780, 1560, t + 0.04, 0.2, 0.07);
+    },
+
+    /* A club against the rune font. */
+    fontHit: function (dist) {
+      if (!ensure() || muted) return;
+      var t = now(), g = gainFor(dist);
+      tone('triangle', 640, 300, t, 0.3, 0.14 * g);
+      tone('sine', 180, 120, t, 0.4, 0.12 * g);
+      noiseBurst(t, 0.14, 0.1 * g, 'bandpass', 2600, 900);
+    },
+
+    /* A font going out. */
+    fontBreak: function () {
+      if (!ensure() || muted) return;
+      var t = now();
+      noiseBurst(t, 0.7, 0.3, 'bandpass', 3200, 300);
+      tone('sawtooth', 300, 40, t, 0.9, 0.2);
+      tone('sine', 90, 30, t + 0.05, 1.2, 0.18);
+    },
+
     death: function () {
       if (!ensure() || muted) return;
       var t = now();
