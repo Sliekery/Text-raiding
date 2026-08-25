@@ -15,17 +15,16 @@ struct CutterShape: Identifiable, Hashable {
     let id: String
     let name: String
     let category: Category
-    private let build: () -> Path
+    /// The outline inside the unit square, built once when the library loads —
+    /// the boolean unions behind the composed shapes are not free.
+    let unitPath: Path
 
-    init(id: String, name: String, category: Category, build: @escaping () -> Path) {
+    init(id: String, name: String, category: Category, build: () -> Path) {
         self.id = id
         self.name = name
         self.category = category
-        self.build = build
+        self.unitPath = build()
     }
-
-    /// The outline inside the unit square.
-    func unitPath() -> Path { build() }
 
     /// The outline scaled to fill (and centred in) `rect`, keeping its aspect ratio.
     func path(in rect: CGRect) -> Path {
@@ -34,7 +33,7 @@ struct CutterShape: Identifiable, Hashable {
             translationX: rect.midX - side / 2,
             y: rect.midY - side / 2
         ).scaledBy(x: side, y: side)
-        return unitPath().applying(transform)
+        return unitPath.applying(transform)
     }
 
     static func == (lhs: CutterShape, rhs: CutterShape) -> Bool { lhs.id == rhs.id }
@@ -195,19 +194,21 @@ enum CutterShapeLibrary {
             return UnitPath.union(petals)
         },
         CutterShape(id: "butterfly", name: "Butterfly", category: .cute) {
+            // The wings deliberately miss each other; the body is what joins
+            // them, which is what leaves a notch between fore and hind wing.
             UnitPath.union([
-                UnitPath.ellipse(0.28, 0.33, 0.25, 0.20, rotation: UnitPath.degrees(-25)),
-                UnitPath.ellipse(0.72, 0.33, 0.25, 0.20, rotation: UnitPath.degrees(25)),
-                UnitPath.ellipse(0.31, 0.69, 0.21, 0.17, rotation: UnitPath.degrees(25)),
-                UnitPath.ellipse(0.69, 0.69, 0.21, 0.17, rotation: UnitPath.degrees(-25)),
-                UnitPath.ellipse(0.50, 0.50, 0.06, 0.32),
+                UnitPath.ellipse(0.26, 0.29, 0.27, 0.19, rotation: UnitPath.degrees(-38)),
+                UnitPath.ellipse(0.74, 0.29, 0.27, 0.19, rotation: UnitPath.degrees(38)),
+                UnitPath.ellipse(0.32, 0.72, 0.20, 0.15, rotation: UnitPath.degrees(32)),
+                UnitPath.ellipse(0.68, 0.72, 0.20, 0.15, rotation: UnitPath.degrees(-32)),
+                UnitPath.ellipse(0.50, 0.50, 0.05, 0.34),
             ])
         },
         CutterShape(id: "fish", name: "Fish", category: .cute) {
             UnitPath.union([
-                UnitPath.polygon([CGPoint(x: 0.26, y: 0.50), CGPoint(x: 0.02, y: 0.20),
-                                  CGPoint(x: 0.02, y: 0.80)]),
-                UnitPath.ellipse(0.58, 0.50, 0.40, 0.27),
+                UnitPath.polygon([CGPoint(x: 0.30, y: 0.50), CGPoint(x: 0.02, y: 0.16),
+                                  CGPoint(x: 0.02, y: 0.84)]),
+                UnitPath.ellipse(0.60, 0.50, 0.38, 0.26),
             ])
         },
         CutterShape(id: "leaf", name: "Leaf", category: .cute) {
@@ -226,8 +227,8 @@ enum CutterShapeLibrary {
             UnitPath.union([
                 UnitPath.circle(0.30, 0.52, 0.22),
                 UnitPath.circle(0.52, 0.42, 0.27),
-                UnitPath.circle(0.74, 0.54, 0.20),
-                UnitPath.roundedRect(0.08, 0.56, 0.84, 0.30, radius: 0.15),
+                UnitPath.circle(0.73, 0.55, 0.21),
+                UnitPath.roundedRect(0.06, 0.58, 0.88, 0.28, radius: 0.14),
             ])
         },
     ]
@@ -270,10 +271,13 @@ enum CutterShapeLibrary {
         CutterShape(id: "ghost", name: "Ghost", category: .seasonal) {
             var p = Path()
             p.move(to: CGPoint(x: 0.06, y: 0.92))
-            p.addLine(to: CGPoint(x: 0.06, y: 0.45))
-            p.addCurve(to: CGPoint(x: 0.94, y: 0.45),
-                       control1: CGPoint(x: 0.06, y: 0.04),
-                       control2: CGPoint(x: 0.94, y: 0.04))
+            p.addLine(to: CGPoint(x: 0.06, y: 0.44))
+            p.addCurve(to: CGPoint(x: 0.50, y: 0.03),
+                       control1: CGPoint(x: 0.06, y: 0.16),
+                       control2: CGPoint(x: 0.26, y: 0.03))
+            p.addCurve(to: CGPoint(x: 0.94, y: 0.44),
+                       control1: CGPoint(x: 0.74, y: 0.03),
+                       control2: CGPoint(x: 0.94, y: 0.16))
             p.addLine(to: CGPoint(x: 0.94, y: 0.92))
             p.addQuadCurve(to: CGPoint(x: 0.72, y: 0.92), control: CGPoint(x: 0.83, y: 0.76))
             p.addQuadCurve(to: CGPoint(x: 0.50, y: 0.92), control: CGPoint(x: 0.61, y: 1.00))

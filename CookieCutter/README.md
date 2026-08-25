@@ -14,6 +14,10 @@ shapes — and an **iMessage sticker pack** that serves them up in Messages.
 
 - **26 cutters** — hearts, stars, cats, bunnies, paws, gingerbread people, fir
   trees, ghosts, pumpkins, clouds, crowns, lightning bolts…
+
+![The 26 cutter shapes](Docs/shapes.png)
+
+<sup>Reference render of the outlines defined in `Models/CutterShape.swift`.</sup>
 - **Pinch, drag and rotate** the photo under the cutter. What you frame is
   exactly what you get.
 - **Die-cut sticker look** — an even white (or black/cream/pink/mint) border
@@ -80,9 +84,12 @@ so on the Stickers tab (ⓘ button).
 
 **Shapes are code, not images.** Every cutter is a `Path` described inside the
 unit square, so the same definition draws a 44pt thumbnail and a 1024px export
-(`Models/CutterShape.swift`). Paths fill with the non-zero winding rule, which
-means overlapping circles and capsules *union* — that is how the bear, the paw
-and the gingerbread person are built out of primitives in `UnitPath.swift`.
+(`Models/CutterShape.swift`). Composed shapes — the bear, the paw, the
+gingerbread person — are built from primitives in `UnitPath.swift` and merged
+with a real boolean union. Merely stacking the sub-paths would look right when
+filled, but only by luck: sub-paths wound in opposite directions cancel out, and
+stroking such a path draws the seams where the pieces overlap, which would put a
+line across the bear's ears.
 
 **The editor is WYSIWYG by construction.** The photo's position is never stored
 in screen points: `PhotoTransform` keeps a zoom multiplier relative to an
@@ -107,12 +114,16 @@ One entry in `CutterShapeLibrary`, and it shows up in the picker, the editor and
 every export:
 
 ```swift
-CutterShape(id: "donut", name: "Donut", category: .fun) {
-    UnitPath.circle(0.5, 0.5, 0.5)      // outer ring
+CutterShape(id: "acorn", name: "Acorn", category: .seasonal) {
+    UnitPath.union([
+        UnitPath.roundedRect(0.12, 0.06, 0.76, 0.30, radius: 0.12),  // cap
+        UnitPath.ellipse(0.50, 0.60, 0.36, 0.38),                    // nut
+    ])
 }
 ```
 
-Compose with `UnitPath.circle/ellipse/roundedRect/polygon/regularPolygon/star/capsule`,
+Compose several pieces with `UnitPath.union([...])` and the primitives
+`circle`, `ellipse`, `roundedRect`, `polygon`, `regularPolygon`, `star`, `capsule`,
 or write a `Path` by hand with coordinates in 0...1. Keep it inside the unit
 square; anything outside gets clipped by the export padding.
 

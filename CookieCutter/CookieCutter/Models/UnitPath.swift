@@ -88,10 +88,19 @@ enum UnitPath {
 
     static func degrees(_ value: CGFloat) -> CGFloat { value * .pi / 180 }
 
-    /// Unions several sub-paths into one path (filled non-zero, so they merge).
+    /// Merges sub-paths into a single outline with a real boolean union.
+    ///
+    /// Simply adding the sub-paths to one path would *look* right when filled,
+    /// but only by luck: overlapping sub-paths drawn in opposite directions
+    /// cancel out under the non-zero rule, and stroking such a path draws the
+    /// seams where the pieces overlap — a bear with lines across its ears.
+    /// A union leaves only the outer boundary, which is what a cutter is.
     static func union(_ paths: [Path]) -> Path {
-        var result = Path()
-        for path in paths { result.addPath(path) }
-        return result
+        guard let first = paths.first else { return Path() }
+        var result = first.cgPath
+        for path in paths.dropFirst() {
+            result = result.union(path.cgPath)
+        }
+        return Path(result)
     }
 }
