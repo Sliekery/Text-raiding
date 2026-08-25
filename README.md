@@ -95,3 +95,16 @@ textraid/
 ```
 
 Content is data-driven: add a class, skill, or boss by editing `data.py`.
+
+## Also in this repo
+
+### 🍪 CookieCutter — an iOS sticker app
+
+`CookieCutter/` is a separate, native **SwiftUI app**: pick a cookie cutter
+shape, line a photo up under it, and stamp out a die-cut sticker with a white
+border and a drop shadow. It ships with an **iMessage sticker pack extension**,
+so the stickers you cut appear in the Messages app drawer.
+
+Open `CookieCutter/CookieCutter.xcodeproj` in Xcode 16 on a Mac — the
+[CookieCutter README](CookieCutter/README.md) covers signing, the App Group the
+extension needs, and how to add your own cutter shape.

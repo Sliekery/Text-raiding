@@ -1,0 +1,544 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		37D2AA23E290AFB8EFBAE9BB /* MessagesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9AFA7540ACD1607E3D83BF /* MessagesViewController.swift */; };
+		39F95DEC07F755CBA70D5AF6 /* CookieCutterStickers.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C5F406EF884F0E1085CC1091 /* CookieCutterStickers.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		458CCD39164651AC568BA8C8 /* StickerRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECFEF5D1FEE736839BD04B09 /* StickerRenderer.swift */; };
+		4B1C1653483C1E9B50688E88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F852121D5C89AEF5254A3751 /* Assets.xcassets */; };
+		5C32031D506770EEF92379F1 /* PhotoTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433EB1E5F9E2B13FD43D3DBA /* PhotoTransform.swift */; };
+		5FB4ADD54667EDBDD81B8623 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F66BDFE0D84C330C0DDECA /* ShareSheet.swift */; };
+		61474EC068A4ADCAB41EC691 /* StickerBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51586D21FB9ED39CC602AFD /* StickerBrowserViewController.swift */; };
+		656DA4EEBB478D8042474F00 /* StickerLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1624621520525E7CA9664A53 /* StickerLibraryView.swift */; };
+		6692677E9EFF95F7D18FC649 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7042782B6AFDCE5EEA1E89C4 /* AppGroup.swift */; };
+		72DE42EA61BBC89EC9DB2B49 /* StickerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C019BB3D07695858E339D5E /* StickerDetailView.swift */; };
+		8A7491A54240EE4C527512B6 /* ShapeThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5CD4FD4D7B4C0FE0B52C51 /* ShapeThumbnail.swift */; };
+		8B265B1586BACF5D4BF01FFA /* UnitPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAAFF2CE9C403AD952E9438 /* UnitPath.swift */; };
+		91EB8B2BACFE8C29F3C3FE21 /* Sticker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3C1B505388C42E95EFDE7E /* Sticker.swift */; };
+		92AAA09ECF65FF4FB3ED5B26 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51143DE5CFBDD4D7076B3B1 /* RootView.swift */; };
+		97420015ED0E4CFA99FA2341 /* StickerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D140C94A8A8FAB82493339F7 /* StickerStore.swift */; };
+		9838FD1ACE7DC325D9743309 /* Checkerboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ADFC5D344A83AA8A1BB0FC /* Checkerboard.swift */; };
+		9A47C10A51B4FF2FE9E9F167 /* CutterShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190AC3F3A0E7444032F23C57 /* CutterShape.swift */; };
+		ABC185F73CEFE7E97B01FAD3 /* Sticker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3C1B505388C42E95EFDE7E /* Sticker.swift */; };
+		AEAD07DBDA82840EFA9336AA /* StickerResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93328FA6D40EB7CFEE194D98 /* StickerResultView.swift */; };
+		BFD366EFEBC715A8EFA88A24 /* StickerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D140C94A8A8FAB82493339F7 /* StickerStore.swift */; };
+		D535DDBB587A5F8A97901F2E /* PhotoSaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B5E5A6698E0878E83E90D2 /* PhotoSaver.swift */; };
+		D6DEB85884F36E216C743C8D /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7042782B6AFDCE5EEA1E89C4 /* AppGroup.swift */; };
+		E4B6BDE9EF8F1430EEB01940 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1E211B2A4A4BE13428090F /* CameraPicker.swift */; };
+		EE18739F858647B057C39F06 /* CutterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599A6E1A47004B46C499EA3C /* CutterEditorView.swift */; };
+		FD03BD82BF778AFB447BCA2E /* CookieCutterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2819E06EFF0DA6BB937CC5F0 /* CookieCutterApp.swift */; };
+		FD4C26E3CE116DB5491027C6 /* StyleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4425CEECD7657644508938C4 /* StyleSheet.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5FD45A0B5E568EA3EEE3D282 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9831A0ED7992645038323751;
+			remoteInfo = CookieCutterStickers;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		354DE1AFDDAA7FBB961D5290 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				39F95DEC07F755CBA70D5AF6 /* CookieCutterStickers.appex in Embed Foundation Extensions */,
+			);
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		1624621520525E7CA9664A53 /* StickerLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerLibraryView.swift; sourceTree = "<group>"; };
+		190AC3F3A0E7444032F23C57 /* CutterShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CutterShape.swift; sourceTree = "<group>"; };
+		2819E06EFF0DA6BB937CC5F0 /* CookieCutterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookieCutterApp.swift; sourceTree = "<group>"; };
+		30399FF1BEA192BA25F29063 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		31ADFC5D344A83AA8A1BB0FC /* Checkerboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkerboard.swift; sourceTree = "<group>"; };
+		433EB1E5F9E2B13FD43D3DBA /* PhotoTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoTransform.swift; sourceTree = "<group>"; };
+		4425CEECD7657644508938C4 /* StyleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleSheet.swift; sourceTree = "<group>"; };
+		4BAAFF2CE9C403AD952E9438 /* UnitPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitPath.swift; sourceTree = "<group>"; };
+		4C019BB3D07695858E339D5E /* StickerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerDetailView.swift; sourceTree = "<group>"; };
+		58B5E5A6698E0878E83E90D2 /* PhotoSaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSaver.swift; sourceTree = "<group>"; };
+		599A6E1A47004B46C499EA3C /* CutterEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CutterEditorView.swift; sourceTree = "<group>"; };
+		7042782B6AFDCE5EEA1E89C4 /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
+		73F66BDFE0D84C330C0DDECA /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		7A5CD4FD4D7B4C0FE0B52C51 /* ShapeThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeThumbnail.swift; sourceTree = "<group>"; };
+		8F1E211B2A4A4BE13428090F /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
+		8F9AFA7540ACD1607E3D83BF /* MessagesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesViewController.swift; sourceTree = "<group>"; };
+		93328FA6D40EB7CFEE194D98 /* StickerResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerResultView.swift; sourceTree = "<group>"; };
+		A51586D21FB9ED39CC602AFD /* StickerBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerBrowserViewController.swift; sourceTree = "<group>"; };
+		B6CDB6E5D160E013280D3C68 /* CookieCutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CookieCutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B8360810631D6B6B3D412DC9 /* CookieCutter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CookieCutter.entitlements; sourceTree = "<group>"; };
+		C51143DE5CFBDD4D7076B3B1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		C5F406EF884F0E1085CC1091 /* CookieCutterStickers.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CookieCutterStickers.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB44A1A48BF712ADA2835170 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D140C94A8A8FAB82493339F7 /* StickerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerStore.swift; sourceTree = "<group>"; };
+		DC5A580D28610DF44F5ABB60 /* CookieCutterStickers.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CookieCutterStickers.entitlements; sourceTree = "<group>"; };
+		ECFEF5D1FEE736839BD04B09 /* StickerRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerRenderer.swift; sourceTree = "<group>"; };
+		ED3C1B505388C42E95EFDE7E /* Sticker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sticker.swift; sourceTree = "<group>"; };
+		F852121D5C89AEF5254A3751 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		30DF5DB2668C55DBD174B4FC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F001BC2AF9EB5498B3360756 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		00C45FD35CB0F9C5F764F070 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B6CDB6E5D160E013280D3C68 /* CookieCutter.app */,
+				C5F406EF884F0E1085CC1091 /* CookieCutterStickers.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7B93BE8DBBB538042528DBF5 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				31ADFC5D344A83AA8A1BB0FC /* Checkerboard.swift */,
+				599A6E1A47004B46C499EA3C /* CutterEditorView.swift */,
+				C51143DE5CFBDD4D7076B3B1 /* RootView.swift */,
+				7A5CD4FD4D7B4C0FE0B52C51 /* ShapeThumbnail.swift */,
+				4C019BB3D07695858E339D5E /* StickerDetailView.swift */,
+				1624621520525E7CA9664A53 /* StickerLibraryView.swift */,
+				93328FA6D40EB7CFEE194D98 /* StickerResultView.swift */,
+				4425CEECD7657644508938C4 /* StyleSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		94118344F3ABC9DA1EC249E9 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7042782B6AFDCE5EEA1E89C4 /* AppGroup.swift */,
+				190AC3F3A0E7444032F23C57 /* CutterShape.swift */,
+				433EB1E5F9E2B13FD43D3DBA /* PhotoTransform.swift */,
+				ED3C1B505388C42E95EFDE7E /* Sticker.swift */,
+				D140C94A8A8FAB82493339F7 /* StickerStore.swift */,
+				4BAAFF2CE9C403AD952E9438 /* UnitPath.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		ADCF10F76EBF2A74473E9DC4 /* None */ = {
+			isa = PBXGroup;
+			children = (
+				CF8D0BD4B75E8C2C174692A5 /* CookieCutter */,
+				DB1B645D927A85C5D0FC9BC3 /* CookieCutterStickers */,
+				00C45FD35CB0F9C5F764F070 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B1B005E3A49FF6FEE27D9D7E /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				8F1E211B2A4A4BE13428090F /* CameraPicker.swift */,
+				58B5E5A6698E0878E83E90D2 /* PhotoSaver.swift */,
+				73F66BDFE0D84C330C0DDECA /* ShareSheet.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		CF8D0BD4B75E8C2C174692A5 /* CookieCutter */ = {
+			isa = PBXGroup;
+			children = (
+				2819E06EFF0DA6BB937CC5F0 /* CookieCutterApp.swift */,
+				94118344F3ABC9DA1EC249E9 /* Models */,
+				7B93BE8DBBB538042528DBF5 /* Views */,
+				E16CA61CAB779FC6CF76335C /* Rendering */,
+				B1B005E3A49FF6FEE27D9D7E /* Support */,
+				F852121D5C89AEF5254A3751 /* Assets.xcassets */,
+				CB44A1A48BF712ADA2835170 /* Info.plist */,
+				B8360810631D6B6B3D412DC9 /* CookieCutter.entitlements */,
+			);
+			path = CookieCutter;
+			sourceTree = "<group>";
+		};
+		DB1B645D927A85C5D0FC9BC3 /* CookieCutterStickers */ = {
+			isa = PBXGroup;
+			children = (
+				8F9AFA7540ACD1607E3D83BF /* MessagesViewController.swift */,
+				A51586D21FB9ED39CC602AFD /* StickerBrowserViewController.swift */,
+				30399FF1BEA192BA25F29063 /* Info.plist */,
+				DC5A580D28610DF44F5ABB60 /* CookieCutterStickers.entitlements */,
+			);
+			path = CookieCutterStickers;
+			sourceTree = "<group>";
+		};
+		E16CA61CAB779FC6CF76335C /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				ECFEF5D1FEE736839BD04B09 /* StickerRenderer.swift */,
+			);
+			path = Rendering;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		29C7B681C8D62CBAC94D51C0 /* CookieCutter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 32995943DE67267A65D32CA9 /* Build configuration list for PBXNativeTarget "CookieCutter" */;
+			buildPhases = (
+				8682261519D15BD64A9E5D31 /* Sources */,
+				F001BC2AF9EB5498B3360756 /* Frameworks */,
+				E28FAD8F60ECDED9B4AD087A /* Resources */,
+				354DE1AFDDAA7FBB961D5290 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21627DD4F42BC4FF1B3C51FA /* PBXTargetDependency */,
+			);
+			name = CookieCutter;
+			productName = CookieCutter;
+			productReference = B6CDB6E5D160E013280D3C68 /* CookieCutter.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9831A0ED7992645038323751 /* CookieCutterStickers */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB992BC56EC92ABCB75026C7 /* Build configuration list for PBXNativeTarget "CookieCutterStickers" */;
+			buildPhases = (
+				597FD57E57ED99CEBFF1BB02 /* Sources */,
+				30DF5DB2668C55DBD174B4FC /* Frameworks */,
+				3F447DE10FA5EDEA89764824 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CookieCutterStickers;
+			productName = CookieCutterStickers;
+			productReference = C5F406EF884F0E1085CC1091 /* CookieCutterStickers.appex */;
+			productType = "com.apple.product-type.app-extension.messages";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					29C7B681C8D62CBAC94D51C0 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					9831A0ED7992645038323751 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 12D04D787E90C9B967248BFD /* Build configuration list for PBXProject "CookieCutter" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = ADCF10F76EBF2A74473E9DC4;
+			minimizedProjectReferenceProxies = 1;
+			productRefGroup = 00C45FD35CB0F9C5F764F070 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				29C7B681C8D62CBAC94D51C0 /* CookieCutter */,
+				9831A0ED7992645038323751 /* CookieCutterStickers */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3F447DE10FA5EDEA89764824 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E28FAD8F60ECDED9B4AD087A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B1C1653483C1E9B50688E88 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		597FD57E57ED99CEBFF1BB02 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37D2AA23E290AFB8EFBAE9BB /* MessagesViewController.swift in Sources */,
+				61474EC068A4ADCAB41EC691 /* StickerBrowserViewController.swift in Sources */,
+				ABC185F73CEFE7E97B01FAD3 /* Sticker.swift in Sources */,
+				D6DEB85884F36E216C743C8D /* AppGroup.swift in Sources */,
+				97420015ED0E4CFA99FA2341 /* StickerStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8682261519D15BD64A9E5D31 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD03BD82BF778AFB447BCA2E /* CookieCutterApp.swift in Sources */,
+				6692677E9EFF95F7D18FC649 /* AppGroup.swift in Sources */,
+				9A47C10A51B4FF2FE9E9F167 /* CutterShape.swift in Sources */,
+				5C32031D506770EEF92379F1 /* PhotoTransform.swift in Sources */,
+				91EB8B2BACFE8C29F3C3FE21 /* Sticker.swift in Sources */,
+				BFD366EFEBC715A8EFA88A24 /* StickerStore.swift in Sources */,
+				8B265B1586BACF5D4BF01FFA /* UnitPath.swift in Sources */,
+				458CCD39164651AC568BA8C8 /* StickerRenderer.swift in Sources */,
+				E4B6BDE9EF8F1430EEB01940 /* CameraPicker.swift in Sources */,
+				D535DDBB587A5F8A97901F2E /* PhotoSaver.swift in Sources */,
+				5FB4ADD54667EDBDD81B8623 /* ShareSheet.swift in Sources */,
+				9838FD1ACE7DC325D9743309 /* Checkerboard.swift in Sources */,
+				EE18739F858647B057C39F06 /* CutterEditorView.swift in Sources */,
+				92AAA09ECF65FF4FB3ED5B26 /* RootView.swift in Sources */,
+				8A7491A54240EE4C527512B6 /* ShapeThumbnail.swift in Sources */,
+				72DE42EA61BBC89EC9DB2B49 /* StickerDetailView.swift in Sources */,
+				656DA4EEBB478D8042474F00 /* StickerLibraryView.swift in Sources */,
+				AEAD07DBDA82840EFA9336AA /* StickerResultView.swift in Sources */,
+				FD4C26E3CE116DB5491027C6 /* StyleSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		21627DD4F42BC4FF1B3C51FA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9831A0ED7992645038323751 /* CookieCutterStickers */;
+			targetProxy = 5FD45A0B5E568EA3EEE3D282 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		06B6A15813AE62FDCFE74422 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CookieCutter/CookieCutter.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CookieCutter/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CookieCutter;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3C5BC6FE1E438E679FB7F74F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6E52FAE77A26A48339C7FFA2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CookieCutterStickers/CookieCutterStickers.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CookieCutterStickers/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CookieCutter.Stickers;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		73BFC4993D558C2844970A56 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CC982C4F58FE5F6D2B2680C2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CookieCutter/CookieCutter.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CookieCutter/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CookieCutter;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F1843209216DFF55555F2A89 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CookieCutterStickers/CookieCutterStickers.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CookieCutterStickers/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CookieCutter.Stickers;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		12D04D787E90C9B967248BFD /* Build configuration list for PBXProject "CookieCutter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				73BFC4993D558C2844970A56 /* Debug */,
+				3C5BC6FE1E438E679FB7F74F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		32995943DE67267A65D32CA9 /* Build configuration list for PBXNativeTarget "CookieCutter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC982C4F58FE5F6D2B2680C2 /* Debug */,
+				06B6A15813AE62FDCFE74422 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DB992BC56EC92ABCB75026C7 /* Build configuration list for PBXNativeTarget "CookieCutterStickers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F1843209216DFF55555F2A89 /* Debug */,
+				6E52FAE77A26A48339C7FFA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+}
