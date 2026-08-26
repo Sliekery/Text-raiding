@@ -83,9 +83,34 @@ shields, defensives and damage cooldowns, all on resource costs and cooldowns.
 3. **Ironclad Brusk** — brutal tank-buster damage; defensives matter.
 4. **Voidlord Malach** — two-phase finale and a real DPS + survival check.
 
+## Also in this repo — 🔶 Tiny Tactics
+
+A **barebones Teamfight Tactics-style auto battler**, proof-of-concept scale, in
+a single self-contained file: **[`tft/index.html`](tft/index.html)**. Open it in
+any browser — no build, no dependencies, works on a phone.
+
+Buy units from a rotating shop, drop them on a hex board, and watch the round
+fight itself. The pieces a TFT-like needs are all here:
+
+- **Shop & gold economy** — 5-slot shop with level-based rarity odds, 2g rerolls,
+  base income + interest (1g per 10g banked, capped at 5) + win/loss streak bonuses.
+- **Level & board cap** — buy XP for 4g; your level is how many units you may field.
+- **Merging** — 3 copies of a unit become ★★, 3 of those become ★★★ (1.8× stats each).
+- **Traits** — 8 traits (Ember, Frost, Shadow, Verdant / Brawler, Ranger, Mage,
+  Assassin) counted by *distinct* units, activating at 2 and 4.
+- **Auto-battle** — units acquire the nearest enemy over hex distance, walk to it,
+  auto-attack to build mana, and cast a unique spell at full mana. Crits, armour
+  and magic resist, shields, burns, chills and stuns all resolve on a live tick.
+- **Round loop** — PvE minion rounds and scaling PvP boards, health loss based on
+  the stage and how many enemies were left standing, and a run that ends at 0 HP.
+
+Positioning matters: melee units want the front row, ranged the back, and
+Assassins leap into the enemy back line the moment the fight starts.
+
 ## Project layout
 
 ```
+tft/index.html     Tiny Tactics — the standalone auto-battler (self-contained)
 play.py            entry point
 textraid/
   data.py          classes, skills, bosses, gear & difficulty tables (all tunable)

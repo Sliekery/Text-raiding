@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tiny Tactics">
+<meta name="theme-color" content="#0d0f15">
+<title>Tiny Tactics</title>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#161a24; --panel2:#1d2331; --line:#2a3142;
+    --txt:#d7dcea; --dim:#8a92a6; --gold:#ffcc55; --red:#ff5d5d; --green:#5dd98a;
+    --blue:#6db3ff; --mag:#c98bff; --cyan:#62e6e0;
+    --c1:#8a92a6; --c2:#5dd98a; --c3:#6db3ff; --c4:#c98bff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace; font-size:14px;
+    -webkit-text-size-adjust:100%; overscroll-behavior:none;}
+  #app{max-width:620px; margin:0 auto; padding:env(safe-area-inset-top) 10px
+    calc(env(safe-area-inset-bottom) + 10px);}
+
+  /* ---- top bar ---- */
+  header{display:flex; align-items:center; gap:8px; padding:10px 2px 6px;}
+  .brand{font-weight:800; letter-spacing:1px; font-size:16px;
+    background:linear-gradient(90deg,var(--mag),var(--cyan));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  header .sp{flex:1}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:4px 8px; font-size:12.5px; white-space:nowrap;}
+  .stat b{font-size:14px}
+  .stat.hp b{color:var(--red)} .stat.gold b{color:var(--gold)}
+  .stat.round b{color:var(--cyan)}
+
+  /* ---- traits ---- */
+  #traits{display:flex; flex-wrap:wrap; gap:4px; min-height:24px; margin:2px 0 6px;}
+  .trait{font-size:11px; padding:2px 7px; border-radius:20px; border:1px solid var(--line);
+    background:var(--panel); color:var(--dim); display:flex; gap:5px; align-items:center;}
+  .trait.on{color:#0d0f15; font-weight:700;}
+  .trait .n{opacity:.75}
+
+  /* ---- arena ---- */
+  #arenaWrap{position:relative;}
+  canvas{display:block; width:100%; border-radius:12px; background:#10131b;
+    border:1px solid var(--line); touch-action:manipulation;}
+  #banner{position:absolute; left:0; right:0; top:38%; text-align:center;
+    font-size:26px; font-weight:800; letter-spacing:2px; pointer-events:none;
+    text-shadow:0 2px 12px #000; opacity:0; transition:opacity .2s;}
+  #banner.show{opacity:1}
+
+  /* ---- info / message line ---- */
+  #info{display:flex; align-items:center; gap:8px; margin:6px 0; min-height:34px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 8px;}
+  #info .txt{flex:1; font-size:12px; line-height:1.35;}
+  #info .txt .dim{color:var(--dim)}
+  .mini{font-size:11.5px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--txt); cursor:pointer; white-space:nowrap;}
+  .mini:active{transform:scale(.97)}
+  .mini.sell{border-color:#5a2a2a; color:#ff9a9a; background:#241a1e;}
+  .mini:disabled{opacity:.35;}
+
+  /* ---- bench ---- */
+  #bench{display:grid; grid-template-columns:repeat(9,1fr); gap:4px; margin:6px 0;}
+  .slot{aspect-ratio:1/1; border-radius:8px; background:var(--panel);
+    border:1px solid var(--line); position:relative; display:flex;
+    align-items:center; justify-content:center; cursor:pointer; overflow:hidden;}
+  .slot.sel{outline:2px solid var(--gold); outline-offset:-2px;}
+  .slot .face{font-weight:800; font-size:15px;}
+  .slot .stars{position:absolute; top:1px; left:0; right:0; text-align:center;
+    font-size:8px; color:var(--gold); line-height:1;}
+  .slot .cost{position:absolute; bottom:0; left:0; right:0; height:3px;}
+
+  /* ---- level / econ row ---- */
+  #econ{display:flex; gap:6px; align-items:stretch; margin:6px 0;}
+  #lvlbox{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:5px 8px;}
+  #lvlbox .l1{display:flex; justify-content:space-between; font-size:12px;}
+  #lvlbox .lvl{color:var(--cyan); font-weight:700;}
+  .xpbar{height:4px; background:#0a0c12; border-radius:3px; overflow:hidden; margin-top:4px;}
+  .xpfill{height:100%; background:var(--cyan); transition:width .2s;}
+  #econ .mini{min-width:86px; text-align:center;}
+  #econ .mini b{display:block; font-size:12.5px;}
+  #econ .mini span{color:var(--gold); font-size:11px;}
+
+  /* ---- shop ---- */
+  #shop{display:grid; grid-template-columns:repeat(5,1fr); gap:5px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-top-width:3px;
+    border-radius:9px; padding:6px 4px; cursor:pointer; text-align:center; min-height:76px;
+    display:flex; flex-direction:column; gap:3px; justify-content:space-between;}
+  .card:active{transform:scale(.97)}
+  .card.gone{opacity:.18; pointer-events:none;}
+  .card.poor{opacity:.55}
+  .card .cn{font-size:11px; font-weight:700; line-height:1.15;}
+  .card .ct{font-size:9.5px; color:var(--dim); line-height:1.3;}
+  .card .cc{font-size:11px; color:var(--gold); font-weight:700;}
+
+  /* ---- big action button ---- */
+  #action{width:100%; margin-top:8px; padding:13px; border-radius:11px; font-family:inherit;
+    font-size:15px; font-weight:800; letter-spacing:1px; color:var(--txt); cursor:pointer;
+    background:linear-gradient(90deg,#3a2a5a,#264a5a); border:1px solid #3a4a66;}
+  #action:active{transform:scale(.99)}
+  #action.combat{background:linear-gradient(90deg,#2a3a5a,#1f2a3a);}
+  .speeds{display:flex; gap:6px; margin-top:6px;}
+  .speeds .mini{flex:1; text-align:center;}
+  .speeds .mini.on{border-color:var(--cyan); color:var(--cyan);}
+  .hidden{display:none !important;}
+  footer{color:var(--dim); font-size:10.5px; text-align:center; padding:10px 4px 4px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">TINY TACTICS</div>
+    <div class="sp"></div>
+    <div class="stat round">⚑ <b id="stRound">1-1</b></div>
+    <div class="stat hp">♥ <b id="stHp">100</b></div>
+    <div class="stat gold">◈ <b id="stGold">0</b></div>
+  </header>
+
+  <div id="traits"></div>
+
+  <div id="arenaWrap">
+    <canvas id="arena"></canvas>
+    <div id="banner"></div>
+  </div>
+
+  <div id="info">
+    <div class="txt" id="infoTxt"></div>
+    <button class="mini sell hidden" id="btnSell">SELL</button>
+  </div>
+
+  <div id="bench"></div>
+
+  <div id="econ">
+    <div id="lvlbox">
+      <div class="l1"><span>LEVEL <span class="lvl" id="stLvl">2</span></span>
+        <span class="dim" id="stXp">0/2</span></div>
+      <div class="xpbar"><div class="xpfill" id="xpFill" style="width:0%"></div></div>
+      <div class="l1" style="margin-top:3px"><span class="dim" id="stUnits">0/2 on board</span>
+        <span class="dim" id="stInc"></span></div>
+    </div>
+    <button class="mini" id="btnXp"><b>BUY XP</b><span>4g → 4xp</span></button>
+    <button class="mini" id="btnRoll"><b>REROLL</b><span>2g</span></button>
+  </div>
+
+  <div id="shop"></div>
+
+  <button id="action">FIGHT</button>
+  <div class="speeds hidden" id="speeds">
+    <button class="mini on" data-sp="1">1×</button>
+    <button class="mini" data-sp="2">2×</button>
+    <button class="mini" data-sp="4">4×</button>
+    <button class="mini" data-sp="0">SKIP</button>
+  </div>
+
+  <footer>
+    Tap a shop card to buy · tap a unit then a hex to place · tap a placed unit then SELL.<br>
+    3 copies of the same unit merge into ★★ · 3 of those into ★★★.
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   TINY TACTICS — a barebones Teamfight-Tactics-style auto battler.
+   Everything lives in this one file: data, shop economy, board state,
+   the combat simulation and the canvas renderer.
+   ===================================================================== */
+
+/* ------------------------------- data ------------------------------- */
+
+// Traits are counted by *distinct* units on the board, like TFT.
+// `breaks` are the unit counts at which the next tier of the bonus turns on.
+const TRAITS = {
+  Ember:    {kind:'origin', color:'#ff7a45', breaks:[2,4],
+             desc:n=>`Attacks burn for ${[12,30][n]} damage over 3s`},
+  Frost:    {kind:'origin', color:'#6db3ff', breaks:[2,4],
+             desc:n=>`Attacks chill: -${[20,35][n]}% enemy attack speed`},
+  Shadow:   {kind:'origin', color:'#c98bff', breaks:[2,4],
+             desc:n=>`+${[25,50][n]}% crit chance, +${[15,35][n]}% crit damage`},
+  Verdant:  {kind:'origin', color:'#5dd98a', breaks:[2,4],
+             desc:n=>`Heal for ${[15,30][n]}% of damage dealt`},
+  Brawler:  {kind:'class',  color:'#e0a35a', breaks:[2,4],
+             desc:n=>`+${[250,600][n]} max health`},
+  Ranger:   {kind:'class',  color:'#62e6e0', breaks:[2,4],
+             desc:n=>`+${[25,55][n]}% attack speed`},
+  Mage:     {kind:'class',  color:'#ffe06b', breaks:[2,4],
+             desc:n=>`+${[30,70][n]}% spell power`},
+  Assassin: {kind:'class',  color:'#ff5d5d', breaks:[2,4],
+             desc:n=>`Leap to the back line, +${[30,70][n]}% crit damage`},
+};
+
+// spell.kind: single | aoe (around target) | nova (around self) | heal | shield | execute
+const UNITS = [
+  // ---- 1 cost ----
+  {id:'cinderpup', name:'Cinderpup', cost:1, traits:['Ember','Brawler'],
+   hp:600, ad:45, as:.65, range:1, armor:35, mr:20, mana:60,
+   spell:{name:'Ember Slam', kind:'single', dmg:[150,225,340], txt:'magic damage to its target'}},
+  {id:'frostling', name:'Frostling', cost:1, traits:['Frost','Mage'],
+   hp:500, ad:32, as:.60, range:4, armor:15, mr:20, mana:50,
+   spell:{name:'Frost Bolt', kind:'single', dmg:[175,265,400], slow:.3, txt:'magic damage and chills'}},
+  {id:'nightblade', name:'Nightblade', cost:1, traits:['Shadow','Assassin'],
+   hp:550, ad:52, as:.70, range:1, armor:25, mr:20, mana:50,
+   spell:{name:'Backstab', kind:'single', dmg:[160,240,360], phys:true, txt:'physical damage'}},
+  {id:'sapling', name:'Sapling', cost:1, traits:['Verdant','Brawler'],
+   hp:650, ad:40, as:.60, range:1, armor:40, mr:20, mana:70,
+   spell:{name:'Regrow', kind:'heal', dmg:[220,330,500], txt:'heals itself'}},
+  {id:'thornshot', name:'Thornshot', cost:1, traits:['Verdant','Ranger'],
+   hp:500, ad:46, as:.75, range:3, armor:15, mr:20, mana:60,
+   spell:{name:'Thorn Volley', kind:'aoe', dmg:[130,195,300], radius:1, txt:'magic damage in a small area'}},
+
+  // ---- 2 cost ----
+  {id:'emberhawk', name:'Emberhawk', cost:2, traits:['Ember','Ranger'],
+   hp:650, ad:55, as:.80, range:3, armor:20, mr:20, mana:60,
+   spell:{name:'Flame Arrow', kind:'aoe', dmg:[200,300,460], radius:1, txt:'magic damage in a small area'}},
+  {id:'glacier', name:'Glacier Warden', cost:2, traits:['Frost','Brawler'],
+   hp:900, ad:55, as:.55, range:1, armor:50, mr:30, mana:60,
+   spell:{name:'Ice Wall', kind:'shield', dmg:[300,450,700], txt:'shields itself for 5s'}},
+  {id:'duskmoth', name:'Duskmoth', cost:2, traits:['Shadow','Mage'],
+   hp:600, ad:40, as:.65, range:4, armor:20, mr:20, mana:70,
+   spell:{name:'Shadow Bloom', kind:'aoe', dmg:[230,345,530], radius:1, txt:'magic damage in a small area'}},
+  {id:'briarknight', name:'Briar Knight', cost:2, traits:['Verdant','Assassin'],
+   hp:700, ad:62, as:.70, range:1, armor:35, mr:20, mana:60,
+   spell:{name:'Bramble Rend', kind:'single', dmg:[240,360,550], phys:true, txt:'physical damage'}},
+
+  // ---- 3 cost ----
+  {id:'pyrovex', name:'Pyromancer Vex', cost:3, traits:['Ember','Mage'],
+   hp:700, ad:45, as:.60, range:4, armor:20, mr:25, mana:80,
+   spell:{name:'Meteor', kind:'aoe', dmg:[350,525,800], radius:1, burn:true,
+          txt:'magic damage in an area and sets the ground alight'}},
+  {id:'frostfang', name:'Frostfang', cost:3, traits:['Frost','Assassin'],
+   hp:750, ad:72, as:.75, range:1, armor:35, mr:25, mana:60,
+   spell:{name:'Shatter Strike', kind:'single', dmg:[300,450,690], phys:true, stun:1.2,
+          txt:'physical damage and stuns for 1.2s'}},
+  {id:'grovekeeper', name:'Grovekeeper', cost:3, traits:['Verdant','Mage'],
+   hp:800, ad:45, as:.60, range:3, armor:30, mr:30, mana:70,
+   spell:{name:'Bloom', kind:'heal', dmg:[380,570,870], ally:true, txt:'heals its lowest-health ally'}},
+
+  // ---- 4 cost ----
+  {id:'ashentitan', name:'Ashen Titan', cost:4, traits:['Ember','Brawler'],
+   hp:1100, ad:80, as:.60, range:1, armor:55, mr:35, mana:80,
+   spell:{name:'Eruption', kind:'nova', dmg:[400,600,920], radius:1, burn:true,
+          txt:'magic damage all around it, burning survivors'}},
+  {id:'voidreaper', name:'Void Reaper', cost:4, traits:['Shadow','Assassin'],
+   hp:900, ad:95, as:.85, range:1, armor:40, mr:30, mana:50,
+   spell:{name:'Execute', kind:'execute', dmg:[380,570,880], phys:true,
+          txt:'physical damage — refunds its mana on a kill'}},
+  {id:'sovereign', name:'Winter Sovereign', cost:4, traits:['Frost','Mage'],
+   hp:950, ad:55, as:.60, range:4, armor:30, mr:35, mana:100,
+   spell:{name:'Blizzard', kind:'aoe', dmg:[420,630,960], radius:2, slow:.4,
+          txt:'magic damage in a large area and chills everything hit'}},
+];
+const BY_ID = Object.fromEntries(UNITS.map(u => [u.id, u]));
+const COST_COLOR = {1:'#8a92a6', 2:'#5dd98a', 3:'#6db3ff', 4:'#c98bff'};
+
+// How many copies of each unit exist in the shared pool.
+const POOL_SIZE = {1:20, 2:16, 3:12, 4:8};
+// Shop rarity odds per player level: [1-cost, 2-cost, 3-cost, 4-cost].
+const ODDS = {
+  1:[100,0,0,0],   2:[100,0,0,0],  3:[75,25,0,0],   4:[55,30,15,0],
+  5:[45,33,20,2],  6:[30,40,25,5], 7:[19,35,35,11], 8:[15,25,40,20], 9:[10,15,40,35],
+};
+// XP required to reach the next level, indexed by current level.
+const XP_NEEDED = {1:2, 2:2, 3:6, 4:10, 5:20, 6:36, 7:48, 8:76, 9:Infinity};
+const MAX_LEVEL = 9;
+
+// Board geometry: 7 columns, 8 rows. Rows 0-3 are the enemy, rows 4-7 are you.
+const COLS = 7, ROWS = 8, MY_ROW0 = 4, MY_ROWS = 4, BENCH = 9;
+const BASE_CRIT = .25, BASE_CRIT_DMG = 1.3;
+const COMBAT_TIME = 40;              // seconds before a fight is called on health
+const STAGE_DMG = [0,0,2,3,5,8,10,13,16,20];
+
+/* ----------------------------- hex maths ---------------------------- */
+// "odd-r" offset layout: odd rows are nudged half a hex to the right.
+function toAxial(c, r){ return {q: c - ((r - (r & 1)) >> 1), r}; }
+function toOffset(q, r){ return {c: q + ((r - (r & 1)) >> 1), r}; }
+function hexDist(a, b){
+  const A = toAxial(a.c, a.r), B = toAxial(b.c, b.r);
+  const dq = A.q - B.q, dr = A.r - B.r;
+  return (Math.abs(dq) + Math.abs(dq + dr) + Math.abs(dr)) / 2;
+}
+const AX_DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+function neighbours(c, r){
+  const A = toAxial(c, r), out = [];
+  for (const [dq, dr] of AX_DIRS){
+    const o = toOffset(A.q + dq, A.r + dr);
+    if (o.c >= 0 && o.c < COLS && o.r >= 0 && o.r < ROWS) out.push(o);
+  }
+  return out;
+}
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+
+/* ------------------------------- state ------------------------------ */
+let G = null;
+
+function newGame(){
+  const pool = {};
+  for (const u of UNITS) pool[u.id] = POOL_SIZE[u.cost];
+  G = {
+    hp: 100, gold: 6, level: 2, xp: 0,
+    stage: 1, round: 1,
+    streak: 0,                       // + for wins, - for losses
+    pool,
+    bench: Array(BENCH).fill(null),
+    board: Array.from({length: MY_ROWS}, () => Array(COLS).fill(null)),
+    shop: [], uid: 1,
+    sel: null,                       // {where:'bench'|'board', i} | {where:'board', c, r}
+    phase: 'plan',                   // plan | combat | result
+    enemy: null, sim: null, speed: 1,
+    msg: '', lastResult: null,
+    best: +(localStorage.getItem('tinytactics.best') || 0),
+  };
+  rollShop(true);
+  makeEnemy();
+  say('Buy units, drop them on the board, then FIGHT.');
+}
+
+function mkUnit(id, star){ return {uid: G.uid++, id, star: star || 1}; }
+function say(m){ G.msg = m; }
+
+/* --------------------------- shop & economy ------------------------- */
+function shopOdds(){ return ODDS[Math.min(G.level, MAX_LEVEL)]; }
+
+function rollOne(){
+  const odds = shopOdds(), roll = Math.random() * 100;
+  let acc = 0, cost = 1;
+  for (let i = 0; i < 4; i++){ acc += odds[i]; if (roll < acc){ cost = i + 1; break; } }
+  // Build a weighted bag from whatever copies are left at that cost.
+  const bag = [];
+  for (const u of UNITS) if (u.cost === cost) for (let k = 0; k < G.pool[u.id]; k++) bag.push(u.id);
+  if (!bag.length) return null;
+  return pick(bag);
+}
+
+function rollShop(free){
+  if (!free){
+    if (G.gold < 2) return say('Not enough gold to reroll.');
+    G.gold -= 2;
+  }
+  // Returning the old shop to the pool is not a thing in TFT — cards there were
+  // never removed from it. We only take a copy out of the pool when it's bought.
+  G.shop = [];
+  for (let i = 0; i < 5; i++) G.shop.push(rollOne());
+}
+
+function buy(i){
+  const id = G.shop[i]; if (!id) return;
+  const def = BY_ID[id];
+  if (G.gold < def.cost) return say('Not enough gold.');
+  if (benchFree() < 0 && !wouldMerge(id)) return say('Bench is full.');
+  G.gold -= def.cost;
+  G.pool[id]--;
+  G.shop[i] = null;
+  addUnit(mkUnit(id, 1));
+  say(`Bought ${def.name}.`);
+}
+
+function benchFree(){ return G.bench.indexOf(null); }
+
+// True when buying this id immediately completes a 3-copy merge, so a full
+// bench shouldn't block the purchase.
+function wouldMerge(id){
+  return allCopies().filter(x => x.u.id === id && x.u.star === 1).length >= 2;
+}
+
+function buyXp(){
+  if (G.level >= MAX_LEVEL) return say('Already max level.');
+  if (G.gold < 4) return say('Not enough gold.');
+  G.gold -= 4; addXp(4);
+}
+
+function addXp(n){
+  G.xp += n;
+  while (G.level < MAX_LEVEL && G.xp >= XP_NEEDED[G.level]){
+    G.xp -= XP_NEEDED[G.level]; G.level++;
+    say(`Level up! You can field ${G.level} units.`);
+  }
+  if (G.level >= MAX_LEVEL) G.xp = 0;
+}
+
+function income(){
+  const interest = Math.min(5, Math.floor(G.gold / 10));
+  const s = Math.abs(G.streak);
+  const streakBonus = s >= 5 ? 3 : s >= 4 ? 2 : s >= 2 ? 1 : 0;
+  return {base: 5, interest, streakBonus, total: 5 + interest + streakBonus};
+}
+
+function sellValue(u){
+  const c = BY_ID[u.id].cost;
+  return u.star === 1 ? c : c * Math.pow(3, u.star - 1) - 1;
+}
+
+/* --------------------------- board handling ------------------------- */
+function allCopies(){
+  const out = [];
+  G.bench.forEach((u, i) => { if (u) out.push({u, where:'bench', i}); });
+  G.board.forEach((row, r) => row.forEach((u, c) => { if (u) out.push({u, where:'board', c, r}); }));
+  return out;
+}
+function boardCount(){ return G.board.flat().filter(Boolean).length; }
+function removeAt(p){ if (p.where === 'bench') G.bench[p.i] = null; else G.board[p.r][p.c] = null; }
+
+// Drop a unit on the bench (or straight into a merge). A full bench is fine
+// as long as the new copy immediately merges away — so we allow a one-slot
+// overflow and compact the bench again once the merge has resolved.
+function addUnit(u){
+  const i = benchFree();
+  if (i >= 0) G.bench[i] = u; else G.bench.push(u);
+  tryMerge(u.id, u.star);
+  if (G.bench.length > BENCH){
+    const kept = G.bench.filter(Boolean);
+    if (kept.length > BENCH){ G.bench.length = BENCH; say('Bench full!'); return false; }
+    G.bench = kept.concat(Array(BENCH - kept.length).fill(null));
+  }
+  return true;
+}
+
+// Three copies at the same star become one at the next star, recursively.
+function tryMerge(id, star){
+  if (star >= 3) return;
+  const copies = allCopies().filter(x => x.u.id === id && x.u.star === star);
+  if (copies.length < 3) return;
+  const three = copies.slice(0, 3);
+  // Keep the upgraded unit on the board if any of the three was already placed.
+  const onBoard = three.find(x => x.where === 'board');
+  three.forEach(removeAt);
+  const up = mkUnit(id, star + 1);
+  if (onBoard) G.board[onBoard.r][onBoard.c] = up;
+  else if (benchFree() >= 0) G.bench[benchFree()] = up;
+  else { G.board[0][emptyCol(0)] = up; }
+  say(`${BY_ID[id].name} upgraded to ${'★'.repeat(star + 1)}!`);
+  tryMerge(id, star + 1);
+}
+function emptyCol(r){ for (let c = 0; c < COLS; c++) if (!G.board[r][c]) return c; return 0; }
+
+function sellSelected(){
+  if (!G.sel) return;
+  const u = at(G.sel); if (!u) return;
+  G.gold += sellValue(u);
+  // Every copy folded into a star-up goes back to the pool.
+  G.pool[u.id] += Math.pow(3, u.star - 1);
+  removeAt(G.sel);
+  say(`Sold ${BY_ID[u.id].name} for ${sellValue(u)}g.`);
+  G.sel = null;
+}
+
+function at(p){ return !p ? null : p.where === 'bench' ? G.bench[p.i] : G.board[p.r][p.c]; }
+function samePos(a, b){
+  if (!a || !b || a.where !== b.where) return false;
+  return a.where === 'bench' ? a.i === b.i : (a.c === b.c && a.r === b.r);
+}
+
+// The one move/swap primitive both the bench and the board tap into.
+function moveTo(dst){
+  const src = G.sel;
+  if (!src) { if (at(dst)) G.sel = dst; return; }
+  if (samePos(src, dst)) { G.sel = null; return; }
+  const a = at(src), b = at(dst);
+  if (!a) { G.sel = at(dst) ? dst : null; return; }
+  // Fielding a new unit has to respect the level cap.
+  if (dst.where === 'board' && src.where === 'bench' && !b && boardCount() >= G.level){
+    say(`Level ${G.level} — you can only field ${G.level} units. Buy XP.`);
+    return;
+  }
+  if (dst.where === 'bench') G.bench[dst.i] = a; else G.board[dst.r][dst.c] = a;
+  if (src.where === 'bench') G.bench[src.i] = b; else G.board[src.r][src.c] = b;
+  G.sel = null;
+}
+
+/* ------------------------------ traits ------------------------------ */
+// Traits count distinct units, so two copies of Cinderpup are still one Ember.
+function traitCounts(units){
+  const seen = new Set(), counts = {};
+  for (const u of units){
+    if (seen.has(u.id)) continue;
+    seen.add(u.id);
+    for (const t of BY_ID[u.id].traits) counts[t] = (counts[t] || 0) + 1;
+  }
+  return counts;
+}
+// Returns {trait: tier} where tier is the index into the trait's break list.
+function activeTraits(units){
+  const counts = traitCounts(units), out = {};
+  for (const [t, n] of Object.entries(counts)){
+    const breaks = TRAITS[t].breaks;
+    let tier = -1;
+    for (let i = 0; i < breaks.length; i++) if (n >= breaks[i]) tier = i;
+    if (tier >= 0) out[t] = tier;
+  }
+  return out;
+}
+
+/* ============================== COMBAT ==============================
+   A small deterministic-ish tick simulation. Every unit picks the
+   nearest enemy, walks to it one hex at a time, auto-attacks to build
+   mana, and casts its spell at full mana.
+   ==================================================================== */
+
+function makeEntity(u, side, c, r){
+  const d = BY_ID[u.id], m = Math.pow(1.8, u.star - 1);
+  return {
+    uid: u.uid, id: u.id, def: d, name: d.name, star: u.star, side, c, r,
+    maxhp: Math.round(d.hp * m), hp: Math.round(d.hp * m),
+    ad: d.ad * m, as: d.as, range: d.range, armor: d.armor, mr: d.mr,
+    mana: Math.round(d.mana * .3), manaMax: d.mana,
+    spellPow: 0, asBonus: 0, critChance: BASE_CRIT, critDmg: BASE_CRIT_DMG,
+    omnivamp: 0, burnDps: 0, chillAmt: 0, leap: false,
+    shield: 0, shieldT: 0, burn: null, chill: null, stun: 0,
+    atkCd: Math.random() * .3, moveCd: 0, target: null, alive: true,
+    px: 0, py: 0, placed: false, flash: 0, castFx: 0,
+  };
+}
+
+function applyTraits(list){
+  const act = activeTraits(list);
+  for (const e of list){
+    for (const t of e.def.traits){
+      const tier = act[t]; if (tier === undefined) continue;
+      switch (t){
+        case 'Ember':    e.burnDps   = [4, 10][tier]; break;
+        case 'Frost':    e.chillAmt  = [.20, .35][tier]; break;
+        case 'Shadow':   e.critChance += [.25, .50][tier];
+                         e.critDmg    += [.15, .35][tier]; break;
+        case 'Verdant':  e.omnivamp  += [.15, .30][tier]; break;
+        case 'Brawler':  { const b = [250, 600][tier]; e.maxhp += b; e.hp += b; break; }
+        case 'Ranger':   e.asBonus   += [.25, .55][tier]; break;
+        case 'Mage':     e.spellPow  += [.30, .70][tier]; break;
+        case 'Assassin': e.critDmg   += [.30, .70][tier]; e.leap = true; break;
+      }
+    }
+  }
+  return act;
+}
+
+function buildSim(){
+  const units = [];
+  for (let r = 0; r < MY_ROWS; r++) for (let c = 0; c < COLS; c++){
+    const u = G.board[r][c];
+    if (u) units.push(makeEntity(u, 'me', c, r + MY_ROW0));
+  }
+  const mine = units.slice();
+  const theirs = [];
+  for (const e of G.enemy.units){
+    const ent = makeEntity(e, 'foe', e.c, e.r);
+    if (G.enemy.pve){ ent.maxhp = Math.round(ent.maxhp * .8); ent.hp = ent.maxhp; }
+    theirs.push(ent); units.push(ent);
+  }
+  applyTraits(mine); applyTraits(theirs);
+
+  const sim = {units, t: 0, done: false, winner: null, shots: [], pops: [], occ: null};
+  reoccupy(sim);
+  // Assassins open the fight in the enemy back line.
+  for (const e of units){
+    if (!e.leap) continue;
+    const backRows = e.side === 'me' ? [0, 1] : [ROWS - 1, ROWS - 2];
+    const spots = [];
+    for (const r of backRows) for (let c = 0; c < COLS; c++) if (!sim.occ[r][c]) spots.push({c, r});
+    if (!spots.length) continue;
+    const s = pick(spots);
+    sim.occ[e.r][e.c] = null; e.c = s.c; e.r = s.r; sim.occ[e.r][e.c] = e;
+  }
+  return sim;
+}
+
+function reoccupy(sim){
+  sim.occ = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+  for (const e of sim.units) if (e.alive) sim.occ[e.r][e.c] = e;
+}
+
+function enemiesOf(sim, e){ return sim.units.filter(o => o.alive && o.side !== e.side); }
+function alliesOf(sim, e){ return sim.units.filter(o => o.alive && o.side === e.side); }
+
+function acquire(sim, e){
+  const foes = enemiesOf(sim, e);
+  if (!foes.length) return null;
+  let best = null, bd = 1e9;
+  for (const f of foes){
+    const d = hexDist(e, f);
+    if (d < bd || (d === bd && f.hp < best.hp)){ best = f; bd = d; }
+  }
+  return best;
+}
+
+function stepToward(sim, e, tgt){
+  let best = null, bd = hexDist(e, tgt);
+  for (const n of neighbours(e.c, e.r)){
+    if (sim.occ[n.r][n.c]) continue;
+    const d = hexDist(n, tgt);
+    if (d < bd){ bd = d; best = n; }
+  }
+  if (!best) return false;
+  sim.occ[e.r][e.c] = null; e.c = best.c; e.r = best.r; sim.occ[e.r][e.c] = e;
+  return true;
+}
+
+function pop(sim, e, text, color, small){
+  sim.pops.push({x: e.px, y: e.py - (small ? 14 : 0), text, color, small,
+                 t: 0, vy: -26 - Math.random() * 10});
+}
+
+function gainMana(e, n){ if (e.manaMax > 0) e.mana = Math.min(e.manaMax, e.mana + n); }
+
+function damage(sim, src, tgt, amount, type, canCrit){
+  if (!tgt.alive) return 0;
+  let dmg = amount;
+  let crit = false;
+  if (canCrit && Math.random() < src.critChance){ dmg *= src.critDmg; crit = true; }
+  const res = type === 'phys' ? tgt.armor : type === 'magic' ? tgt.mr : 0;
+  dmg = dmg * (100 / (100 + res));
+  dmg = Math.round(dmg);
+
+  if (tgt.shield > 0){
+    const absorbed = Math.min(tgt.shield, dmg);
+    tgt.shield -= absorbed; dmg -= absorbed;
+    if (absorbed > 0) pop(sim, tgt, `${absorbed}`, '#8ad');
+  }
+  tgt.hp -= dmg;
+  gainMana(tgt, Math.min(15, 2 + dmg * .04));
+  if (dmg > 0) pop(sim, tgt, `${dmg}`, crit ? '#ffd76b' : type === 'magic' ? '#c98bff' : '#ff8f8f');
+  if (src.omnivamp > 0 && src.alive && dmg > 0){
+    const heal = Math.round(dmg * src.omnivamp);
+    src.hp = Math.min(src.maxhp, src.hp + heal);
+    if (heal > 0) pop(sim, src, `+${heal}`, '#5dd98a');
+  }
+  if (tgt.hp <= 0){
+    tgt.alive = false; tgt.hp = 0;
+    if (sim.occ[tgt.r][tgt.c] === tgt) sim.occ[tgt.r][tgt.c] = null;
+  }
+  return dmg;
+}
+
+function applyBurn(tgt, dps, dur){
+  if (!tgt.alive) return;
+  if (!tgt.burn || tgt.burn.dps <= dps) tgt.burn = {dps, left: dur};
+  else tgt.burn.left = Math.max(tgt.burn.left, dur);
+}
+function applyChill(tgt, amt, dur){
+  if (!tgt.alive || amt <= 0) return;
+  tgt.chill = {amt: Math.max(amt, tgt.chill ? tgt.chill.amt : 0), left: dur};
+}
+
+function basicAttack(sim, e, tgt){
+  damage(sim, e, tgt, e.ad, 'phys', true);
+  gainMana(e, 10);
+  if (e.burnDps > 0) applyBurn(tgt, e.burnDps, 3);
+  if (e.chillAmt > 0) applyChill(tgt, e.chillAmt, 2.5);
+  e.flash = .12;
+  if (e.range > 1) sim.shots.push({from: e, to: tgt, t: 0, dur: .18, color: e.side === 'me' ? '#62e6e0' : '#ff8f8f'});
+}
+
+function castSpell(sim, e, tgt){
+  const s = e.def.spell, power = 1 + e.spellPow;
+  const base = Math.round(s.dmg[e.star - 1] * power);
+  const type = s.phys ? 'phys' : 'magic';
+  e.mana = 0; e.castFx = .45;
+  pop(sim, e, s.name, '#ffe06b', true);
+
+  switch (s.kind){
+    case 'single':
+      damage(sim, e, tgt, base, type, false);
+      if (s.slow) applyChill(tgt, s.slow, 3);
+      if (s.stun) tgt.stun = Math.max(tgt.stun, s.stun);
+      break;
+    case 'aoe': {
+      const hits = enemiesOf(sim, e).filter(f => hexDist(f, tgt) <= (s.radius || 1));
+      for (const f of hits){
+        damage(sim, e, f, base, type, false);
+        if (s.slow) applyChill(f, s.slow, 3);
+        if (s.burn) applyBurn(f, 30, 4);
+      }
+      sim.shots.push({from: e, to: tgt, t: 0, dur: .3, color: '#ffd76b', big: true});
+      break;
+    }
+    case 'nova': {
+      const hits = enemiesOf(sim, e).filter(f => hexDist(f, e) <= (s.radius || 1));
+      for (const f of hits){ damage(sim, e, f, base, type, false); if (s.burn) applyBurn(f, 30, 4); }
+      break;
+    }
+    case 'heal': {
+      let who = e;
+      if (s.ally){
+        const hurt = alliesOf(sim, e).sort((a, b) => a.hp / a.maxhp - b.hp / b.maxhp);
+        if (hurt.length) who = hurt[0];
+      }
+      const heal = Math.min(base, who.maxhp - who.hp);
+      who.hp += heal; pop(sim, who, `+${heal}`, '#5dd98a');
+      break;
+    }
+    case 'shield':
+      e.shield += base; e.shieldT = 5; pop(sim, e, `+${base}`, '#8ad');
+      break;
+    case 'execute': {
+      damage(sim, e, tgt, base, type, true);
+      if (!tgt.alive) e.mana = e.manaMax;   // reset on a kill
+      break;
+    }
+  }
+}
+
+function stepSim(sim, dt){
+  if (sim.done) return;
+  sim.t += dt;
+
+  for (const e of sim.units){
+    if (!e.alive) continue;
+    // ---- status ticks ----
+    if (e.burn){
+      e.burn.left -= dt;
+      const d = Math.round(e.burn.dps * dt);
+      e.hp -= e.burn.dps * dt;
+      if (e.hp <= 0){ e.alive = false; e.hp = 0; if (sim.occ[e.r][e.c] === e) sim.occ[e.r][e.c] = null; continue; }
+      if (e.burn.left <= 0) e.burn = null;
+    }
+    if (e.chill){ e.chill.left -= dt; if (e.chill.left <= 0) e.chill = null; }
+    if (e.shieldT > 0){ e.shieldT -= dt; if (e.shieldT <= 0) e.shield = 0; }
+    if (e.flash > 0) e.flash -= dt;
+    if (e.castFx > 0) e.castFx -= dt;
+    if (e.stun > 0){ e.stun -= dt; continue; }
+
+    e.atkCd -= dt; e.moveCd -= dt;
+
+    if (!e.target || !e.target.alive) e.target = acquire(sim, e);
+    const tgt = e.target;
+    if (!tgt) continue;
+
+    if (hexDist(e, tgt) <= e.range){
+      if (e.mana >= e.manaMax){ castSpell(sim, e, tgt); e.atkCd = Math.max(e.atkCd, .25); continue; }
+      if (e.atkCd <= 0){
+        const chill = e.chill ? e.chill.amt : 0;
+        const aps = Math.max(.2, e.as * (1 + e.asBonus) * (1 - chill));
+        basicAttack(sim, e, tgt);
+        e.atkCd = 1 / aps;
+      }
+    } else if (e.moveCd <= 0){
+      stepToward(sim, e, tgt);
+      e.moveCd = .42;
+    }
+  }
+
+  // ---- transient visuals ----
+  for (const s of sim.shots) s.t += dt;
+  sim.shots = sim.shots.filter(s => s.t < s.dur);
+  for (const p of sim.pops){ p.t += dt; p.y += p.vy * dt; p.vy += 40 * dt; }
+  sim.pops = sim.pops.filter(p => p.t < .9);
+
+  // ---- end conditions ----
+  const mine = sim.units.filter(u => u.alive && u.side === 'me');
+  const foes = sim.units.filter(u => u.alive && u.side === 'foe');
+  if (!mine.length || !foes.length){
+    sim.done = true;
+    sim.winner = mine.length ? 'me' : foes.length ? 'foe' : 'draw';
+  } else if (sim.t >= COMBAT_TIME){
+    // Out of time: whoever kept more of their health wins.
+    const frac = side => {
+      const l = sim.units.filter(u => u.side === side);
+      return l.reduce((a, u) => a + Math.max(0, u.hp), 0) / l.reduce((a, u) => a + u.maxhp, 0);
+    };
+    sim.done = true;
+    sim.winner = frac('me') >= frac('foe') ? 'me' : 'foe';
+  }
+}
+
+/* ============================ ROUND FLOW ============================ */
+const FOE_NAMES = ['Rook','Vela','Ozric','Nim','Talia','Brack','Suri','Odd','Wren','Kass',
+                   'Pip','Mireille','Dax','Yara','Fen','Corvo'];
+const PVE_NAMES = ['Wolf Pack','Lesser Golems','Krug Trio','Wandering Spirits','Ember Whelps'];
+
+function roundNumber(){ return G.stage === 1 ? G.round : 3 + (G.stage - 2) * 6 + G.round; }
+function roundsInStage(){ return G.stage === 1 ? 3 : 6; }
+function isPveRound(){ return G.stage === 1 || G.round === 4; }
+
+function makeEnemy(){
+  const rn = roundNumber(), pve = isPveRound();
+  const maxCost = rn < 4 ? 1 : rn < 8 ? 2 : rn < 14 ? 3 : 4;
+  // PvP opponents are peers: they field roughly as many units as you can,
+  // give or take one, so the level you buy is what keeps you competitive.
+  const size = pve ? clamp(2 + Math.floor(rn / 4), 2, 6)
+                   : clamp(G.level - 1 + rnd(3), 2, MAX_LEVEL);
+  const twoStar = clamp((rn - 7) / 18, 0, .75);
+  const threeStar = rn > 22 ? .12 : 0;
+
+  const roster = UNITS.filter(u => u.cost <= maxCost);
+  const units = [];
+  const used = Array.from({length: MY_ROWS}, () => Array(COLS).fill(false));
+  for (let i = 0; i < size; i++){
+    const d = pick(roster);
+    const star = Math.random() < threeStar ? 3 : Math.random() < twoStar ? 2 : 1;
+    // Melee up front, ranged behind — enemy row 3 is the front line.
+    const rows = d.range > 1 ? [0, 1] : [3, 2];
+    let spot = null;
+    for (let tries = 0; tries < 40 && !spot; tries++){
+      const r = pick(rows), c = rnd(COLS);
+      if (!used[r][c]) spot = {r, c};
+    }
+    if (!spot) for (let r = 0; r < MY_ROWS && !spot; r++)
+      for (let c = 0; c < COLS && !spot; c++) if (!used[r][c]) spot = {r, c};
+    if (!spot) break;
+    used[spot.r][spot.c] = true;
+    units.push({uid: -(i + 1), id: d.id, star, c: spot.c, r: spot.r});
+  }
+  G.enemy = {name: pve ? pick(PVE_NAMES) : `${pick(FOE_NAMES)}'s board`, pve, units};
+}
+
+function startCombat(){
+  if (!boardCount()) return say('Place at least one unit on the board first.');
+  G.sel = null;
+  G.sim = buildSim();
+  G.phase = 'combat';
+  G.speed = 1;
+  banner('FIGHT!', '#ffe06b');
+  loopStart();
+}
+
+function resolveCombat(){
+  const sim = G.sim;
+  const survivors = sim.units.filter(u => u.alive && u.side === 'foe');
+  const won = sim.winner === 'me';
+  let dmg = 0;
+  if (!won){
+    dmg = STAGE_DMG[Math.min(G.stage, STAGE_DMG.length - 1)]
+        + survivors.reduce((a, u) => a + 1 + u.star, 0);
+    G.hp = Math.max(0, G.hp - dmg);
+  }
+  G.streak = won ? Math.max(1, G.streak + 1) : Math.min(-1, G.streak - 1);
+  if (won && !G.enemy.pve) G.gold += 1;
+  G.lastResult = {won, dmg, survivors: survivors.length};
+  G.phase = 'result';
+  banner(won ? 'VICTORY' : 'DEFEAT', won ? '#5dd98a' : '#ff5d5d');
+
+  const rn = roundNumber();
+  if (rn > G.best){ G.best = rn; localStorage.setItem('tinytactics.best', String(rn)); }
+
+  say(won ? `You won the round.${G.enemy.pve ? '' : ' +1g for the win.'}`
+          : `You lost ${dmg} health (${survivors.length} enemies left standing).`);
+  draw();
+}
+
+function nextRound(){
+  if (G.hp <= 0){ G.phase = 'over'; render(); return; }
+  G.round++;
+  if (G.round > roundsInStage()){ G.stage++; G.round = 1; }
+  const inc = income();
+  G.gold += inc.total;
+  addXp(2);
+  rollShop(true);
+  makeEnemy();
+  G.sim = null;
+  G.phase = 'plan';
+  say(`+${inc.total}g (${inc.base} base, ${inc.interest} interest, ${inc.streakBonus} streak) · +2 xp`);
+  render();
+}
+
+/* ============================= RENDERING ============================ */
+const cv = document.getElementById('arena'), ctx = cv.getContext('2d');
+let HEX = {R: 20, w: 34, ox: 0, oy: 0, h: 0};
+
+function sizeCanvas(){
+  const wCss = cv.clientWidth || 600;
+  const w = wCss / (COLS + .5);              // hex width, +.5 for the odd-row offset
+  const R = w / Math.sqrt(3);
+  const hCss = 1.5 * R * ROWS + .5 * R + 6;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(wCss * dpr); cv.height = Math.round(hCss * dpr);
+  cv.style.height = hCss + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  HEX = {R, w, ox: 0, oy: 3, h: hCss};
+}
+function hexCenter(c, r){
+  return {x: HEX.ox + HEX.w * (c + .5 * (r & 1)) + HEX.w / 2,
+          y: HEX.oy + 1.5 * HEX.R * r + HEX.R};
+}
+function hexPath(x, y, R){
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++){
+    const a = Math.PI / 180 * (60 * i - 90);
+    const px = x + R * Math.cos(a), py = y + R * Math.sin(a);
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+function hexAt(x, y){
+  let best = null, bd = 1e9;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
+    const p = hexCenter(c, r), d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d < bd){ bd = d; best = {c, r}; }
+  }
+  return bd <= (HEX.R * 1.05) ** 2 ? best : null;
+}
+
+function unitColor(id){ return TRAITS[BY_ID[id].traits[0]].color; }
+
+function drawChip(x, y, R, o){
+  // o: {id, star, side, hpFrac, manaFrac, shield, dim, sel, flash, cast, stun}
+  const col = unitColor(o.id);
+  ctx.save();
+  ctx.globalAlpha = o.dim ? .45 : 1;
+  if (o.cast){ ctx.shadowColor = '#ffe06b'; ctx.shadowBlur = 14; }
+  ctx.beginPath(); ctx.arc(x, y, R * .62, 0, Math.PI * 2);
+  ctx.fillStyle = o.flash ? '#fff' : col; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = o.sel ? '#ffcc55' : o.side === 'me' ? '#dfe6ff' : '#ff5d5d';
+  ctx.stroke();
+
+  ctx.fillStyle = '#0d0f15'; ctx.font = `700 ${Math.round(R * .6)}px ui-monospace,monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(BY_ID[o.id].name[0].toUpperCase(), x, y + 1);
+
+  if (o.star > 1){
+    ctx.fillStyle = o.star === 3 ? '#ffcc55' : '#dfe6ff';
+    ctx.font = `${Math.round(R * .34)}px ui-monospace,monospace`;
+    ctx.fillText('★'.repeat(o.star), x, y - R * .82);
+  }
+  if (o.hpFrac !== undefined){
+    const bw = R * 1.24, bh = Math.max(3, R * .13), bx = x - bw / 2, by = y + R * .58;
+    ctx.fillStyle = '#0a0c12'; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = o.side === 'me' ? '#5dd98a' : '#ff5d5d';
+    ctx.fillRect(bx, by, bw * clamp(o.hpFrac, 0, 1), bh);
+    if (o.shield > 0){
+      ctx.fillStyle = 'rgba(140,190,255,.85)';
+      ctx.fillRect(bx, by, bw * clamp(o.shield, 0, 1), bh);
+    }
+    ctx.fillStyle = '#0a0c12'; ctx.fillRect(bx, by + bh + 1, bw, bh * .65);
+    ctx.fillStyle = '#62e6e0'; ctx.fillRect(bx, by + bh + 1, bw * clamp(o.manaFrac, 0, 1), bh * .65);
+  }
+  if (o.stun){
+    ctx.fillStyle = '#ffe06b'; ctx.font = `${Math.round(R * .5)}px ui-monospace,monospace`;
+    ctx.fillText('✷', x, y - R * .9);
+  }
+  ctx.restore();
+}
+
+function draw(){
+  sizeCanvas();
+  ctx.clearRect(0, 0, cv.clientWidth, HEX.h);
+
+  // ---- hex grid ----
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
+    const p = hexCenter(c, r), mine = r >= MY_ROW0;
+    hexPath(p.x, p.y, HEX.R * .93);
+    ctx.fillStyle = mine ? '#161c28' : '#141620';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = mine ? '#2f3a52' : '#232838';
+    ctx.stroke();
+  }
+  // Mid-field divider.
+  const y0 = hexCenter(0, MY_ROW0).y - HEX.R;
+  ctx.strokeStyle = 'rgba(201,139,255,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(cv.clientWidth, y0); ctx.stroke();
+
+  if (G.phase === 'combat' || G.phase === 'result') drawCombat();
+  else drawPlanning();
+}
+
+function drawPlanning(){
+  // Your board.
+  for (let r = 0; r < MY_ROWS; r++) for (let c = 0; c < COLS; c++){
+    const u = G.board[r][c]; if (!u) continue;
+    const p = hexCenter(c, r + MY_ROW0);
+    const sel = G.sel && G.sel.where === 'board' && G.sel.c === c && G.sel.r === r;
+    drawChip(p.x, p.y, HEX.R, {id: u.id, star: u.star, side: 'me', sel});
+  }
+  // A greyed-out preview of who you're about to fight.
+  for (const e of G.enemy.units){
+    const p = hexCenter(e.c, e.r);
+    drawChip(p.x, p.y, HEX.R, {id: e.id, star: e.star, side: 'foe', dim: true});
+  }
+  ctx.fillStyle = '#8a92a6'; ctx.font = '11px ui-monospace,monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('NEXT: ' + G.enemy.name, 6, 4);
+}
+
+function drawCombat(){
+  const sim = G.sim; if (!sim) return;
+  for (const e of sim.units){
+    const p = hexCenter(e.c, e.r);
+    if (!e.placed){ e.px = p.x; e.py = p.y; e.placed = true; }
+    e.px += (p.x - e.px) * .25; e.py += (p.y - e.py) * .25;
+  }
+  // Projectiles first so they sit under the chips.
+  for (const s of sim.shots){
+    const k = s.t / s.dur;
+    const x = s.from.px + (s.to.px - s.from.px) * k;
+    const y = s.from.py + (s.to.py - s.from.py) * k;
+    ctx.beginPath(); ctx.arc(x, y, s.big ? HEX.R * .35 : HEX.R * .14, 0, Math.PI * 2);
+    ctx.fillStyle = s.color; ctx.globalAlpha = s.big ? .5 : 1; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  for (const e of sim.units){
+    if (!e.alive) continue;
+    drawChip(e.px, e.py, HEX.R, {
+      id: e.id, star: e.star, side: e.side,
+      hpFrac: e.hp / e.maxhp, manaFrac: e.manaMax ? e.mana / e.manaMax : 0,
+      shield: e.shield / e.maxhp, flash: e.flash > 0, cast: e.castFx > 0, stun: e.stun > 0,
+    });
+    if (e.burn){
+      ctx.fillStyle = '#ff7a45'; ctx.font = `${Math.round(HEX.R * .4)}px ui-monospace,monospace`;
+      ctx.textAlign = 'center'; ctx.fillText('🔥', e.px + HEX.R * .6, e.py - HEX.R * .5);
+    }
+  }
+  for (const p of sim.pops){
+    ctx.globalAlpha = clamp(1 - p.t / .9, 0, 1);
+    ctx.fillStyle = p.color;
+    ctx.font = `700 ${Math.round(HEX.R * (p.small ? .3 : .48))}px ui-monospace,monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = '#8a92a6'; ctx.font = '11px ui-monospace,monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(`${Math.max(0, COMBAT_TIME - sim.t).toFixed(1)}s`, 6, 4);
+}
+
+/* ============================== DOM UI ============================== */
+const $ = id => document.getElementById(id);
+const elTraits = $('traits'), elBench = $('bench'), elShop = $('shop'),
+      elInfo = $('infoTxt'), elSell = $('btnSell'), elAction = $('action'),
+      elSpeeds = $('speeds'), elBanner = $('banner');
+
+let bannerTimer = null;
+function banner(text, color){
+  elBanner.textContent = text; elBanner.style.color = color;
+  elBanner.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => elBanner.classList.remove('show'), 1400);
+}
+
+function renderTraits(){
+  const units = G.board.flat().filter(Boolean);
+  const counts = traitCounts(units), act = activeTraits(units);
+  const names = Object.keys(counts).sort((a, b) =>
+    (act[b] === undefined ? -1 : act[b]) - (act[a] === undefined ? -1 : act[a]) ||
+    counts[b] - counts[a]);
+  elTraits.innerHTML = '';
+  if (!names.length){
+    elTraits.innerHTML = '<div class="trait">no traits active — place units to combine them</div>';
+    return;
+  }
+  for (const n of names){
+    const T = TRAITS[n], tier = act[n], on = tier !== undefined;
+    const next = T.breaks.find(b => counts[n] < b);
+    const d = document.createElement('div');
+    d.className = 'trait' + (on ? ' on' : '');
+    if (on) d.style.background = T.color;
+    d.innerHTML = `<span>${n}</span><span class="n">${counts[n]}${next ? '/' + next : ''}</span>`;
+    d.title = on ? T.desc(tier) : `${T.breaks[0]} needed: ${T.desc(0)}`;
+    elTraits.appendChild(d);
+  }
+}
+
+function renderBench(){
+  elBench.innerHTML = '';
+  for (let i = 0; i < BENCH; i++){
+    const u = G.bench[i];
+    const d = document.createElement('div');
+    d.className = 'slot' + (G.sel && G.sel.where === 'bench' && G.sel.i === i ? ' sel' : '');
+    if (u){
+      const col = unitColor(u.id);
+      d.innerHTML =
+        `<div class="stars">${u.star > 1 ? '★'.repeat(u.star) : ''}</div>` +
+        `<div class="face" style="color:${col}">${BY_ID[u.id].name[0]}</div>` +
+        `<div class="cost" style="background:${COST_COLOR[BY_ID[u.id].cost]}"></div>`;
+      d.title = BY_ID[u.id].name;
+    }
+    d.onclick = () => { if (G.phase !== 'plan') return; moveTo({where:'bench', i}); render(); };
+    elBench.appendChild(d);
+  }
+}
+
+function renderShop(){
+  elShop.innerHTML = '';
+  G.shop.forEach((id, i) => {
+    const d = document.createElement('div');
+    if (!id){ d.className = 'card gone'; elShop.appendChild(d); return; }
+    const u = BY_ID[id];
+    d.className = 'card' + (G.gold < u.cost ? ' poor' : '');
+    d.style.borderTopColor = COST_COLOR[u.cost];
+    d.innerHTML = `<div class="cn" style="color:${unitColor(id)}">${u.name}</div>` +
+                  `<div class="ct">${u.traits.join(' · ')}</div>` +
+                  `<div class="cc">◈ ${u.cost}</div>`;
+    d.onclick = () => { if (G.phase !== 'plan') return; buy(i); render(); };
+    elShop.appendChild(d);
+  });
+}
+
+function renderInfo(){
+  const u = at(G.sel);
+  if (u){
+    const d = BY_ID[u.id], m = Math.pow(1.8, u.star - 1), s = d.spell;
+    elInfo.innerHTML =
+      `<b style="color:${unitColor(u.id)}">${d.name}</b> ${'★'.repeat(u.star)} ` +
+      `<span class="dim">${d.traits.join(' · ')}</span><br>` +
+      `<span class="dim">${Math.round(d.hp * m)} hp · ${Math.round(d.ad * m)} ad · ` +
+      `${d.as.toFixed(2)} as · ${d.range === 1 ? 'melee' : 'range ' + d.range} · ` +
+      `${d.mana} mana</span><br>` +
+      `<span class="dim">${s.name}: ${Math.round(s.dmg[u.star - 1])} ${s.txt}</span>`;
+    elSell.classList.remove('hidden');
+    elSell.textContent = `SELL ${sellValue(u)}g`;
+  } else {
+    elInfo.innerHTML = G.msg ? G.msg : '<span class="dim">Tap a unit to inspect it.</span>';
+    elSell.classList.add('hidden');
+  }
+}
+
+function renderEcon(){
+  $('stRound').textContent = `${G.stage}-${G.round}`;
+  $('stHp').textContent = G.hp;
+  $('stGold').textContent = G.gold;
+  $('stLvl').textContent = G.level;
+  const need = XP_NEEDED[G.level];
+  $('stXp').textContent = G.level >= MAX_LEVEL ? 'MAX' : `${G.xp}/${need}`;
+  $('xpFill').style.width = (G.level >= MAX_LEVEL ? 100 : 100 * G.xp / need) + '%';
+  $('stUnits').textContent = `${boardCount()}/${G.level} units`;
+  const inc = income();
+  const st = G.streak > 0 ? 'W' + G.streak : G.streak < 0 ? 'L' + (-G.streak) : '–';
+  $('stInc').textContent = `+${inc.total}g · ${st}`;
+  $('btnXp').disabled = G.phase !== 'plan' || G.gold < 4 || G.level >= MAX_LEVEL;
+  $('btnRoll').disabled = G.phase !== 'plan' || G.gold < 2;
+}
+
+function render(){
+  if (G.phase === 'over'){
+    elTraits.innerHTML = '';
+    elInfo.innerHTML = `<b style="color:var(--red)">Eliminated.</b> You reached round ` +
+      `<b>${G.stage}-${G.round}</b> (${roundNumber()} rounds). Best: ${G.best}.`;
+    elSell.classList.add('hidden');
+    elAction.textContent = 'PLAY AGAIN';
+    elAction.className = '';
+    elSpeeds.classList.add('hidden');
+    renderBench(); renderShop(); renderEcon(); draw();
+    return;
+  }
+  renderTraits(); renderBench(); renderShop(); renderInfo(); renderEcon();
+  if (G.phase === 'plan'){
+    elAction.textContent = boardCount() ? 'FIGHT' : 'PLACE A UNIT';
+    elAction.className = '';
+    elSpeeds.classList.add('hidden');
+  } else if (G.phase === 'combat'){
+    elAction.textContent = 'FIGHTING…';
+    elAction.className = 'combat';
+    elSpeeds.classList.remove('hidden');
+  } else {
+    const r = G.lastResult;
+    elAction.textContent = r && r.won ? 'CONTINUE ▸' : `CONTINUE ▸  (-${r ? r.dmg : 0} hp)`;
+    elAction.className = '';
+    elSpeeds.classList.add('hidden');
+  }
+  draw();
+}
+
+/* ============================== INPUT =============================== */
+cv.addEventListener('click', ev => {
+  if (G.phase !== 'plan') return;
+  const rect = cv.getBoundingClientRect();
+  const h = hexAt(ev.clientX - rect.left, ev.clientY - rect.top);
+  if (!h) return;
+  if (h.r < MY_ROW0){ say('That half of the board belongs to your opponent.'); render(); return; }
+  moveTo({where: 'board', c: h.c, r: h.r - MY_ROW0});
+  render();
+});
+
+elSell.onclick = () => { if (G.phase === 'plan'){ sellSelected(); render(); } };
+$('btnRoll').onclick = () => { if (G.phase === 'plan'){ rollShop(false); render(); } };
+$('btnXp').onclick = () => { if (G.phase === 'plan'){ buyXp(); render(); } };
+
+elAction.onclick = () => {
+  if (G.phase === 'plan'){ startCombat(); render(); }
+  else if (G.phase === 'result'){ nextRound(); }
+  else if (G.phase === 'over'){ newGame(); render(); }
+};
+
+elSpeeds.querySelectorAll('.mini').forEach(b => {
+  b.onclick = () => {
+    const sp = +b.dataset.sp;
+    if (sp === 0){                              // skip: run the fight to its end
+      let guard = 0;
+      while (!G.sim.done && guard++ < 4000) stepSim(G.sim, .05);
+      resolveCombat(); render(); return;
+    }
+    G.speed = sp;
+    elSpeeds.querySelectorAll('.mini').forEach(x => x.classList.toggle('on', x === b));
+  };
+});
+
+window.addEventListener('resize', () => { if (G) draw(); });
+
+/* ============================== MAIN LOOP =========================== */
+let raf = null, last = 0;
+function loopStart(){ last = performance.now(); if (!raf) raf = requestAnimationFrame(loop); }
+function loop(now){
+  raf = null;
+  const dt = Math.min(.05, (now - last) / 1000);
+  last = now;
+  if (G.phase === 'combat' && G.sim){
+    // Sub-step so higher speeds stay stable.
+    const total = dt * G.speed;
+    const steps = Math.ceil(total / .033);
+    for (let i = 0; i < steps && !G.sim.done; i++) stepSim(G.sim, total / steps);
+    draw();
+    if (G.sim.done){ resolveCombat(); render(); return; }
+    raf = requestAnimationFrame(loop);
+  }
+}
+
+newGame();
+render();
+</script>
+</body>
+</html>
