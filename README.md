@@ -89,8 +89,9 @@ A **barebones Teamfight Tactics-style auto battler**, proof-of-concept scale, in
 a single self-contained file: **[`tft/index.html`](tft/index.html)**. Open it in
 any browser — no build, no dependencies, works on a phone.
 
-Buy units from a rotating shop, drop them on a hex board, and watch the round
-fight itself. The pieces a TFT-like needs are all here:
+Buy units from a rotating shop, drop them on a **3D hex board**, and watch the
+round fight itself. Drag to orbit the camera, scroll or pinch to zoom. The
+pieces a TFT-like needs are all here:
 
 - **Shop & gold economy** — 5-slot shop with level-based rarity odds, 2g rerolls,
   base income + interest (1g per 10g banked, capped at 5) + win/loss streak bonuses.
@@ -106,6 +107,17 @@ fight itself. The pieces a TFT-like needs are all here:
 
 Positioning matters: melee units want the front row, ranged the back, and
 Assassins leap into the enemy back line the moment the fight starts.
+
+### The renderer
+
+The board is drawn in real 3D with a **hand-rolled WebGL renderer** — matrix
+maths, shaders, meshes and an orbit camera, all written from scratch so the page
+stays a single dependency-free file that works offline. Units are lit meshes with
+contact shadows, star tier shows as spikes, and clicking a hex casts a ray from
+the camera at the board plane. Health bars, damage numbers and unit labels are
+drawn on a 2D overlay canvas so text stays crisp at any zoom.
+
+WebGL is required; the page says so plainly if the browser can't provide it.
 
 ## Project layout
 

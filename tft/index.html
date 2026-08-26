@@ -43,8 +43,12 @@
 
   /* ---- arena ---- */
   #arenaWrap{position:relative;}
-  canvas{display:block; width:100%; border-radius:12px; background:#10131b;
-    border:1px solid var(--line); touch-action:manipulation;}
+  #arena{display:block; width:100%; border-radius:12px; background:#0d1017;
+    border:1px solid var(--line); touch-action:none; cursor:grab;}
+  #arena:active{cursor:grabbing;}
+  #hud{position:absolute; left:0; top:0; width:100%; background:transparent;
+    border:none; pointer-events:none;}
+  #glfail{padding:30px 16px; text-align:center; color:var(--dim); font-size:13px;}
   #banner{position:absolute; left:0; right:0; top:38%; text-align:center;
     font-size:26px; font-weight:800; letter-spacing:2px; pointer-events:none;
     text-shadow:0 2px 12px #000; opacity:0; transition:opacity .2s;}
@@ -123,6 +127,7 @@
 
   <div id="arenaWrap">
     <canvas id="arena"></canvas>
+    <canvas id="hud"></canvas>
     <div id="banner"></div>
   </div>
 
@@ -511,7 +516,8 @@ function makeEntity(u, side, c, r){
     omnivamp: 0, burnDps: 0, chillAmt: 0, leap: false,
     shield: 0, shieldT: 0, burn: null, chill: null, stun: 0,
     atkCd: Math.random() * .3, moveCd: 0, target: null, alive: true,
-    px: 0, py: 0, placed: false, flash: 0, castFx: 0,
+    flash: 0, castFx: 0, deathT: 0,
+    wx: 0, wy: 0, wz: 0, yaw: 0, lift: 0, spawned: false,
   };
 }
 
@@ -551,7 +557,8 @@ function buildSim(){
   }
   applyTraits(mine); applyTraits(theirs);
 
-  const sim = {units, t: 0, done: false, winner: null, shots: [], pops: [], occ: null};
+  const sim = {units, t: 0, done: false, doneT: 0, winner: null,
+               shots: [], pops: [], fx: [], occ: null};
   reoccupy(sim);
   // Assassins open the fight in the enemy back line.
   for (const e of units){
@@ -598,8 +605,8 @@ function stepToward(sim, e, tgt){
 }
 
 function pop(sim, e, text, color, small){
-  sim.pops.push({x: e.px, y: e.py - (small ? 14 : 0), text, color, small,
-                 t: 0, vy: -26 - Math.random() * 10});
+  sim.pops.push({x: e.wx, y: 1.15 + (small ? .45 : 0), z: e.wz, text, color, small,
+                 t: 0, vy: 1.5 + Math.random() * .4});
 }
 
 function gainMana(e, n){ if (e.manaMax > 0) e.mana = Math.min(e.manaMax, e.mana + n); }
@@ -673,11 +680,15 @@ function castSpell(sim, e, tgt){
         if (s.burn) applyBurn(f, 30, 4);
       }
       sim.shots.push({from: e, to: tgt, t: 0, dur: .3, color: '#ffd76b', big: true});
+      sim.fx.push({x: tgt.wx, z: tgt.wz, t: 0, dur: .5, r0: .3,
+                   r1: (s.radius || 1) * 1.6, color: '#ffd76b'});
       break;
     }
     case 'nova': {
       const hits = enemiesOf(sim, e).filter(f => hexDist(f, e) <= (s.radius || 1));
       for (const f of hits){ damage(sim, e, f, base, type, false); if (s.burn) applyBurn(f, 30, 4); }
+      sim.fx.push({x: e.wx, z: e.wz, t: 0, dur: .5, r0: .3,
+                   r1: (s.radius || 1) * 1.7, color: '#ff7a45'});
       break;
     }
     case 'heal': {
@@ -699,6 +710,19 @@ function castSpell(sim, e, tgt){
       break;
     }
   }
+}
+
+// Projectiles, damage numbers, shockwaves and death fades. Kept separate from
+// stepSim because they must keep running after the fight has been decided —
+// stepSim bails out the moment sim.done is set.
+function ageEffects(sim, dt){
+  for (const s of sim.shots) s.t += dt;
+  sim.shots = sim.shots.filter(s => s.t < s.dur);
+  for (const p of sim.pops){ p.t += dt; p.y += p.vy * dt; p.vy -= 1.9 * dt; }
+  sim.pops = sim.pops.filter(p => p.t < .9);
+  for (const f of sim.fx) f.t += dt;
+  sim.fx = sim.fx.filter(f => f.t < f.dur);
+  for (const e of sim.units) if (!e.alive) e.deathT += dt;
 }
 
 function stepSim(sim, dt){
@@ -741,11 +765,7 @@ function stepSim(sim, dt){
     }
   }
 
-  // ---- transient visuals ----
-  for (const s of sim.shots) s.t += dt;
-  sim.shots = sim.shots.filter(s => s.t < s.dur);
-  for (const p of sim.pops){ p.t += dt; p.y += p.vy * dt; p.vy += 40 * dt; }
-  sim.pops = sim.pops.filter(p => p.t < .9);
+  ageEffects(sim, dt);
 
   // ---- end conditions ----
   const mine = sim.units.filter(u => u.alive && u.side === 'me');
@@ -812,7 +832,6 @@ function startCombat(){
   G.phase = 'combat';
   G.speed = 1;
   banner('FIGHT!', '#ffe06b');
-  loopStart();
 }
 
 function resolveCombat(){
@@ -854,165 +873,506 @@ function nextRound(){
   render();
 }
 
-/* ============================= RENDERING ============================ */
-const cv = document.getElementById('arena'), ctx = cv.getContext('2d');
-let HEX = {R: 20, w: 34, ox: 0, oy: 0, h: 0};
+/* ============================= 3D RENDERER ==========================
+   A hand-rolled WebGL layer — no libraries, so the file stays a single
+   self-contained page. A handful of meshes are built once and redrawn
+   with a shared Blinn-Phong shader; bars, damage numbers and labels ride
+   on a 2D overlay canvas so text stays crisp at any zoom.
+   ==================================================================== */
 
-function sizeCanvas(){
-  const wCss = cv.clientWidth || 600;
-  const w = wCss / (COLS + .5);              // hex width, +.5 for the odd-row offset
-  const R = w / Math.sqrt(3);
-  const hCss = 1.5 * R * ROWS + .5 * R + 6;
-  const dpr = window.devicePixelRatio || 1;
-  cv.width = Math.round(wCss * dpr); cv.height = Math.round(hCss * dpr);
-  cv.style.height = hCss + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  HEX = {R, w, ox: 0, oy: 3, h: hCss};
+/* --- column-major mat4 helpers (only what the camera needs) --- */
+const m4 = () => new Float32Array(16);
+function m4mul(a, b){
+  const o = m4();
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++){
+    let s = 0;
+    for (let k = 0; k < 4; k++) s += a[i + k * 4] * b[k + j * 4];
+    o[i + j * 4] = s;
+  }
+  return o;
 }
-function hexCenter(c, r){
-  return {x: HEX.ox + HEX.w * (c + .5 * (r & 1)) + HEX.w / 2,
-          y: HEX.oy + 1.5 * HEX.R * r + HEX.R};
+function m4persp(fovy, asp, n, f){
+  const o = m4(), t = 1 / Math.tan(fovy / 2);
+  o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f);
+  return o;
 }
-function hexPath(x, y, R){
-  ctx.beginPath();
+function m4look(e, c){
+  let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx /= l; zy /= l; zz /= l;
+  let xx = zz, xy = 0, xz = -zx;
+  l = Math.hypot(xx, xy, xz); if (l < 1e-6){ xx = 1; xy = 0; xz = 0; l = 1; }
+  xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  const o = m4();
+  o[0] = xx; o[1] = yx; o[2] = zx; o[4] = xy; o[5] = yy; o[6] = zy;
+  o[8] = xz; o[9] = yz; o[10] = zz;
+  o[12] = -(xx * e[0] + xy * e[1] + xz * e[2]);
+  o[13] = -(yx * e[0] + yy * e[1] + yz * e[2]);
+  o[14] = -(zx * e[0] + zy * e[1] + zz * e[2]);
+  o[15] = 1;
+  return o;
+}
+function m4inv(m){
+  const o = m4();
+  const a00=m[0],a01=m[1],a02=m[2],a03=m[3], a10=m[4],a11=m[5],a12=m[6],a13=m[7],
+        a20=m[8],a21=m[9],a22=m[10],a23=m[11], a30=m[12],a31=m[13],a32=m[14],a33=m[15];
+  const b00=a00*a11-a01*a10, b01=a00*a12-a02*a10, b02=a00*a13-a03*a10,
+        b03=a01*a12-a02*a11, b04=a01*a13-a03*a11, b05=a02*a13-a03*a12,
+        b06=a20*a31-a21*a30, b07=a20*a32-a22*a30, b08=a20*a33-a23*a30,
+        b09=a21*a32-a22*a31, b10=a21*a33-a23*a31, b11=a22*a33-a23*a32;
+  let det = b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06;
+  if (!det) return o;
+  det = 1 / det;
+  o[0]=(a11*b11-a12*b10+a13*b09)*det;  o[1]=(a02*b10-a01*b11-a03*b09)*det;
+  o[2]=(a31*b05-a32*b04+a33*b03)*det;  o[3]=(a22*b04-a21*b05-a23*b03)*det;
+  o[4]=(a12*b08-a10*b11-a13*b07)*det;  o[5]=(a00*b11-a02*b08+a03*b07)*det;
+  o[6]=(a32*b02-a30*b05-a33*b01)*det;  o[7]=(a20*b05-a22*b02+a23*b01)*det;
+  o[8]=(a10*b10-a11*b08+a13*b06)*det;  o[9]=(a01*b08-a00*b10-a03*b06)*det;
+  o[10]=(a30*b04-a31*b02+a33*b00)*det; o[11]=(a21*b02-a20*b04-a23*b00)*det;
+  o[12]=(a11*b07-a10*b09-a12*b06)*det; o[13]=(a00*b09-a01*b07+a02*b06)*det;
+  o[14]=(a31*b01-a30*b03-a32*b00)*det; o[15]=(a20*b03-a21*b01+a22*b00)*det;
+  return o;
+}
+// Model matrix for translate * rotateY * scale — all we ever need.
+function m4model(x, y, z, ry, sx, sy, sz){
+  const o = m4(), c = Math.cos(ry), s = Math.sin(ry);
+  o[0] = c * sx; o[2] = -s * sx;
+  o[5] = sy;
+  o[8] = s * sz; o[10] = c * sz;
+  o[12] = x; o[13] = y; o[14] = z; o[15] = 1;
+  return o;
+}
+function m3rot(ry){
+  const c = Math.cos(ry), s = Math.sin(ry);
+  return new Float32Array([c, 0, -s, 0, 1, 0, s, 0, c]);
+}
+
+/* --------------------------- board geometry ------------------------- */
+const HEXR = 1, HEXW = Math.sqrt(3) * HEXR, HEXV = 1.5 * HEXR;
+const BOARD_CX = (COLS - 1 + .5) * HEXW / 2, BOARD_CZ = (ROWS - 1) * HEXV / 2;
+function hexWorld(c, r){
+  return {x: (c + .5 * (r & 1)) * HEXW - BOARD_CX, z: r * HEXV - BOARD_CZ};
+}
+
+/* ------------------------------- meshes ----------------------------- */
+function geoHexPrism(R, h){
+  const pos = [], norm = [], idx = [], pts = [];
   for (let i = 0; i < 6; i++){
     const a = Math.PI / 180 * (60 * i - 90);
-    const px = x + R * Math.cos(a), py = y + R * Math.sin(a);
-    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    pts.push([R * Math.cos(a), R * Math.sin(a)]);
   }
-  ctx.closePath();
+  pos.push(0, 0, 0); norm.push(0, 1, 0);
+  for (const p of pts){ pos.push(p[0], 0, p[1]); norm.push(0, 1, 0); }
+  for (let i = 0; i < 6; i++) idx.push(0, 1 + i, 1 + (i + 1) % 6);
+  for (let i = 0; i < 6; i++){
+    const a = pts[i], b = pts[(i + 1) % 6];
+    let nx = (a[0] + b[0]) / 2, nz = (a[1] + b[1]) / 2;
+    const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
+    const s = pos.length / 3;
+    pos.push(a[0], 0, a[1], b[0], 0, b[1], b[0], -h, b[1], a[0], -h, a[1]);
+    for (let k = 0; k < 4; k++) norm.push(nx, 0, nz);
+    idx.push(s, s + 1, s + 2, s, s + 2, s + 3);
+  }
+  return {pos, norm, idx};
 }
-function hexAt(x, y){
+function geoCyl(rB, rT, h, seg){
+  const pos = [], norm = [], idx = [];
+  const slope = (rB - rT) / h;
+  for (let i = 0; i < seg; i++){
+    const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2;
+    const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+    const s = pos.length / 3;
+    pos.push(c0 * rB, 0, s0 * rB, c1 * rB, 0, s1 * rB, c1 * rT, h, s1 * rT, c0 * rT, h, s0 * rT);
+    const nl = Math.hypot(1, slope);
+    norm.push(c0 / nl, slope / nl, s0 / nl, c1 / nl, slope / nl, s1 / nl,
+              c1 / nl, slope / nl, s1 / nl, c0 / nl, slope / nl, s0 / nl);
+    idx.push(s, s + 1, s + 2, s, s + 2, s + 3);
+  }
+  for (const [y, r, ny] of [[0, rB, -1], [h, rT, 1]]){
+    if (r <= 0) continue;
+    const s = pos.length / 3;
+    pos.push(0, y, 0); norm.push(0, ny, 0);
+    for (let i = 0; i <= seg; i++){
+      const a = i / seg * Math.PI * 2;
+      pos.push(Math.cos(a) * r, y, Math.sin(a) * r); norm.push(0, ny, 0);
+    }
+    for (let i = 0; i < seg; i++) idx.push(s, s + 1 + i, s + 2 + i);
+  }
+  return {pos, norm, idx};
+}
+function geoSphere(r, su, sv){
+  const pos = [], norm = [], idx = [];
+  for (let v = 0; v <= sv; v++) for (let u = 0; u <= su; u++){
+    const phi = v / sv * Math.PI, th = u / su * Math.PI * 2;
+    const x = Math.sin(phi) * Math.cos(th), y = Math.cos(phi), z = Math.sin(phi) * Math.sin(th);
+    pos.push(x * r, y * r, z * r); norm.push(x, y, z);
+  }
+  for (let v = 0; v < sv; v++) for (let u = 0; u < su; u++){
+    const a = v * (su + 1) + u, b = a + su + 1;
+    idx.push(a, b, a + 1, a + 1, b, b + 1);
+  }
+  return {pos, norm, idx};
+}
+function geoRing(ri, ro, seg){
+  const pos = [], norm = [], idx = [];
+  for (let i = 0; i <= seg; i++){
+    const a = i / seg * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    pos.push(c * ri, 0, s * ri, c * ro, 0, s * ro);
+    norm.push(0, 1, 0, 0, 1, 0);
+  }
+  for (let i = 0; i < seg; i++){
+    const a = i * 2;
+    idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  return {pos, norm, idx};
+}
+
+/* ------------------------------ gl setup ---------------------------- */
+const cv = document.getElementById('arena');
+const hud = document.getElementById('hud'), hctx = hud.getContext('2d');
+let gl = null, prog = null, LOC = {}, MESH = {}, glFailed = false;
+
+const VERT = `
+attribute vec3 aPos; attribute vec3 aNorm;
+uniform mat4 uProj, uView, uModel; uniform mat3 uNorm;
+varying vec3 vN; varying vec3 vW;
+void main(){
+  vec4 w = uModel * vec4(aPos, 1.0);
+  vW = w.xyz; vN = normalize(uNorm * aNorm);
+  gl_Position = uProj * uView * w;
+}`;
+const FRAG = `
+precision mediump float;
+uniform vec3 uColor; uniform vec3 uEye; uniform float uAlpha; uniform float uEmis;
+varying vec3 vN; varying vec3 vW;
+void main(){
+  vec3 N = normalize(vN);
+  vec3 L = normalize(vec3(-0.35, 0.92, 0.42));
+  vec3 V = normalize(uEye - vW);
+  vec3 H = normalize(L + V);
+  float d = max(dot(N, L), 0.0);
+  float sp = pow(max(dot(N, H), 0.0), 26.0) * 0.35;
+  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * 0.4;
+  vec3 amb = vec3(0.20, 0.23, 0.33);
+  vec3 col = uColor * (amb + d * 0.85) + vec3(sp) + uColor * rim + uColor * uEmis;
+  float fog = clamp((length(uEye - vW) - 15.0) / 24.0, 0.0, 1.0);
+  col = mix(col, vec3(0.052, 0.060, 0.086), fog * 0.6);
+  gl_FragColor = vec4(col, uAlpha);
+}`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function upload(g){
+  const m = {n: g.idx.length};
+  m.p = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.p);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(g.pos), gl.STATIC_DRAW);
+  m.nb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.nb);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(g.norm), gl.STATIC_DRAW);
+  m.i = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.i);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(g.idx), gl.STATIC_DRAW);
+  return m;
+}
+function initGL(){
+  gl = cv.getContext('webgl', {antialias: true, alpha: false})
+    || cv.getContext('experimental-webgl', {antialias: true, alpha: false});
+  if (!gl){ glFailed = true; return false; }
+  prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  for (const n of ['uProj','uView','uModel','uNorm','uColor','uEye','uAlpha','uEmis'])
+    LOC[n] = gl.getUniformLocation(prog, n);
+  LOC.aPos = gl.getAttribLocation(prog, 'aPos');
+  LOC.aNorm = gl.getAttribLocation(prog, 'aNorm');
+  gl.enableVertexAttribArray(LOC.aPos); gl.enableVertexAttribArray(LOC.aNorm);
+  MESH.tile   = upload(geoHexPrism(HEXR * .93, .34));
+  MESH.body   = upload(geoCyl(.42, .20, .80, 16));
+  MESH.head   = upload(geoSphere(.23, 14, 9));
+  MESH.base   = upload(geoCyl(.48, .48, .07, 18));
+  MESH.ring   = upload(geoRing(.80, 1.0, 24));
+  MESH.disc   = upload(geoCyl(.46, .46, .012, 18));
+  MESH.orb    = upload(geoSphere(.13, 10, 7));
+  MESH.spike  = upload(geoCyl(.10, .0, .30, 8));
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.CULL_FACE);      // saves fussing over winding order
+  gl.clearColor(.052, .060, .086, 1);
+  return true;
+}
+
+const HEXCOL = c => {
+  const n = parseInt(c.slice(1), 16);
+  return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+};
+function drawMesh(mesh, model, color, alpha, emis, ry){
+  gl.uniformMatrix4fv(LOC.uModel, false, model);
+  gl.uniformMatrix3fv(LOC.uNorm, false, m3rot(ry || 0));
+  gl.uniform3fv(LOC.uColor, color);
+  gl.uniform1f(LOC.uAlpha, alpha === undefined ? 1 : alpha);
+  gl.uniform1f(LOC.uEmis, emis || 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.p); gl.vertexAttribPointer(LOC.aPos, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.nb); gl.vertexAttribPointer(LOC.aNorm, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.i);
+  gl.drawElements(gl.TRIANGLES, mesh.n, gl.UNSIGNED_SHORT, 0);
+}
+
+/* ------------------------------- camera ----------------------------- */
+const CAM = {yaw: 0, pitch: .88, dist: 15.5, target: [0, 0, .4]};
+let VP = m4(), EYE = [0, 0, 0], VIEW_W = 1, VIEW_H = 1, perfNow = 0;
+
+function updateCamera(){
+  const cp = Math.cos(CAM.pitch), sp = Math.sin(CAM.pitch);
+  EYE = [CAM.target[0] + CAM.dist * Math.sin(CAM.yaw) * cp,
+         CAM.target[1] + CAM.dist * sp,
+         CAM.target[2] + CAM.dist * Math.cos(CAM.yaw) * cp];
+  const proj = m4persp(Math.PI / 180 * 42, VIEW_W / VIEW_H, .5, 80);
+  const view = m4look(EYE, CAM.target);
+  VP = m4mul(proj, view);
+  gl.uniformMatrix4fv(LOC.uProj, false, proj);
+  gl.uniformMatrix4fv(LOC.uView, false, view);
+  gl.uniform3fv(LOC.uEye, EYE);
+}
+// World point -> overlay pixel. w <= 0 means it's behind the camera.
+function project(x, y, z){
+  const cx = VP[0]*x + VP[4]*y + VP[8]*z + VP[12];
+  const cy = VP[1]*x + VP[5]*y + VP[9]*z + VP[13];
+  const cw = VP[3]*x + VP[7]*y + VP[11]*z + VP[15];
+  if (cw <= 0) return {x: -999, y: -999, w: cw};
+  return {x: (cx / cw * .5 + .5) * VIEW_W, y: (1 - (cy / cw * .5 + .5)) * VIEW_H, w: cw};
+}
+// Screen pixel -> the hex it lands on, by casting a ray at the board plane.
+function pickHex(sx, sy){
+  const inv = m4inv(VP);
+  const nx = sx / VIEW_W * 2 - 1, ny = 1 - sy / VIEW_H * 2;
+  const un = (zc) => {
+    const x = inv[0]*nx + inv[4]*ny + inv[8]*zc + inv[12];
+    const y = inv[1]*nx + inv[5]*ny + inv[9]*zc + inv[13];
+    const z = inv[2]*nx + inv[6]*ny + inv[10]*zc + inv[14];
+    const w = inv[3]*nx + inv[7]*ny + inv[11]*zc + inv[15];
+    return [x / w, y / w, z / w];
+  };
+  const a = un(-1), b = un(1);
+  const dy = b[1] - a[1];
+  if (Math.abs(dy) < 1e-6) return null;
+  const t = (0 - a[1]) / dy;
+  if (t < 0) return null;
+  const wx = a[0] + (b[0] - a[0]) * t, wz = a[2] + (b[2] - a[2]) * t;
   let best = null, bd = 1e9;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
-    const p = hexCenter(c, r), d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    const p = hexWorld(c, r), d = (p.x - wx) ** 2 + (p.z - wz) ** 2;
     if (d < bd){ bd = d; best = {c, r}; }
   }
-  return bd <= (HEX.R * 1.05) ** 2 ? best : null;
+  return bd <= (HEXR * .95) ** 2 ? best : null;
 }
 
-function unitColor(id){ return TRAITS[BY_ID[id].traits[0]].color; }
-
-function drawChip(x, y, R, o){
-  // o: {id, star, side, hpFrac, manaFrac, shield, dim, sel, flash, cast, stun}
-  const col = unitColor(o.id);
-  ctx.save();
-  ctx.globalAlpha = o.dim ? .45 : 1;
-  if (o.cast){ ctx.shadowColor = '#ffe06b'; ctx.shadowBlur = 14; }
-  ctx.beginPath(); ctx.arc(x, y, R * .62, 0, Math.PI * 2);
-  ctx.fillStyle = o.flash ? '#fff' : col; ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = o.sel ? '#ffcc55' : o.side === 'me' ? '#dfe6ff' : '#ff5d5d';
-  ctx.stroke();
-
-  ctx.fillStyle = '#0d0f15'; ctx.font = `700 ${Math.round(R * .6)}px ui-monospace,monospace`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(BY_ID[o.id].name[0].toUpperCase(), x, y + 1);
-
-  if (o.star > 1){
-    ctx.fillStyle = o.star === 3 ? '#ffcc55' : '#dfe6ff';
-    ctx.font = `${Math.round(R * .34)}px ui-monospace,monospace`;
-    ctx.fillText('★'.repeat(o.star), x, y - R * .82);
+let lastSize = '';
+function sizeCanvas(){
+  const wCss = cv.clientWidth || 600;
+  const hCss = Math.round(clamp(wCss * .84, 250, 470));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const key = `${wCss}x${hCss}x${dpr}`;
+  if (key === lastSize) return;
+  lastSize = key;
+  for (const el of [cv, hud]){
+    el.style.height = hCss + 'px';
+    el.width = Math.round(wCss * dpr); el.height = Math.round(hCss * dpr);
   }
-  if (o.hpFrac !== undefined){
-    const bw = R * 1.24, bh = Math.max(3, R * .13), bx = x - bw / 2, by = y + R * .58;
-    ctx.fillStyle = '#0a0c12'; ctx.fillRect(bx, by, bw, bh);
-    ctx.fillStyle = o.side === 'me' ? '#5dd98a' : '#ff5d5d';
-    ctx.fillRect(bx, by, bw * clamp(o.hpFrac, 0, 1), bh);
-    if (o.shield > 0){
-      ctx.fillStyle = 'rgba(140,190,255,.85)';
-      ctx.fillRect(bx, by, bw * clamp(o.shield, 0, 1), bh);
-    }
-    ctx.fillStyle = '#0a0c12'; ctx.fillRect(bx, by + bh + 1, bw, bh * .65);
-    ctx.fillStyle = '#62e6e0'; ctx.fillRect(bx, by + bh + 1, bw * clamp(o.manaFrac, 0, 1), bh * .65);
-  }
-  if (o.stun){
-    ctx.fillStyle = '#ffe06b'; ctx.font = `${Math.round(R * .5)}px ui-monospace,monospace`;
-    ctx.fillText('✷', x, y - R * .9);
-  }
-  ctx.restore();
+  VIEW_W = wCss; VIEW_H = hCss;
+  hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (gl) gl.viewport(0, 0, cv.width, cv.height);
 }
+
+/* ------------------------------ the scene --------------------------- */
+const COL_TILE_ME = HEXCOL('#1e2637'), COL_TILE_FOE = HEXCOL('#241c26'),
+      COL_TILE_OPEN = HEXCOL('#2c3d55'), COL_SEL = HEXCOL('#ffcc55'),
+      COL_ME = HEXCOL('#cfe0ff'), COL_FOE = HEXCOL('#ff6b6b'), COL_SHADOW = [0, 0, 0];
+
+// Origin trait tints the body, class trait the head — two-tone tells units apart.
+function unitColor(id){ return TRAITS[BY_ID[id].traits[0]].color; }   // used by the DOM UI too
+function unitRGB(id){ return HEXCOL(TRAITS[BY_ID[id].traits[0]].color); }
+function classRGB(id){ return HEXCOL(TRAITS[BY_ID[id].traits[1]].color); }
+
+// Overlay sizing: clip-space w is essentially distance to the camera, so
+// dividing by it keeps bars and text proportional as you zoom and orbit.
+const hudScale = w => clamp(13 / w, .40, 1.20);
 
 function draw(){
+  if (glFailed) return;
   sizeCanvas();
-  ctx.clearRect(0, 0, cv.clientWidth, HEX.h);
+  updateCamera();
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const units = sceneUnits();
 
-  // ---- hex grid ----
+  const selectingFromBench = G.sel && G.sel.where === 'bench' && at(G.sel);
+  const planning = G.phase === 'plan';
+
+  // ---- tiles ----
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
-    const p = hexCenter(c, r), mine = r >= MY_ROW0;
-    hexPath(p.x, p.y, HEX.R * .93);
-    ctx.fillStyle = mine ? '#161c28' : '#141620';
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = mine ? '#2f3a52' : '#232838';
-    ctx.stroke();
+    const p = hexWorld(c, r), mine = r >= MY_ROW0;
+    const br = r - MY_ROW0;
+    const selHere = planning && G.sel && G.sel.where === 'board' && G.sel.c === c && G.sel.r === br;
+    const openTarget = planning && selectingFromBench && mine && !G.board[br][c]
+                       && boardCount() < G.level;
+    let col = mine ? COL_TILE_ME : COL_TILE_FOE, emis = 0;
+    if (openTarget){ col = COL_TILE_OPEN; emis = .18; }
+    if (selHere){ col = COL_SEL; emis = .25; }
+    const drop = mine ? 0 : -.05;
+    drawMesh(MESH.tile, m4model(p.x, drop, p.z, 0, 1, 1, 1), col, 1, emis, 0);
   }
-  // Mid-field divider.
-  const y0 = hexCenter(0, MY_ROW0).y - HEX.R;
-  ctx.strokeStyle = 'rgba(201,139,255,.25)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(cv.clientWidth, y0); ctx.stroke();
 
-  if (G.phase === 'combat' || G.phase === 'result') drawCombat();
-  else drawPlanning();
-}
+  // ---- soft contact shadows ----
+  gl.depthMask(false);
+  for (const u of units) drawMesh(MESH.disc,
+    m4model(u.x, .012, u.z, 0, 1.2, 1, 1.2), COL_SHADOW, .30, 0, 0);
+  gl.depthMask(true);
 
-function drawPlanning(){
-  // Your board.
-  for (let r = 0; r < MY_ROWS; r++) for (let c = 0; c < COLS; c++){
-    const u = G.board[r][c]; if (!u) continue;
-    const p = hexCenter(c, r + MY_ROW0);
-    const sel = G.sel && G.sel.where === 'board' && G.sel.c === c && G.sel.r === r;
-    drawChip(p.x, p.y, HEX.R, {id: u.id, star: u.star, side: 'me', sel});
-  }
-  // A greyed-out preview of who you're about to fight.
-  for (const e of G.enemy.units){
-    const p = hexCenter(e.c, e.r);
-    drawChip(p.x, p.y, HEX.R, {id: e.id, star: e.star, side: 'foe', dim: true});
-  }
-  ctx.fillStyle = '#8a92a6'; ctx.font = '11px ui-monospace,monospace';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText('NEXT: ' + G.enemy.name, 6, 4);
-}
+  // ---- units ----
+  for (const u of units) drawUnit(u);
 
-function drawCombat(){
-  const sim = G.sim; if (!sim) return;
-  for (const e of sim.units){
-    const p = hexCenter(e.c, e.r);
-    if (!e.placed){ e.px = p.x; e.py = p.y; e.placed = true; }
-    e.px += (p.x - e.px) * .25; e.py += (p.y - e.py) * .25;
-  }
-  // Projectiles first so they sit under the chips.
-  for (const s of sim.shots){
-    const k = s.t / s.dur;
-    const x = s.from.px + (s.to.px - s.from.px) * k;
-    const y = s.from.py + (s.to.py - s.from.py) * k;
-    ctx.beginPath(); ctx.arc(x, y, s.big ? HEX.R * .35 : HEX.R * .14, 0, Math.PI * 2);
-    ctx.fillStyle = s.color; ctx.globalAlpha = s.big ? .5 : 1; ctx.fill(); ctx.globalAlpha = 1;
-  }
-  for (const e of sim.units){
-    if (!e.alive) continue;
-    drawChip(e.px, e.py, HEX.R, {
-      id: e.id, star: e.star, side: e.side,
-      hpFrac: e.hp / e.maxhp, manaFrac: e.manaMax ? e.mana / e.manaMax : 0,
-      shield: e.shield / e.maxhp, flash: e.flash > 0, cast: e.castFx > 0, stun: e.stun > 0,
-    });
-    if (e.burn){
-      ctx.fillStyle = '#ff7a45'; ctx.font = `${Math.round(HEX.R * .4)}px ui-monospace,monospace`;
-      ctx.textAlign = 'center'; ctx.fillText('🔥', e.px + HEX.R * .6, e.py - HEX.R * .5);
+  // ---- effects (no depth writes so they blend cleanly) ----
+  gl.depthMask(false);
+  if (G.sim){
+    for (const s of G.sim.shots){
+      const k = s.t / s.dur;
+      const x = s.from.wx + (s.to.wx - s.from.wx) * k;
+      const z = s.from.wz + (s.to.wz - s.from.wz) * k;
+      const y = .75 + Math.sin(Math.PI * k) * (s.big ? 1.5 : .55);
+      const sc = s.big ? 1.9 : 1;
+      drawMesh(MESH.orb, m4model(x, y, z, 0, sc, sc, sc), HEXCOL(s.color), .95, 1.1, 0);
+    }
+    for (const f of G.sim.fx){
+      const k = f.t / f.dur, rad = f.r0 + (f.r1 - f.r0) * k;
+      drawMesh(MESH.ring, m4model(f.x, .06, f.z, 0, rad, 1, rad),
+               HEXCOL(f.color), (1 - k) * .8, 1.2, 0);
     }
   }
-  for (const p of sim.pops){
-    ctx.globalAlpha = clamp(1 - p.t / .9, 0, 1);
-    ctx.fillStyle = p.color;
-    ctx.font = `700 ${Math.round(HEX.R * (p.small ? .3 : .48))}px ui-monospace,monospace`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(p.text, p.x, p.y);
-    ctx.globalAlpha = 1;
+  gl.depthMask(true);
+
+  drawHUD(units);
+}
+
+// Unified list of what's on the field: real combat entities, or the
+// planning-phase board plus a ghosted preview of the next opponent.
+function sceneUnits(){
+  const out = [];
+  if (G.sim && (G.phase === 'combat' || G.phase === 'result')){
+    for (const e of G.sim.units){
+      if (!e.alive && e.deathT > .6) continue;
+      out.push({e, id: e.id, star: e.star, side: e.side, x: e.wx, z: e.wz,
+                yaw: e.yaw, lift: e.lift, ghost: false, dying: !e.alive});
+    }
+    return out;
   }
-  ctx.fillStyle = '#8a92a6'; ctx.font = '11px ui-monospace,monospace';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(`${Math.max(0, COMBAT_TIME - sim.t).toFixed(1)}s`, 6, 4);
+  for (let r = 0; r < MY_ROWS; r++) for (let c = 0; c < COLS; c++){
+    const u = G.board[r][c]; if (!u) continue;
+    const p = hexWorld(c, r + MY_ROW0);
+    const sel = G.sel && G.sel.where === 'board' && G.sel.c === c && G.sel.r === r;
+    out.push({id: u.id, star: u.star, side: 'me', x: p.x, z: p.z, yaw: Math.PI,
+              lift: sel ? .18 : 0, sel, ghost: false});
+  }
+  for (const e of G.enemy.units){
+    const p = hexWorld(e.c, e.r);
+    out.push({id: e.id, star: e.star, side: 'foe', x: p.x, z: p.z, yaw: 0, ghost: true});
+  }
+  return out;
+}
+
+function drawUnit(u){
+  const e = u.e;
+  let a = 1, s = 1, y = u.lift || 0;
+  if (u.dying){                       // sink and fade out
+    const k = clamp(e.deathT / .6, 0, 1);
+    a = 1 - k; s = 1 - k * .4; y -= k * .35;
+  }
+  if (u.ghost) a = .4;
+  const bob = e ? Math.sin(perfNow * .003 + (e.uid || 0)) * .02 : 0;
+  const flash = e && e.flash > 0 ? 1 : 0;
+  const cast = e && e.castFx > 0 ? .9 : 0;
+  const body = unitRGB(u.id), head = classRGB(u.id);
+  const ring = u.sel ? COL_SEL : u.side === 'me' ? COL_ME : COL_FOE;
+  const ry = u.yaw || 0;
+  // A short lunge on the attack frame sells the hit.
+  const lx = u.x - Math.sin(ry) * flash * .12, lz = u.z - Math.cos(ry) * flash * .12;
+
+  drawMesh(MESH.base, m4model(u.x, y + .01, u.z, ry, 1, 1, 1), ring, a * .9, u.sel ? .5 : .12, ry);
+  drawMesh(MESH.body, m4model(lx, y + .07 + bob, lz, ry, s, s, s),
+           flash ? [1, 1, 1] : body, a, cast, ry);
+  drawMesh(MESH.head, m4model(lx, y + .97 * s + bob, lz, ry, s, s, s),
+           flash ? [1, 1, 1] : head, a, cast, ry);
+  // Star tier reads as spikes rising off the shoulders.
+  for (let i = 1; i < u.star; i++){
+    const off = (i - 1) * .3 - .15;
+    drawMesh(MESH.spike, m4model(lx + Math.cos(ry) * off, y + 1.06 * s + bob,
+             lz - Math.sin(ry) * off, ry, 1, 1, 1),
+             u.star === 3 ? HEXCOL('#ffcc55') : HEXCOL('#dfe6ff'), a, .45, ry);
+  }
+}
+
+/* -------------------------------- HUD ------------------------------- */
+function drawHUD(units){
+  hctx.clearRect(0, 0, VIEW_W, VIEW_H);
+  hctx.textAlign = 'center'; hctx.textBaseline = 'middle';
+
+  for (const u of units){
+    const e = u.e;
+    const p = project(u.x, (u.lift || 0) + 1.28, u.z);
+    if (p.w <= 0) continue;
+    const scale = hudScale(p.w);
+    // Which unit is this? A letter beats memorising fifteen silhouettes.
+    const bp = project(u.x, (u.lift || 0) + .52, u.z);
+    hctx.globalAlpha = u.ghost ? .55 : u.dying ? .3 : 1;
+    hctx.fillStyle = '#0d0f15';
+    hctx.font = `700 ${Math.round(15 * scale)}px ui-monospace,monospace`;
+    hctx.fillText(BY_ID[u.id].name[0].toUpperCase(), bp.x, bp.y);
+
+    if (e && !u.dying){
+      const bw = 36 * scale, bh = 5 * scale, bx = p.x - bw / 2, by = p.y;
+      hctx.fillStyle = '#0a0c12'; hctx.fillRect(bx - 1, by - 1, bw + 2, bh * 2 + 3);
+      hctx.fillStyle = u.side === 'me' ? '#5dd98a' : '#ff5d5d';
+      hctx.fillRect(bx, by, bw * clamp(e.hp / e.maxhp, 0, 1), bh);
+      if (e.shield > 0){
+        hctx.fillStyle = 'rgba(150,195,255,.9)';
+        hctx.fillRect(bx, by, bw * clamp(e.shield / e.maxhp, 0, 1), bh);
+      }
+      hctx.fillStyle = '#62e6e0';
+      hctx.fillRect(bx, by + bh + 1, bw * (e.manaMax ? clamp(e.mana / e.manaMax, 0, 1) : 0), bh * .7);
+      if (e.burn || e.stun > 0){
+        hctx.font = `${Math.round(13 * scale)}px ui-monospace,monospace`;
+        hctx.fillText(e.stun > 0 ? '✷' : '🔥', p.x + bw / 2 + 7 * scale, by + bh);
+      }
+    }
+    hctx.globalAlpha = 1;
+  }
+
+  if (G.sim){
+    for (const q of G.sim.pops){
+      const p = project(q.x, q.y, q.z);
+      if (p.w <= 0) continue;
+      const scale = hudScale(p.w);
+      hctx.globalAlpha = clamp(1 - q.t / .9, 0, 1);
+      hctx.fillStyle = q.color;
+      hctx.font = `700 ${Math.round((q.small ? 12 : 18) * scale)}px ui-monospace,monospace`;
+      hctx.strokeStyle = 'rgba(0,0,0,.75)'; hctx.lineWidth = 3.5 * scale;
+      hctx.strokeText(q.text, p.x, p.y); hctx.fillText(q.text, p.x, p.y);
+      hctx.globalAlpha = 1;
+    }
+  }
+
+  hctx.textAlign = 'left'; hctx.textBaseline = 'top';
+  hctx.fillStyle = '#8a92a6'; hctx.font = '11px ui-monospace,monospace';
+  if (G.phase === 'plan') hctx.fillText('NEXT: ' + G.enemy.name, 8, 8);
+  else if (G.sim) hctx.fillText(`${Math.max(0, COMBAT_TIME - G.sim.t).toFixed(1)}s`, 8, 8);
+  hctx.textAlign = 'right'; hctx.textBaseline = 'bottom';
+  hctx.globalAlpha = .7;
+  hctx.fillText('drag to orbit · scroll to zoom', VIEW_W - 8, VIEW_H - 6);
+  hctx.globalAlpha = 1;
 }
 
 /* ============================== DOM UI ============================== */
@@ -1153,15 +1513,49 @@ function render(){
 }
 
 /* ============================== INPUT =============================== */
-cv.addEventListener('click', ev => {
+// One pointer orbits the camera; a pointer that never moved is a tap on a hex.
+const ptrs = new Map();
+let dragged = false, lastPinch = 0;
+
+cv.addEventListener('pointerdown', ev => {
+  cv.setPointerCapture(ev.pointerId);
+  ptrs.set(ev.pointerId, {x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY});
+  if (ptrs.size === 1) dragged = false;
+});
+cv.addEventListener('pointermove', ev => {
+  const p = ptrs.get(ev.pointerId); if (!p) return;
+  const dx = ev.clientX - p.x, dy = ev.clientY - p.y;
+  p.x = ev.clientX; p.y = ev.clientY;
+  if (Math.hypot(ev.clientX - p.x0, ev.clientY - p.y0) > 6) dragged = true;
+  if (ptrs.size === 1){
+    CAM.yaw -= dx * .008;
+    CAM.pitch = clamp(CAM.pitch + dy * .006, .35, 1.45);
+  } else if (ptrs.size === 2){
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastPinch) CAM.dist = clamp(CAM.dist * (lastPinch / d), 9, 30);
+    lastPinch = d; dragged = true;
+  }
+});
+function endPointer(ev){
+  const p = ptrs.get(ev.pointerId);
+  ptrs.delete(ev.pointerId);
+  if (ptrs.size < 2) lastPinch = 0;
+  if (!p || dragged || ptrs.size) return;
   if (G.phase !== 'plan') return;
   const rect = cv.getBoundingClientRect();
-  const h = hexAt(ev.clientX - rect.left, ev.clientY - rect.top);
+  const h = pickHex(ev.clientX - rect.left, ev.clientY - rect.top);
   if (!h) return;
   if (h.r < MY_ROW0){ say('That half of the board belongs to your opponent.'); render(); return; }
   moveTo({where: 'board', c: h.c, r: h.r - MY_ROW0});
   render();
-});
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  CAM.dist = clamp(CAM.dist * (1 + Math.sign(ev.deltaY) * .12), 9, 30);
+}, {passive: false});
 
 elSell.onclick = () => { if (G.phase === 'plan'){ sellSelected(); render(); } };
 $('btnRoll').onclick = () => { if (G.phase === 'plan'){ rollShop(false); render(); } };
@@ -1186,28 +1580,61 @@ elSpeeds.querySelectorAll('.mini').forEach(b => {
   };
 });
 
-window.addEventListener('resize', () => { if (G) draw(); });
+/* ============================== MAIN LOOP ===========================
+   One rAF loop runs for the whole session: it advances the fight when
+   there is one, eases every unit toward its hex, and redraws. That keeps
+   the camera live while you plan, not just while units are swinging.
+   ==================================================================== */
+let lastT = performance.now();
 
-/* ============================== MAIN LOOP =========================== */
-let raf = null, last = 0;
-function loopStart(){ last = performance.now(); if (!raf) raf = requestAnimationFrame(loop); }
-function loop(now){
-  raf = null;
-  const dt = Math.min(.05, (now - last) / 1000);
-  last = now;
-  if (G.phase === 'combat' && G.sim){
-    // Sub-step so higher speeds stay stable.
-    const total = dt * G.speed;
-    const steps = Math.ceil(total / .033);
-    for (let i = 0; i < steps && !G.sim.done; i++) stepSim(G.sim, total / steps);
-    draw();
-    if (G.sim.done){ resolveCombat(); render(); return; }
-    raf = requestAnimationFrame(loop);
+function stepVisuals(dt){
+  if (!G.sim) return;
+  for (const e of G.sim.units){
+    const p = hexWorld(e.c, e.r);
+    if (!e.spawned){
+      e.wx = p.x; e.wz = p.z; e.spawned = true;
+      e.yaw = e.side === 'me' ? Math.PI : 0;
+    }
+    const k = Math.min(1, dt * 9);
+    e.wx += (p.x - e.wx) * k; e.wz += (p.z - e.wz) * k;
+    if (e.alive && e.target && e.target.alive){
+      const want = Math.atan2(e.target.wx - e.wx, e.target.wz - e.wz);
+      let d = want - e.yaw;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      e.yaw += d * Math.min(1, dt * 8);
+    }
   }
 }
 
+function frame(now){
+  const dt = Math.min(.05, (now - lastT) / 1000);
+  lastT = now; perfNow = now;
+  if (G.phase === 'combat' && G.sim){
+    const total = dt * G.speed;
+    if (!G.sim.done){
+      const steps = Math.max(1, Math.ceil(total / .033));
+      for (let i = 0; i < steps && !G.sim.done; i++) stepSim(G.sim, total / steps);
+    } else {
+      G.sim.doneT += total;          // let the final hits and deaths play out
+      ageEffects(G.sim, total);
+    }
+  }
+  stepVisuals(dt);
+  draw();
+  if (G.phase === 'combat' && G.sim && G.sim.done && G.sim.doneT > .9){
+    resolveCombat(); render();
+  }
+  requestAnimationFrame(frame);
+}
+
+if (!initGL()){
+  document.getElementById('arenaWrap').innerHTML =
+    '<div id="glfail">This browser could not start WebGL, which Tiny Tactics needs to draw the board.</div>';
+}
 newGame();
 render();
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
