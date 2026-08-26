@@ -83,6 +83,15 @@ shields, defensives and damage cooldowns, all on resource costs and cooldowns.
 3. **Ironclad Brusk** — brutal tank-buster damage; defensives matter.
 4. **Voidlord Malach** — two-phase finale and a real DPS + survival check.
 
+## Also in this repo
+
+### 👟 [RunMon](runmon/) — a tamagotchi for runners
+
+A separate prototype: a 32-bit style pocket creature that grows on the runs and
+workouts you log, eats running food, plays running mini-games for stones, and
+evolves three times down one of two paths (speed or endurance). Open
+[`runmon/index.html`](runmon/index.html) — single file, no dependencies.
+
 ## Project layout
 
 ```

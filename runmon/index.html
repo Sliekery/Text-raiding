@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RunMon">
+<meta name="theme-color" content="#161226">
+<title>👟 RunMon — a tamagotchi for runners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161226; --bg2:#0f0c1c; --panel:#241d3d; --panel2:#2f2650; --line:#4a3d78;
+    --txt:#efe9ff; --dim:#a99ecb; --pink:#ff7ab8; --mint:#7ef0c0; --sun:#ffd166;
+    --sky:#6fd3ff; --red:#ff6b6b; --lime:#b6f36a; --violet:#c08bff;
+    --pixel:'Press Start 2P', ui-monospace, Menlo, Consolas, monospace;
+    --mono:ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg2); color:var(--txt);
+    font-family:var(--mono); font-size:14px; -webkit-text-size-adjust:100%;
+    overscroll-behavior:none;}
+  body{
+    background-image:
+      linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+    background-size:16px 16px;
+  }
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) 10px 0;}
+  canvas{image-rendering:pixelated; image-rendering:crisp-edges;}
+  h1,h2,h3,.pix{font-family:var(--pixel); font-weight:400; letter-spacing:0;}
+  h2{font-size:11px; margin:0 0 8px; color:var(--sun);}
+  h3{font-size:10px; margin:0 0 6px; color:var(--mint);}
+
+  /* ---- chunky pixel frames ---- */
+  .panel{background:var(--panel); border:3px solid var(--line);
+    box-shadow:0 4px 0 #0007, inset 0 0 0 2px #ffffff08; padding:10px; margin:8px 0;}
+  .panel.flat{box-shadow:none;}
+  .row{display:flex; align-items:center; gap:8px;}
+  .between{justify-content:space-between;}
+  .wrap{flex-wrap:wrap;}
+  .grow{flex:1;}
+  .dim{color:var(--dim);}
+  .tiny{font-size:11px;}
+  .center{text-align:center;}
+
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 2px 2px;}
+  .logo{font-family:var(--pixel); font-size:13px; color:var(--pink);
+    text-shadow:2px 2px 0 #0008;}
+  .stones{font-family:var(--pixel); font-size:11px; color:var(--sun);
+    background:var(--panel); border:3px solid var(--line); padding:6px 8px;}
+
+  button{font-family:var(--pixel); font-size:9.5px; line-height:1.5; color:var(--txt);
+    background:var(--panel2); border:3px solid var(--line); box-shadow:0 4px 0 #0007;
+    padding:9px 8px; cursor:pointer; text-align:center;}
+  button:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 #0007;}
+  button:disabled{opacity:.38; cursor:default;}
+  button.primary{background:linear-gradient(180deg,#5d3f8f,#3d2a66); border-color:#8b6ad0; color:#fff;}
+  button.good{background:linear-gradient(180deg,#2b6b53,#1d4a3a); border-color:#48c497;}
+  button.warn{background:linear-gradient(180deg,#7a3a52,#4f2436); border-color:#d0678f;}
+  button.sm{font-size:8px; padding:6px 7px; box-shadow:0 3px 0 #0007;}
+  .btnrow{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .btnrow.g3{grid-template-columns:1fr 1fr 1fr;}
+  .btnrow.g1{grid-template-columns:1fr;}
+
+  /* ---- stat bars ---- */
+  .stat{margin:6px 0;}
+  .stat .lbl{display:flex; justify-content:space-between; font-size:10px;
+    font-family:var(--pixel); color:var(--dim); margin-bottom:3px;}
+  .bar{height:12px; background:#0b0817; border:2px solid #0b0817; box-shadow:inset 0 0 0 1px #ffffff10;
+    position:relative; overflow:hidden;}
+  .bar > i{display:block; height:100%; width:0; transition:width .35s steps(12);
+    background-image:linear-gradient(180deg, #ffffff40, #ffffff00 55%);}
+  .b-food > i{background-color:var(--sun);}
+  .b-happy > i{background-color:var(--pink);}
+  .b-energy > i{background-color:var(--sky);}
+  .b-xp > i{background-color:var(--lime);}
+
+  /* ---- stage / creature ---- */
+  .stage{position:relative; padding:6px 0 0; display:flex; flex-direction:column; align-items:center;
+    background:linear-gradient(180deg,#2a2150 0%, #3b2c63 62%, #46356f 62%, #33265a 100%);
+    border:3px solid var(--line); box-shadow:0 4px 0 #0007; overflow:hidden;}
+  .stage canvas{width:100%; max-width:320px; height:auto; display:block;}
+  .nameplate{font-family:var(--pixel); font-size:11px; color:#fff; text-shadow:2px 2px 0 #0009;
+    padding:2px 0 8px;}
+  .nameplate small{display:block; font-size:8px; color:#e3d5ff; margin-top:5px;}
+  .fx-layer{position:absolute; inset:0; pointer-events:none;}
+  .floater{position:absolute; font-family:var(--pixel); font-size:10px; color:var(--sun);
+    text-shadow:2px 2px 0 #0009; animation:rise 1.1s steps(11) forwards;}
+  @keyframes rise{from{transform:translateY(0); opacity:1;} to{transform:translateY(-46px); opacity:0;}}
+
+  /* ---- tabs ---- */
+  nav.tabs{position:sticky; bottom:0; display:grid; grid-template-columns:repeat(6,1fr); gap:4px;
+    background:var(--bg2); padding:6px 0 calc(env(safe-area-inset-bottom) + 6px); margin-top:auto;}
+  nav.tabs button{padding:8px 2px; font-size:7.5px; box-shadow:0 3px 0 #0007;}
+  nav.tabs button .ic{display:block; font-size:15px; font-family:var(--mono); margin-bottom:4px;}
+  nav.tabs button.on{background:linear-gradient(180deg,#5d3f8f,#3d2a66); border-color:var(--pink); color:#fff;}
+  main{flex:1; padding-bottom:6px;}
+  .screen{display:none;} .screen.on{display:block;}
+
+  /* ---- lists / cards ---- */
+  .card{display:flex; gap:9px; align-items:center; background:var(--panel2);
+    border:3px solid var(--line); padding:8px; margin:7px 0;}
+  .card .emo{font-size:23px; width:30px; text-align:center;}
+  .card .t{font-family:var(--pixel); font-size:9.5px; margin-bottom:5px;}
+  .card .d{font-size:11px; color:var(--dim); line-height:1.35;}
+  .card .side{margin-left:auto; text-align:right;}
+  .chip{display:inline-block; font-family:var(--pixel); font-size:7.5px; padding:3px 5px;
+    border:2px solid var(--line); color:var(--dim); margin:2px 3px 0 0;}
+  .chip.spd{color:var(--sky); border-color:#2f5b7a;}
+  .chip.end{color:var(--sun); border-color:#7a5f2f;}
+  .chip.on{color:#fff; background:var(--panel); border-color:var(--pink);}
+  .chip.lock{opacity:.45;}
+
+  input[type=number], input[type=text], select{font-family:var(--mono); font-size:15px;
+    background:#0b0817; color:var(--txt); border:3px solid var(--line); padding:8px; width:100%;}
+  label.fld{display:block; font-family:var(--pixel); font-size:8px; color:var(--dim); margin:9px 0 4px;}
+
+  .meter{font-family:var(--pixel); font-size:8px; color:var(--dim); line-height:1.7;}
+  .meter b{color:var(--txt);}
+  .meter .over{color:var(--red);}
+
+  /* ---- toast + modal ---- */
+  #toast{position:fixed; left:50%; bottom:78px; transform:translateX(-50%); z-index:60;
+    display:flex; flex-direction:column; gap:6px; align-items:center; pointer-events:none;
+    width:min(480px, 94vw);}
+  .toast{font-family:var(--pixel); font-size:9px; line-height:1.6; background:var(--panel);
+    border:3px solid var(--pink); box-shadow:0 4px 0 #0007; padding:9px 11px; text-align:center;
+    animation:pop .18s steps(4);}
+  @keyframes pop{from{transform:scale(.85);} to{transform:scale(1);}}
+  .modal{position:fixed; inset:0; background:#0b0817e8; z-index:70; display:none;
+    align-items:center; justify-content:center; padding:16px;}
+  .modal.on{display:flex;}
+  .modal .box{background:var(--panel); border:4px solid var(--pink); box-shadow:0 6px 0 #0007;
+    padding:14px; max-width:420px; width:100%; text-align:center;}
+  .modal canvas{width:200px; height:auto; margin:0 auto; display:block;}
+
+  /* ---- minigames ---- */
+  .gamewrap{background:#0b0817; border:3px solid var(--line); box-shadow:0 4px 0 #0007;
+    padding:6px; text-align:center;}
+  .gamewrap canvas{width:100%; height:auto;}
+  .hud{display:flex; justify-content:space-between; font-family:var(--pixel); font-size:9px;
+    color:var(--sun); padding:4px 2px 6px;}
+  .track{height:26px; background:#0b0817; border:3px solid var(--line); position:relative; overflow:hidden;}
+  .track > i{position:absolute; top:0; bottom:0; left:0; background:var(--mint); opacity:.28;}
+  .track .zone{position:absolute; top:0; bottom:0; background:#7ef0c055; border-left:2px solid var(--mint);
+    border-right:2px solid var(--mint);}
+  .track .needle{position:absolute; top:0; bottom:0; width:4px; background:var(--pink);}
+  .track .runner{position:absolute; top:2px; font-size:16px; transform:translateX(-50%);}
+  .tapzone{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .tapzone button{padding:24px 8px; font-size:12px;}
+  .tapzone button.next{border-color:var(--mint); background:linear-gradient(180deg,#2b6b53,#1d4a3a);}
+  footer{color:var(--dim); font-size:10px; text-align:center; padding:4px 0 10px; line-height:1.6;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="logo">👟 RUNMON</div>
+    <div class="stones">◆ <span id="stoneCount">0</span> STONES</div>
+  </header>
+
+  <main>
+    <!-- ================= HOME ================= -->
+    <section class="screen on" id="scr-home">
+      <div class="stage">
+        <canvas id="creatureCanvas" width="320" height="240"></canvas>
+        <div class="fx-layer" id="fxLayer"></div>
+        <div class="nameplate" id="namePlate">JOGLET <small>Lv.1 · Hatchling</small></div>
+      </div>
+
+      <div class="panel">
+        <div class="stat"><div class="lbl"><span>🍞 FED</span><span id="vFood">100%</span></div>
+          <div class="bar b-food"><i id="bFood"></i></div></div>
+        <div class="stat"><div class="lbl"><span>💖 HAPPY</span><span id="vHappy">100%</span></div>
+          <div class="bar b-happy"><i id="bHappy"></i></div></div>
+        <div class="stat"><div class="lbl"><span>⚡ ENERGY</span><span id="vEnergy">100%</span></div>
+          <div class="bar b-energy"><i id="bEnergy"></i></div></div>
+        <div class="stat"><div class="lbl"><span>★ XP</span><span id="vXp">0 / 100</span></div>
+          <div class="bar b-xp"><i id="bXp"></i></div></div>
+        <div class="row between tiny dim" style="margin-top:8px">
+          <span>Next form: <b id="nextForm" style="color:var(--txt)">—</b></span>
+          <span id="pathTag" class="chip">UNDECIDED</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>TRAINING LOG</h2>
+        <div class="meter" id="careMeter"></div>
+        <div class="btnrow" style="margin-top:10px">
+          <button class="primary" onclick="go('log')">＋ LOG A RUN</button>
+          <button class="good" onclick="go('play')">🎮 MINI-GAMES</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>RECENT ACTIVITY</h2>
+        <div id="recentList" class="tiny dim">Nothing logged yet — go for a run!</div>
+      </div>
+    </section>
+
+    <!-- ================= LOG ================= -->
+    <section class="screen" id="scr-log">
+      <div class="panel">
+        <h2>LOG AN ACTIVITY</h2>
+        <div class="tiny dim">Manual entry, so there are guard rails: max
+          <b>4 sessions</b>, <b>60 km</b> and <b>360 min</b> per day, today or yesterday only,
+          and a 20s pause between entries.</div>
+        <div class="meter" id="limitMeter" style="margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <label class="fld">WHEN</label>
+        <div class="btnrow" id="dayPick"></div>
+        <label class="fld">ACTIVITY</label>
+        <div id="actPick"></div>
+        <div id="actInputs"></div>
+        <div class="tiny dim" id="logPreview" style="margin:10px 0 0"></div>
+        <button class="primary" id="logBtn" style="width:100%; margin-top:10px" onclick="submitLog()">
+          ＋ ADD TO TRAINING LOG</button>
+        <div class="tiny dim center" id="logBlocked" style="margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <h2>THIS WEEK</h2>
+        <div id="weekList" class="tiny dim"></div>
+      </div>
+    </section>
+
+    <!-- ================= FEED ================= -->
+    <section class="screen" id="scr-feed">
+      <div class="panel">
+        <h2>PANTRY</h2>
+        <div class="tiny dim">Running fuel. Buy more in the shop with ◆ stones.</div>
+      </div>
+      <div id="pantryList"></div>
+    </section>
+
+    <!-- ================= PLAY ================= -->
+    <section class="screen" id="scr-play">
+      <div id="gameMenu">
+        <div class="panel">
+          <h2>MINI-GAMES</h2>
+          <div class="tiny dim">Win ◆ stones. Each round costs your RunMon some ⚡ energy —
+            feed it to recharge.</div>
+        </div>
+        <div id="gameList"></div>
+      </div>
+      <div id="gameHost" style="display:none"></div>
+    </section>
+
+    <!-- ================= SHOP ================= -->
+    <section class="screen" id="scr-shop">
+      <div class="panel">
+        <h2>THE PIT STOP</h2>
+        <div class="tiny dim">Spend ◆ stones on fuel and gear. Gear shows up on your RunMon.</div>
+      </div>
+      <div class="btnrow" id="shopTabs" style="margin-bottom:4px"></div>
+      <div id="shopList"></div>
+    </section>
+
+    <!-- ================= DEX ================= -->
+    <section class="screen" id="scr-dex">
+      <div class="panel">
+        <h2>EVOLUTION PATHS</h2>
+        <div class="tiny dim">Your training decides the branch. Speedwork (intervals, tempo,
+          hills, strength) pushes the <b style="color:var(--sky)">SPEED</b> line; long, easy,
+          steady miles push the <b style="color:var(--sun)">ENDURANCE</b> line.</div>
+        <div class="meter" id="pathMeter" style="margin-top:10px"></div>
+      </div>
+      <div id="dexList"></div>
+      <div class="panel">
+        <h2>SAVE</h2>
+        <div class="btnrow">
+          <button class="sm" onclick="exportSave()">⤓ EXPORT</button>
+          <button class="sm warn" onclick="hardReset()">⟲ RESET EGG</button>
+        </div>
+      </div>
+      <footer>RunMon prototype · progress saves in this browser.</footer>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs"></nav>
+</div>
+
+<div id="toast"></div>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+/* =========================================================================
+   RUNMON — a tamagotchi for runners.  Prototype, single file, no deps.
+   Sections:  pixel engine · creature art · data · state · screens · games
+   ========================================================================= */
+
+/* ------------------------------------------------------------------ *
+ *  1. PIXEL ENGINE — everything is drawn on a tiny grid, then blown
+ *     up with nearest-neighbour scaling for that chunky 32-bit look.
+ * ------------------------------------------------------------------ */
+function C(hex){                       // "#rrggbb" -> packed ABGR (little endian)
+  const n = parseInt(hex.slice(1), 16);
+  return (255 << 24 | (n & 255) << 16 | ((n >> 8) & 255) << 8 | ((n >> 16) & 255)) >>> 0;
+}
+
+class Buf{
+  constructor(w, h){ this.w = w; this.h = h; this.d = new Uint32Array(w * h); }
+  clear(c){ this.d.fill(c || 0); }
+  set(x, y, c){
+    x = x | 0; y = y | 0;
+    if(x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+    this.d[y * this.w + x] = c;
+  }
+  get(x, y){
+    if(x < 0 || y < 0 || x >= this.w || y >= this.h) return 0;
+    return this.d[y * this.w + x];
+  }
+  rect(x, y, w, h, c){
+    for(let j = 0; j < h; j++) for(let i = 0; i < w; i++) this.set(x + i, y + j, c);
+  }
+  ellipse(cx, cy, rx, ry, c){
+    rx = Math.max(.5, rx); ry = Math.max(.5, ry);
+    for(let y = -Math.ceil(ry); y <= Math.ceil(ry); y++)
+      for(let x = -Math.ceil(rx); x <= Math.ceil(rx); x++)
+        if((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1.02) this.set(cx + x, cy + y, c);
+  }
+  line(x0, y0, x1, y1, c, t){
+    t = t || 1;
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy, o = (t - 1) >> 1;
+    for(;;){
+      if(t <= 1) this.set(x0, y0, c); else this.rect(x0 - o, y0 - o, t, t, c);
+      if(x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if(e2 > -dy){ err -= dy; x0 += sx; }
+      if(e2 <  dx){ err += dx; y0 += sy; }
+    }
+  }
+  tri(x, y, w, h, c, dir){          // little spike: dir -1 left, 1 right, 0 up
+    for(let j = 0; j < h; j++){
+      const k = Math.round(w * (1 - j / h));
+      for(let i = 0; i < k; i++) this.set(x + (dir === -1 ? -i : i), y + (dir === 0 ? -j : j), c);
+    }
+  }
+  /* dark keyline around every filled pixel — the trick that makes flat
+     shapes read as one cohesive sprite */
+  outline(c){
+    const src = this.d.slice();
+    for(let y = 0; y < this.h; y++) for(let x = 0; x < this.w; x++){
+      if(src[y * this.w + x]) continue;
+      const n = (x > 0 && src[y * this.w + x - 1]) || (x < this.w - 1 && src[y * this.w + x + 1]) ||
+                (y > 0 && src[(y - 1) * this.w + x]) || (y < this.h - 1 && src[(y + 1) * this.w + x]);
+      if(n) this.d[y * this.w + x] = c;
+    }
+  }
+  blit(ctx, scale){
+    const cv = Buf._tmp || (Buf._tmp = document.createElement('canvas'));
+    cv.width = this.w; cv.height = this.h;
+    const c2 = cv.getContext('2d');
+    c2.putImageData(new ImageData(new Uint8ClampedArray(this.d.buffer), this.w, this.h), 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(cv, 0, 0, this.w, this.h, 0, 0, this.w * scale, this.h * scale);
+  }
+}
+
+const PAL = {
+  dark:   C('#1b1330'), white: C('#fdf7ff'), pupil: C('#241a3d'),
+  blush:  C('#ff8fb8'), shoe:  C('#f5f7ff'), sole: C('#2b3a58'),
+  sky1:   C('#3a2b63'), sky2:  C('#57407f'), track: C('#c4633f'), track2: C('#a94f30'),
+  lane:   C('#f0e6d8'), grass: C('#3f7a4e'), sun:  C('#ffd166'), cloud: C('#efe4ff'),
+  shadow: C('#8f4127'), gold:  C('#ffcf4d'), bib: C('#fbf6ee'), red: C('#ff6b6b'),
+};
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  2. CREATURE ART — every form is drawn procedurally from a species
+ *     recipe (size + palette + feature flags), so gear, evolutions and
+ *     the run cycle all come out of the same little sprite factory.
+ * ------------------------------------------------------------------ */
+Buf.prototype.stamp = function(src, dx, dy){
+  for(let y = 0; y < src.h; y++) for(let x = 0; x < src.w; x++){
+    const c = src.d[y * src.w + x];
+    if(c) this.set(dx + x, dy + y, c);
+  }
+};
+function spike(buf, x, y, h, w, c, lean){
+  for(let j = 0; j < h; j++){
+    const ww = Math.max(1, Math.round(w * (1 - j / h)));
+    buf.rect(Math.round(x + (lean || 0) * j - ww / 2), y - j, ww, 1, c);
+  }
+}
+
+const SPECIES = {
+  joglet: { name:'JOGLET', title:'Hatchling', stage:0, path:null, blob:true, size:.05,
+    col:{main:'#9df2c9', shade:'#5cbf98', light:'#d9fff0', accent:'#ff9ecb', accent2:'#ffd166'},
+    feats:['antenna'],
+    blurb:'A round sprout in brand-new shoes. Wobbles at first, then wants more.' },
+
+  dashi: { name:'DASHI', title:'Speed I', stage:1, path:'speed', size:.32,
+    col:{main:'#8fdcff', shade:'#3f9cd6', light:'#dcf4ff', accent:'#ffe066', accent2:'#2f6fa8'},
+    feats:['crest','fins'],
+    blurb:'Twitchy, light on its feet, physically unable to walk anywhere.' },
+  zoomix: { name:'ZOOMIX', title:'Speed II', stage:2, path:'speed', size:.62,
+    col:{main:'#98a4ff', shade:'#5560d6', light:'#e2e6ff', accent:'#ffe066', accent2:'#2ad6d6'},
+    feats:['crest','fins','visor','bolt'],
+    blurb:'Does 400m repeats for fun. Owns an unreasonable number of visors.' },
+  boltimus: { name:'BOLTIMUS', title:'Speed III', stage:3, path:'speed', size:1,
+    col:{main:'#c78bff', shade:'#7b4fd0', light:'#f1e2ff', accent:'#ffe066', accent2:'#4ff0ff'},
+    feats:['crest','fins','visor','bolt','cape','aura'],
+    blurb:'A blur with a heartbeat. Photo finishes are a formality.' },
+
+  plodly: { name:'PLODLY', title:'Endure I', stage:1, path:'endur', size:.34,
+    col:{main:'#ffc08a', shade:'#d4854f', light:'#ffe6cd', accent:'#ff6b6b', accent2:'#7ec8a9'},
+    feats:['bandana','tail'],
+    blurb:'Never fast. Never stops. Secretly out-trains everyone.' },
+  trekka: { name:'TREKKA', title:'Endure II', stage:2, path:'endur', size:.66,
+    col:{main:'#8fd48a', shade:'#4d9a5c', light:'#ddf6d5', accent:'#ff6b6b', accent2:'#ffb454'},
+    feats:['bandana','vest','tail'],
+    blurb:'Hydration vest, trail dust, and a truly endless third gear.' },
+  marathor: { name:'MARATHOR', title:'Endure III', stage:3, path:'endur', size:1,
+    col:{main:'#ffb45c', shade:'#c9762c', light:'#ffe3b8', accent:'#ff6b6b', accent2:'#ffd166'},
+    feats:['bandana','vest','wreath','cape','medalmark','tail'],
+    blurb:'Has finished things you would not believe. Still negative splits.' },
+};
+const CHAIN = { speed:['dashi','zoomix','boltimus'], endur:['plodly','trekka','marathor'] };
+
+/* Returns a 62x62 sprite buffer, feet planted at y=56, centred on x=31. */
+function creatureSprite(sp, o){
+  o = o || {};
+  const b = new Buf(62, 62);
+  const t = o.t || 0, run = o.run || 0, equip = o.equip || [], blink = !!o.blink;
+  const s = sp.size, col = {};
+  for(const k in sp.col) col[k] = C(sp.col[k]);
+
+  const cx = 31, ground = 56;
+  const phase = t * (3.4 + run * 9);
+  const bob = Math.round(Math.sin(phase * 2) * (run ? 1.5 : .8));
+
+  const bodyRx = Math.round(8 + s * 4), bodyRy = Math.round(7 + s * 3.5);
+  const legLen = Math.round(4 + s * 5);
+  const bodyCy = ground - legLen - bodyRy + bob;
+  const headRx = sp.blob ? bodyRx : Math.round(6 + s * 2.5);
+  const headRy = sp.blob ? bodyRy : Math.round(5 + s * 2.5);
+  const headCy = sp.blob ? bodyCy - 1 : bodyCy - bodyRy - headRy + Math.round(2 + s * 1.5);
+  const headTop = headCy - headRy;
+  const has = f => sp.feats.indexOf(f) >= 0;
+  const wears = i => equip.indexOf(i) >= 0;
+
+  /* --- cape / aura, behind everything ------------------------------ */
+  if(has('cape') || wears('cape')){
+    const sway = Math.sin(phase) * 2;
+    const top = bodyCy - bodyRy + 1, bot = bodyCy + bodyRy + 4;
+    const capeC = wears('cape') ? C('#ff6b6b') : col.accent;
+    for(let y = top; y <= bot; y++){
+      const k = (y - top) / (bot - top);
+      const half = Math.round(bodyRx * (.5 + k * .95));
+      const off = Math.round(sway * k);
+      b.rect(cx - half + off, y, half * 2, 1, capeC);
+      if(y > top + 2) b.set(cx + off + Math.round(half * .4), y, col.shade);
+    }
+  }
+  if(wears('wings')){
+    for(let i = 0; i < 2; i++){
+      const dir = i ? 1 : -1, f = Math.sin(phase * 2) * 1.5;
+      for(let j = 0; j < 6; j++)
+        b.rect(cx + dir * (bodyRx + 1 + j), bodyCy - 5 - j + Math.round(f), 2, 5 - Math.floor(j / 2), PAL.white);
+    }
+  }
+
+  /* --- legs + shoes ------------------------------------------------ */
+  const shoeC = wears('neon') ? C('#b6f36a') : (wears('trail') ? C('#ffb454') : PAL.shoe);
+  const soleC = wears('neon') ? C('#3f7a2e') : PAL.sole;
+  const feet = [];
+  for(let i = 0; i < 2; i++){
+    const dir = i ? 1 : -1;
+    const hipX = cx + dir * Math.round(bodyRx * .6), hipY = bodyCy + bodyRy - 1;
+    const ang = Math.sin(phase + i * Math.PI) * (run ? .95 : .12);
+    const fx = Math.round(hipX + dir + Math.sin(ang) * legLen * .85);
+    const fy = Math.round(hipY + Math.cos(ang) * legLen);
+    b.line(hipX, hipY, fx, fy, col.shade, 3);
+    const sw = 2 + Math.round(s * 2);
+    b.rect(fx - sw + 1, fy - 1, sw * 2, 3, shoeC);
+    b.rect(fx - sw + 1, fy + 2, sw * 2, 1, soleC);
+    if(wears('neon')) b.rect(fx - sw + 1, fy, sw * 2, 1, C('#eaffd0'));
+    feet.push([fx, fy, dir]);
+  }
+
+  /* --- body -------------------------------------------------------- */
+  b.ellipse(cx + 1, bodyCy + 1, bodyRx, bodyRy, col.shade);
+  b.ellipse(cx - 1, bodyCy - 1, bodyRx, bodyRy, col.main);
+  b.ellipse(cx - 1, bodyCy + 2, bodyRx - 3, bodyRy - 3, col.light);
+
+  /* --- arms -------------------------------------------------------- */
+  for(let i = 0; i < 2; i++){
+    const dir = i ? 1 : -1;
+    const sx = cx + dir * (bodyRx - 1), sy = bodyCy - Math.round(bodyRy * .3);
+    const swing = Math.sin(phase + (i ? 0 : Math.PI)) * (run ? 1 : .25);
+    const hx = sx + dir * Math.round(3 + s * 3);
+    const hy = Math.round(sy + (3 + s * 3.5) * (1 - swing * .6));
+    b.line(sx, sy, hx, hy, col.shade, 3);
+    b.ellipse(hx, hy, 1.5 + s, 1.5 + s, col.main);
+  }
+
+  /* --- head -------------------------------------------------------- */
+  if(!sp.blob){
+    b.line(cx, bodyCy - bodyRy + 1, cx, headCy + headRy - 1, col.shade, 4);
+    b.ellipse(cx + 1, headCy + 1, headRx, headRy, col.shade);
+    b.ellipse(cx, headCy, headRx, headRy, col.main);
+  }
+
+  /* --- face -------------------------------------------------------- */
+  const eyeY = headCy + (sp.blob ? 1 : 0);
+  const eyeDX = Math.max(3, Math.round(headRx * .42));
+  const er = 2 + s * 1.2, pr = 1 + s * .7;
+  for(let i = 0; i < 2; i++){
+    const dir = i ? 1 : -1, ex = cx + dir * eyeDX;
+    if(blink){ b.rect(ex - Math.round(er), eyeY, Math.round(er * 2), 2, PAL.pupil); }
+    else {
+      b.ellipse(ex, eyeY, er, er + .7, PAL.white);
+      b.ellipse(ex, eyeY + .8, pr, pr + .4, PAL.pupil);
+      b.set(ex - 1, eyeY - 1, PAL.white);
+    }
+  }
+  const my = eyeY + Math.round(er) + 2;
+  b.set(cx - 2, my, PAL.pupil); b.set(cx - 1, my + 1, PAL.pupil);
+  b.set(cx, my + 1, PAL.pupil);  b.set(cx + 1, my, PAL.pupil);
+  b.rect(cx - eyeDX - 3, my - 1, 2, 1, PAL.blush);
+  b.rect(cx + eyeDX + 1, my - 1, 2, 1, PAL.blush);
+
+  /* --- species features -------------------------------------------- */
+  if(has('antenna')){
+    const w = Math.round(Math.sin(phase * 1.6) * 1.5);
+    b.line(cx, headTop, cx + w, headTop - 5, col.shade, 1);
+    b.ellipse(cx + w, headTop - 6, 1.6, 1.6, col.accent);
+  }
+  if(has('crest')){
+    for(let k = 0; k < 3; k++)
+      spike(b, cx - 4 + k * 4, headTop + 2 + Math.abs(k - 1), 5 + (k === 1 ? 3 : 0), 3, col.accent, -.35);
+  }
+  if(has('fins')) feet.forEach(([fx, fy, dir]) => {
+    for(let j = 0; j < 3; j++) b.rect(fx + dir * (3 + j), fy - 2 - j, 2, 2, col.accent);
+  });
+  if(has('visor')){
+    b.rect(cx - headRx, eyeY - Math.round(er) - 3, headRx * 2, 3, col.accent2);
+    b.rect(cx - headRx - 2, eyeY - Math.round(er) - 1, headRx * 2 + 4, 2, col.accent2);
+    b.rect(cx - headRx + 1, eyeY - Math.round(er) - 3, 3, 1, PAL.white);
+  }
+  if(has('bandana')){
+    b.rect(cx - headRx, eyeY - Math.round(er) - 3, headRx * 2, 3, col.accent);
+    const w = Math.round(Math.sin(phase * 1.4) * 2);
+    b.rect(cx + headRx - 1, eyeY - Math.round(er) - 2, 4, 2, col.accent);
+    b.rect(cx + headRx + 2, eyeY - Math.round(er) - 1 + w, 4, 2, col.accent);
+  }
+  if(has('vest')){
+    b.rect(cx - bodyRx + 1, bodyCy - 1, bodyRx * 2 - 2, 5, col.accent2);
+    b.line(cx - bodyRx + 3, bodyCy - 1, cx - 2, bodyCy - bodyRy + 2, col.accent2, 2);
+    b.line(cx + bodyRx - 3, bodyCy - 1, cx + 2, bodyCy - bodyRy + 2, col.accent2, 2);
+    b.ellipse(cx - bodyRx + 3, bodyCy + 1, 2, 2.4, col.accent);
+  }
+  if(has('bolt')){
+    const bx = cx, by = bodyCy + 1;
+    b.rect(bx - 1, by - 3, 3, 2, col.accent); b.rect(bx - 2, by - 1, 3, 2, col.accent);
+    b.rect(bx, by + 1, 3, 2, col.accent);     b.rect(bx - 1, by + 3, 2, 1, col.accent);
+  }
+  if(has('wreath')){
+    for(let a = -155; a <= -25; a += 22){
+      const r = a * Math.PI / 180;
+      b.ellipse(cx + Math.cos(r) * (headRx + 2), headCy + Math.sin(r) * (headRy + 2), 1.8, 1.4, C('#7ee08a'));
+    }
+  }
+  if(has('medalmark')){
+    b.line(cx - 3, bodyCy - bodyRy + 1, cx, bodyCy - 1, PAL.red, 1);
+    b.line(cx + 3, bodyCy - bodyRy + 1, cx, bodyCy - 1, PAL.red, 1);
+    b.ellipse(cx, bodyCy + 1, 2.6, 2.6, PAL.gold);
+  }
+  if(has('tail')){
+    const w = Math.round(Math.sin(phase * 2) * 1.5);
+    b.ellipse(cx - bodyRx - 1, bodyCy + 3 + w, 2.5, 1.8, col.shade);
+  }
+  if(has('aura')){
+    for(let k = 0; k < 4; k++){
+      const a = phase * .9 + k * Math.PI / 2;
+      const x = Math.round(cx + Math.cos(a) * (bodyRx + 7)), y = Math.round(bodyCy + Math.sin(a) * (bodyRy + 6));
+      b.set(x, y, col.accent); b.set(x - 1, y, col.accent); b.set(x + 1, y, col.accent);
+      b.set(x, y - 1, col.accent); b.set(x, y + 1, col.accent);
+    }
+  }
+
+  /* --- gear from the shop ------------------------------------------ */
+  if(wears('cap')){
+    b.ellipse(cx, headTop + 3, headRx, 3.5, C('#ff6b9d'));
+    b.rect(cx - headRx, headTop + 3, headRx * 2, 2, C('#ff6b9d'));
+    b.rect(cx - headRx - 3, headTop + 4, headRx + 3, 2, C('#d94b7c'));
+    b.ellipse(cx, headTop - 1, 1.4, 1.4, C('#ffd166'));
+  }
+  if(wears('headband')){
+    b.rect(cx - headRx, eyeY - Math.round(er) - 3, headRx * 2, 3, C('#ff5d7a'));
+    b.rect(cx - headRx, eyeY - Math.round(er) - 2, headRx * 2, 1, C('#ffd166'));
+    b.rect(cx - headRx - 4, eyeY - Math.round(er) - 2 + Math.round(Math.sin(phase * 1.5) * 2), 5, 2, C('#ff5d7a'));
+  }
+  if(wears('shades')){
+    b.rect(cx - eyeDX - 3, eyeY - 2, (eyeDX + 3) * 2, 4, C('#241a3d'));
+    b.rect(cx - eyeDX - 3, eyeY - 2, 3, 1, C('#6fd3ff'));
+    b.rect(cx + eyeDX, eyeY - 2, 3, 1, C('#6fd3ff'));
+  }
+  if(wears('bib')){
+    const w = Math.max(7, bodyRx), h = Math.max(5, bodyRy - 1);
+    b.rect(cx - (w >> 1), bodyCy - 1, w, h, PAL.bib);
+    b.rect(cx - (w >> 1), bodyCy - 1, w, 1, C('#d8cfc2'));
+    for(const dx of [-3, 0, 3]) b.rect(cx + dx, bodyCy + 2, 1, 3, PAL.red);
+  }
+  if(wears('medal')){
+    b.line(cx - 4, bodyCy - bodyRy + 1, cx, bodyCy + 1, C('#6fd3ff'), 1);
+    b.line(cx + 4, bodyCy - bodyRy + 1, cx, bodyCy + 1, C('#6fd3ff'), 1);
+    b.ellipse(cx, bodyCy + 3, 3, 3, PAL.gold);
+    b.set(cx, bodyCy + 2, C('#fff3c4'));
+  }
+  if(wears('scarf')){
+    b.rect(cx - headRx + 1, headCy + headRy - 1, headRx * 2 - 2, 3, C('#c08bff'));
+    b.rect(cx + headRx - 2, headCy + headRy + Math.round(Math.sin(phase) * 2), 5, 2, C('#c08bff'));
+  }
+
+  b.outline(PAL.dark);
+  return b;
+}
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  3. GAME DATA
+ * ------------------------------------------------------------------ */
+const ACTS = {
+  easy:     { name:'Easy Run',      emo:'🏃', unit:'km',  xp:12,  spd:.2,  end:1.0, tire:5,  joy:6,
+              hint:'Conversational pace. The bread and butter.' },
+  long:     { name:'Long Run',      emo:'🥾', unit:'km',  xp:14,  spd:.1,  end:1.7, tire:7,  joy:8,
+              hint:'Time on feet. Big endurance points.' },
+  tempo:    { name:'Tempo Run',     emo:'🔥', unit:'km',  xp:18,  spd:1.3, end:.6,  tire:8,  joy:6,
+              hint:'Comfortably hard. Leans speed.' },
+  interval: { name:'Intervals',     emo:'⚡', unit:'km',  xp:22,  spd:1.9, end:.3,  tire:10, joy:5,
+              hint:'Reps on the track. Big speed points.' },
+  hills:    { name:'Hill Repeats',  emo:'⛰️', unit:'km',  xp:20,  spd:1.4, end:.9,  tire:10, joy:4,
+              hint:'Strength in disguise. Both lines.' },
+  walk:     { name:'Walk',          emo:'🚶', unit:'km',  xp:5,   spd:.05, end:.6,  tire:2,  joy:5,
+              hint:'Still counts. Gentle endurance.' },
+  bike:     { name:'Cycle',         emo:'🚲', unit:'km',  xp:4,   spd:.15, end:.45, tire:3,  joy:5,
+              hint:'Cross-training miles.' },
+  strength: { name:'Strength',      emo:'🏋️', unit:'min', xp:1.5, spd:1.5, end:.3,  tire:7,  joy:4,
+              hint:'Squats and single-leg everything. Speed line.' },
+  mobility: { name:'Stretch & Yoga',emo:'🧘', unit:'min', xp:.9,  spd:.15, end:.35, tire:1,  joy:12,
+              hint:'Your RunMon loves this. Big happiness.' },
+};
+
+/* Manual logging means the honour system needs guard rails. */
+const LIMITS = {
+  logsPerDay: 4,      // no, you did not run 100 times today
+  kmPerDay: 60,
+  minPerDay: 360,
+  entryKm: 50,
+  entryMin: 300,
+  cooldownSec: 20,    // breathing room between entries
+  backDays: 1,        // today or yesterday only
+};
+
+const FOODS = {
+  water:    { name:'Water Bottle',   emo:'💧', price:3,  fill:5,  joy:3,  en:8,  d:'Hydration. Revolutionary.' },
+  banana:   { name:'Banana',         emo:'🍌', price:5,  fill:14, joy:6,  en:6,  d:'Cheap, cheerful, always works.' },
+  oats:     { name:'Oatmeal',        emo:'🥣', price:7,  fill:22, joy:4,  en:8,  d:'Boring breakfast of champions.' },
+  drink:    { name:'Electrolyte Mix',emo:'🥤', price:7,  fill:8,  joy:7,  en:16, d:'Salty blue sports goo.' },
+  gel:      { name:'Energy Gel',     emo:'🧪', price:8,  fill:6,  joy:-2, en:26, d:'Tastes like sweet glue. Works anyway.' },
+  espresso: { name:'Espresso Shot',  emo:'☕', price:9,  fill:-4, joy:9,  en:30, spd:4, d:'Pre-run ritual. Speed +' },
+  mix:      { name:'Trail Mix',      emo:'🥜', price:10, fill:18, joy:8,  en:12, end:4, d:'Pocket fuel. Endurance +' },
+  beet:     { name:'Beet Juice',     emo:'🧃', price:11, fill:10, joy:2,  en:14, end:5, d:'Alarming colour, real science.' },
+  shake:    { name:'Protein Shake',  emo:'🥛', price:12, fill:20, joy:5,  en:10, spd:6, d:'Recovery window. Speed +' },
+  pasta:    { name:'Pasta Bowl',     emo:'🍝', price:14, fill:38, joy:12, en:10, end:6, d:'Carb-load night. Endurance +' },
+  pizza:    { name:'Recovery Pizza', emo:'🍕', price:16, fill:42, joy:20, en:6,  d:'Earned it. Definitely earned it.' },
+  cake:     { name:'Race-Day Cake',  emo:'🧁', price:22, fill:26, joy:30, en:12, xp:45, d:'A whole birthday of morale. +45 XP' },
+};
+
+const GEAR = {
+  headband: { name:'Sweatband',       emo:'🎀', price:30,  slot:'head', d:'80s energy, zero drag.' },
+  cap:      { name:'Running Cap',     emo:'🧢', price:45,  slot:'head', d:'Sun off, vibes on.' },
+  shades:   { name:'Race Shades',     emo:'🕶️', price:40,  slot:'face', d:'Cannot see the splits, cannot panic.' },
+  bib:      { name:'Race Bib',        emo:'🔢', price:35,  slot:'body', d:'Pinned on. It is official now.' },
+  medal:    { name:'Finisher Medal',  emo:'🏅', price:80,  slot:'body', d:'Heavier than it looks.' },
+  scarf:    { name:'Winter Buff',     emo:'🧣', price:50,  slot:'neck', d:'For the 6am dark ones.' },
+  neon:     { name:'Neon Supershoes', emo:'👟', price:70,  slot:'feet', d:'Glowing carbon plates.' },
+  trail:    { name:'Trail Shoes',     emo:'🥾', price:55,  slot:'feet', d:'Lugs like tractor tyres.' },
+  wings:    { name:'Winged Heels',    emo:'🪽', price:120, slot:'back', d:'Purely decorative. Allegedly.' },
+  cape:     { name:'Finisher Cape',   emo:'🧥', price:140, slot:'back', d:'Foil blanket, upgraded.' },
+};
+
+/* ------------------------------------------------------------------ *
+ *  4. STATE
+ * ------------------------------------------------------------------ */
+const SAVE_KEY = 'runmon.save.v1';
+const fresh = () => ({
+  v: 1, species: 'joglet', path: null, name: 'JOGLET',
+  xp: 0, stones: 25, food: 72, happy: 72, energy: 85,
+  spdPts: 0, endPts: 0,
+  acts: [], foods: { banana: 2, water: 2, gel: 1 }, gear: [], equip: [],
+  born: Date.now(), lastTick: Date.now(), lastLog: 0, plays: 0, best: {},
+});
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){ const o = JSON.parse(raw); if(o && o.v === 1) return Object.assign(fresh(), o); }
+  }catch(e){}
+  return fresh();
+}
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const sig = n => (n < 0 ? '−' : '+') + Math.abs(n);   // no more "+-2"
+const sp = () => SPECIES[S.species];
+
+/* ---- days & levels ---- */
+function dayKey(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function dayOffsetKey(off){ const d = new Date(); d.setDate(d.getDate() - off); return dayKey(d); }
+function needFor(l){ return 100 + (l - 1) * 65; }
+function levelInfo(xp){
+  let l = 1, cur = xp;
+  while(cur >= needFor(l)){ cur -= needFor(l); l++; }
+  return { level: l, cur: Math.round(cur), need: needFor(l) };
+}
+
+/* ---- evolution ---- */
+const EVO = [
+  null,
+  { xp: 350,  acts: 3,  happy: 40 },
+  { xp: 1400, acts: 12, happy: 50 },
+  { xp: 3600, acts: 30, happy: 60 },
+];
+function nextStage(){ return sp().stage + 1; }
+function evoReq(){ return EVO[nextStage()] || null; }
+function canEvolve(){
+  const r = evoReq();
+  if(!r) return false;
+  return S.xp >= r.xp && S.acts.length >= r.acts && S.happy >= r.happy;
+}
+function dominantPath(){
+  const a = S.spdPts, b = S.endPts, m = Math.max(a, b, 1);
+  if(Math.abs(a - b) / m < .12) return null;         // too close to call → player picks
+  return a > b ? 'speed' : 'endur';
+}
+function evolveTo(path){
+  S.path = S.path || path;
+  const chain = CHAIN[S.path];
+  const nxt = chain[nextStage() - 1];
+  if(!nxt) return;
+  S.species = nxt; S.name = SPECIES[nxt].name;
+  S.happy = clamp(S.happy + 12, 0, 100);
+  save(); showEvolution(nxt);
+}
+
+/* ---- time decay ---- */
+function tick(){
+  const now = Date.now();
+  const mins = Math.min((now - S.lastTick) / 60000, 60 * 24 * 3);
+  if(mins > .2){
+    S.food   = clamp(S.food   - mins / 11, 0, 100);
+    S.happy  = clamp(S.happy  - mins / 16 - (S.food < 15 ? mins / 30 : 0), 0, 100);
+    S.energy = clamp(S.energy + mins / 5 * (S.food > 10 ? 1 : .3), 0, 100);
+    S.lastTick = now;
+    save();
+  }
+}
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  5. SHELL — tabs, toasts, modal, the animated stage
+ * ------------------------------------------------------------------ */
+const ui = { tab:'home', logDay:0, act:'easy', amt:5, min:30, shopTab:'fuel' };
+const anim = { t:0, run:0, runUntil:0, last:performance.now() };
+const $ = id => document.getElementById(id);
+
+const TABS = [
+  ['home','🏠','HOME'], ['log','📝','LOG'], ['feed','🍌','FEED'],
+  ['play','🎮','PLAY'], ['shop','🛍️','SHOP'], ['dex','📖','DEX'],
+];
+function buildTabs(){
+  $('tabs').innerHTML = TABS.map(([k, ic, n]) =>
+    `<button class="${ui.tab === k ? 'on' : ''}" onclick="go('${k}')"><span class="ic">${ic}</span>${n}</button>`).join('');
+}
+function go(tab){
+  if(ui.tab === 'play' && tab !== 'play') stopGame();
+  ui.tab = tab;
+  TABS.forEach(([k]) => $('scr-' + k).classList.toggle('on', k === tab));
+  buildTabs(); renderAll();
+  window.scrollTo(0, 0);
+}
+function toast(msg, ms){
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  $('toast').appendChild(el);
+  setTimeout(() => el.remove(), ms || 2300);
+}
+function floater(txt, color){
+  const el = document.createElement('div');
+  el.className = 'floater'; el.textContent = txt;
+  el.style.left = (30 + Math.random() * 40) + '%';
+  el.style.top = (35 + Math.random() * 20) + '%';
+  if(color) el.style.color = color;
+  $('fxLayer').appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+function modal(html){ $('modalBox').innerHTML = html; $('modal').classList.add('on'); }
+function closeModal(){ $('modal').classList.remove('on'); }
+
+/* ---- the stage: sky, track, and your RunMon ---- */
+const SCENE_W = 80, SCENE_H = 60, SCENE_S = 4;
+const scene = new Buf(SCENE_W, SCENE_H);
+function drawScene(ctx, t, run, forSprite){
+  const b = scene; b.clear(0);
+  for(let y = 0; y < 44; y++)
+    b.rect(0, y, SCENE_W, 1, y < 16 ? C('#3d2c6b') : y < 30 ? C('#54407f') : C('#6b5195'));
+  b.ellipse(64, 12, 6, 6, PAL.sun);                                   // low sun
+  b.ellipse(64, 12, 4, 4, C('#ffe9a8'));
+  for(let k = 0; k < 3; k++){                                         // drifting clouds
+    const x = Math.round((k * 38 + t * (3 + k)) % (SCENE_W + 36)) - 18, y = 8 + k * 7;
+    b.ellipse(x, y, 6 - k, 2, PAL.cloud); b.ellipse(x + 4, y + 1, 4, 2, PAL.cloud);
+  }
+  for(let x = 0; x < SCENE_W; x++){                                   // hills
+    const h = 6 + Math.sin(x / 9) * 3 + Math.sin(x / 3.7) * 1.2;
+    b.rect(x, 44 - h, 1, h, C('#3b4f7a'));
+  }
+  b.rect(0, 43, SCENE_W, 3, PAL.grass);                               // infield
+  b.rect(0, 46, SCENE_W, SCENE_H - 46, PAL.track);                    // track
+  b.rect(0, 46, SCENE_W, 1, C('#e08a63'));
+  const scroll = Math.round(t * (18 + run * 70)) % 16;
+  for(const ly of [51, 57]){
+    b.rect(0, ly, SCENE_W, 1, PAL.track2);
+    for(let x = -scroll; x < SCENE_W; x += 16) b.rect(x, ly, 8, 1, PAL.lane);
+  }
+  const feetY = 56;
+  b.ellipse(40, feetY + 2, 6 + sp().size * 4, 1.6, PAL.shadow);      // grounding shadow
+  const spr = creatureSprite(forSprite || sp(), {
+    t, run, equip: S.equip, blink: (t % 4.1) < .13,
+  });
+  b.stamp(spr, 40 - 31, feetY - 56);
+  if(S.energy < 20 && !run){                                          // sleepy zzz
+    const zx = 52, zy = 26 + Math.round(Math.sin(t * 2) * 2);
+    b.rect(zx, zy, 3, 1, PAL.white); b.rect(zx + 2, zy + 1, 1, 1, PAL.white); b.rect(zx, zy + 2, 3, 1, PAL.white);
+  }
+  if(run){                                                            // sweat
+    for(let k = 0; k < 2; k++){
+      const p = (t * 3 + k * .5) % 1;
+      b.set(Math.round(46 + p * 8), Math.round(26 - p * 6), C('#8fdcff'));
+    }
+  }
+  if(S.happy > 80 && !run && (t % 5) < 2){                            // content little heart
+    const hy = 22 - Math.round((t % 5) * 3);
+    b.rect(50, hy, 1, 1, PAL.blush); b.rect(52, hy, 1, 1, PAL.blush);
+    b.rect(49, hy + 1, 5, 1, PAL.blush); b.rect(50, hy + 2, 3, 1, PAL.blush); b.rect(51, hy + 3, 1, 1, PAL.blush);
+  }
+  b.blit(ctx, SCENE_S);
+}
+function loop(now){
+  const dt = Math.min(.1, (now - anim.last) / 1000); anim.last = now;
+  anim.t += dt;
+  const target = Date.now() < anim.runUntil ? 1 : 0;
+  anim.run += (target - anim.run) * Math.min(1, dt * 4);
+  if(ui.tab === 'home'){
+    const cv = $('creatureCanvas');
+    drawScene(cv.getContext('2d'), anim.t, anim.run);
+  }
+  if(gameState.live) gameState.frame(dt);
+  if(ui.tab === 'log' && anim.t - (anim.lastLogRefresh || 0) > 1){
+    anim.lastLogRefresh = anim.t; refreshLog();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ------------------------------------------------------------------ *
+ *  6. HOME
+ * ------------------------------------------------------------------ */
+function setBar(id, v){ $('b' + id).style.width = clamp(v, 0, 100) + '%'; }
+function renderHome(){
+  const li = levelInfo(S.xp), s = sp();
+  $('stoneCount').textContent = Math.floor(S.stones);
+  $('namePlate').innerHTML = `${S.name} <small>Lv.${li.level} · ${s.title}</small>`;
+  setBar('Food', S.food);   $('vFood').textContent = Math.round(S.food) + '%';
+  setBar('Happy', S.happy); $('vHappy').textContent = Math.round(S.happy) + '%';
+  setBar('Energy', S.energy); $('vEnergy').textContent = Math.round(S.energy) + '%';
+  setBar('Xp', li.cur / li.need * 100); $('vXp').textContent = `${li.cur} / ${li.need}`;
+
+  const pathEl = $('pathTag');
+  pathEl.textContent = S.path ? (S.path === 'speed' ? 'SPEED LINE' : 'ENDURANCE LINE') : 'UNDECIDED';
+  pathEl.className = 'chip ' + (S.path === 'speed' ? 'spd' : S.path === 'endur' ? 'end' : '');
+
+  const r = evoReq();
+  $('nextForm').textContent = !r ? 'fully grown' :
+    canEvolve() ? 'READY! tap your RunMon' :
+    `${r.xp} XP · ${r.acts} logs · ${r.happy}% happy`;
+
+  const today = S.acts.filter(a => a.d === dayKey());
+  const km = today.reduce((n, a) => n + (ACTS[a.k].unit === 'km' ? a.amt : 0), 0);
+  const mins = today.reduce((n, a) => n + a.min, 0);
+  const totKm = S.acts.reduce((n, a) => n + (ACTS[a.k].unit === 'km' ? a.amt : 0), 0);
+  $('careMeter').innerHTML =
+    `TODAY <b>${today.length}/${LIMITS.logsPerDay}</b> logs · <b>${km.toFixed(1)}</b> km · <b>${mins}</b> min<br>` +
+    `ALL TIME <b>${S.acts.length}</b> sessions · <b>${totKm.toFixed(1)}</b> km · <b>${Math.round(S.xp)}</b> XP`;
+
+  const recent = S.acts.slice(-5).reverse();
+  $('recentList').innerHTML = recent.length ? recent.map(a => {
+    const A = ACTS[a.k];
+    return `<div class="row between" style="padding:4px 0;border-bottom:1px dashed var(--line)">
+      <span>${A.emo} ${A.name}</span>
+      <span class="dim">${A.unit === 'km' ? a.amt.toFixed(1) + ' km · ' : ''}${a.min} min · +${a.xp} XP</span></div>`;
+  }).join('') : 'Nothing logged yet — go for a run!';
+}
+
+/* tapping the creature: pet it, or evolve when ready */
+function pokeCreature(){
+  if(canEvolve()){ startEvolution(); return; }
+  S.happy = clamp(S.happy + 1.5, 0, 100);
+  anim.runUntil = Date.now() + 900;
+  floater(['♥', 'hi!', '♪', '＊'][Math.floor(Math.random() * 4)], '#ff7ab8');
+  save(); renderHome();
+}
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  7. EVOLUTION
+ * ------------------------------------------------------------------ */
+function portrait(id, key, scale){
+  const cv = $(id); if(!cv) return;
+  const b = new Buf(62, 62);
+  b.stamp(creatureSprite(SPECIES[key], { t: performance.now() / 1000, run: .5, equip: S.equip }), 0, 0);
+  cv.width = 62 * (scale || 3); cv.height = 62 * (scale || 3);
+  b.blit(cv.getContext('2d'), scale || 3);
+}
+function startEvolution(){
+  if(!canEvolve()) return;
+  if(!S.path){
+    const dom = dominantPath();
+    if(dom){ evolveTo(dom); return; }
+    modal(`<h2 style="color:var(--pink)">A FORK IN THE ROAD</h2>
+      <div class="tiny dim" style="margin:8px 0 12px;line-height:1.5">
+        Your training is dead even — ${Math.round(S.spdPts)} speed vs ${Math.round(S.endPts)} endurance.
+        Pick the line your RunMon grows into. This choice sticks.</div>
+      <div class="btnrow">
+        <button class="primary" onclick="closeModal();evolveTo('speed')">⚡ SPEED<br><span style="font-size:7px">DASHI</span></button>
+        <button class="good" onclick="closeModal();evolveTo('endur')">🥾 ENDURANCE<br><span style="font-size:7px">PLODLY</span></button>
+      </div>`);
+    return;
+  }
+  evolveTo(S.path);
+}
+function showEvolution(key){
+  const s = SPECIES[key];
+  modal(`<h2 style="color:var(--sun)">✦ EVOLUTION ✦</h2>
+    <canvas id="evoCanvas"></canvas>
+    <div class="pix" style="font-size:13px;color:var(--pink);margin:8px 0 6px">${s.name}</div>
+    <div class="chip ${s.path === 'speed' ? 'spd' : 'end'}">${s.title}</div>
+    <div class="tiny dim" style="margin:10px 0 14px;line-height:1.5">${s.blurb}</div>
+    <button class="primary" style="width:100%" onclick="closeModal();renderAll()">NICE!</button>`);
+  portrait('evoCanvas', key, 3);
+  toast('✦ ' + s.name + ' evolved!');
+}
+
+/* ------------------------------------------------------------------ *
+ *  8. LOGGING — manual entry with daily guard rails
+ * ------------------------------------------------------------------ */
+function dayTotals(dk){
+  const list = S.acts.filter(a => a.d === dk);
+  return {
+    n: list.length,
+    km: list.reduce((n, a) => n + (ACTS[a.k].unit === 'km' ? a.amt : 0), 0),
+    min: list.reduce((n, a) => n + a.min, 0),
+  };
+}
+function logGain(k, amt, min){
+  const A = ACTS[k];
+  const units = A.unit === 'km' ? amt : min / 10;
+  const xp = Math.round(A.unit === 'km' ? amt * A.xp : min * A.xp);
+  return {
+    xp,
+    spd: +(units * A.spd).toFixed(2),
+    end: +(units * A.end).toFixed(2),
+    joy: Math.round(clamp(A.joy * (units / 5 + .5), 2, 22)),
+    tire: Math.round(clamp(A.tire * (units / 5 + .4), 2, 30)),
+    hunger: Math.round(clamp(xp / 9, 3, 34)),
+    stones: clamp(Math.round(xp / 22), 1, 9),
+  };
+}
+function blockReason(k, amt, min, dayOff){
+  const A = ACTS[k], dk = dayOffsetKey(dayOff), tot = dayTotals(dk);
+  const wait = Math.ceil((LIMITS.cooldownSec * 1000 - (Date.now() - S.lastLog)) / 1000);
+  if(min <= 0) return 'Duration has to be more than 0 minutes.';
+  if(A.unit === 'km' && amt <= 0) return 'Distance has to be more than 0 km.';
+  if(A.unit === 'km' && amt > LIMITS.entryKm) return `Single entry capped at ${LIMITS.entryKm} km.`;
+  if(min > LIMITS.entryMin) return `Single entry capped at ${LIMITS.entryMin} min.`;
+  if(tot.n >= LIMITS.logsPerDay) return `Daily cap: ${LIMITS.logsPerDay} sessions per day. Rest is training too.`;
+  if(A.unit === 'km' && tot.km + amt > LIMITS.kmPerDay) return `Daily cap: ${LIMITS.kmPerDay} km (${tot.km.toFixed(1)} logged).`;
+  if(tot.min + min > LIMITS.minPerDay) return `Daily cap: ${LIMITS.minPerDay} min (${tot.min} logged).`;
+  if(wait > 0) return `Cooling down — ${wait}s before the next entry.`;
+  return null;
+}
+function submitLog(){
+  const k = ui.act, A = ACTS[k];
+  const amt = A.unit === 'km' ? +(+ui.amt).toFixed(2) : 0;
+  const min = Math.round(+ui.min);
+  const bad = blockReason(k, amt, min, ui.logDay);
+  if(bad){ toast(bad, 3200); return; }
+
+  const g = logGain(k, amt, min);
+  S.acts.push({ d: dayOffsetKey(ui.logDay), k, amt, min, xp: g.xp, ts: Date.now() });
+  S.xp += g.xp; S.spdPts += g.spd; S.endPts += g.end;
+  S.happy  = clamp(S.happy + g.joy, 0, 100);
+  S.energy = clamp(S.energy - g.tire, 0, 100);
+  S.food   = clamp(S.food - g.hunger, 0, 100);
+  S.stones += g.stones;
+  S.lastLog = Date.now();
+
+  /* every session shakes a snack loose */
+  const drops = ['water', 'banana', 'oats', 'drink', 'gel'];
+  const drop = drops[Math.floor(Math.random() * drops.length)];
+  S.foods[drop] = (S.foods[drop] || 0) + 1;
+
+  save();
+  anim.runUntil = Date.now() + 4000;
+  go('home');
+  floater('+' + g.xp + ' XP', '#b6f36a');
+  setTimeout(() => floater('+' + g.stones + ' ◆', '#ffd166'), 260);
+  toast(`${A.emo} ${A.name} logged · +${g.xp} XP · +${g.stones} ◆ · found ${FOODS[drop].emo} ${FOODS[drop].name}`, 3400);
+  if(canEvolve()) setTimeout(startEvolution, 900);
+}
+function pickDay(n){ ui.logDay = n; renderLog(); }
+function pickAct(k){
+  ui.act = k;
+  const A = ACTS[k];
+  if(A.unit === 'min'){ ui.min = 20; } else { ui.amt = 5; ui.min = 30; }
+  renderLog();
+}
+function setField(f, v){ ui[f] = v; updatePreview(); }
+function updatePreview(){
+  const k = ui.act, A = ACTS[k];
+  const amt = +ui.amt || 0, min = +ui.min || 0;
+  const g = logGain(k, amt, min);
+  $('logPreview').innerHTML =
+    `<b style="color:var(--lime)">+${g.xp} XP</b> · <span style="color:var(--sky)">speed +${g.spd}</span> · ` +
+    `<span style="color:var(--sun)">endurance +${g.end}</span> · +${g.stones} ◆<br>` +
+    `<span class="dim">happy +${g.joy} · energy −${g.tire} · fed −${g.hunger}</span>`;
+  const bad = blockReason(k, A.unit === 'km' ? amt : 0, min, ui.logDay);
+  $('logBlocked').innerHTML = bad ? `<span style="color:var(--red)">${bad}</span>` : '';
+  $('logBtn').disabled = !!bad;
+}
+function renderLog(){
+  $('dayPick').innerHTML = [0, 1].map(n =>
+    `<button class="${ui.logDay === n ? 'primary' : ''}" onclick="pickDay(${n})">${n ? 'YESTERDAY' : 'TODAY'}</button>`).join('');
+
+  $('actPick').innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">' +
+    Object.keys(ACTS).map(k => {
+      const A = ACTS[k];
+      return `<button class="sm ${ui.act === k ? 'primary' : ''}" onclick="pickAct('${k}')">
+        <span style="font-family:var(--mono);font-size:17px;display:block;margin-bottom:4px">${A.emo}</span>
+        ${A.name.toUpperCase()}</button>`;
+    }).join('') + '</div>';
+
+  const A = ACTS[ui.act];
+  $('actInputs').innerHTML =
+    `<div class="tiny dim" style="margin:10px 0 0">${A.hint}</div>` +
+    (A.unit === 'km' ? `<label class="fld">DISTANCE (KM) — max ${LIMITS.entryKm}</label>
+      <input type="number" inputmode="decimal" step="0.1" min="0" max="${LIMITS.entryKm}" value="${ui.amt}"
+        oninput="setField('amt', this.value)">` : '') +
+    `<label class="fld">DURATION (MIN) — max ${LIMITS.entryMin}</label>
+     <input type="number" inputmode="numeric" step="1" min="0" max="${LIMITS.entryMin}" value="${ui.min}"
+       oninput="setField('min', this.value)">`;
+
+  refreshLog();
+}
+function refreshLog(){
+  const dk = dayOffsetKey(ui.logDay), t = dayTotals(dk);
+  const over = (a, b) => a >= b ? ' class="over"' : '';
+  $('limitMeter').innerHTML =
+    `${ui.logDay ? 'YESTERDAY' : 'TODAY'} (${dk})<br>` +
+    `SESSIONS <b${over(t.n, LIMITS.logsPerDay)}>${t.n}/${LIMITS.logsPerDay}</b> · ` +
+    `KM <b${over(t.km, LIMITS.kmPerDay)}>${t.km.toFixed(1)}/${LIMITS.kmPerDay}</b> · ` +
+    `MIN <b${over(t.min, LIMITS.minPerDay)}>${t.min}/${LIMITS.minPerDay}</b>`;
+
+  const week = {};
+  S.acts.slice(-40).forEach(a => { (week[a.d] = week[a.d] || []).push(a); });
+  const days = Object.keys(week).sort().reverse().slice(0, 7);
+  $('weekList').innerHTML = days.length ? days.map(d => {
+    const list = week[d];
+    const km = list.reduce((n, a) => n + (ACTS[a.k].unit === 'km' ? a.amt : 0), 0);
+    return `<div class="row between" style="padding:4px 0;border-bottom:1px dashed var(--line)">
+      <span>${d}</span><span class="dim">${list.map(a => ACTS[a.k].emo).join('')} ${km ? km.toFixed(1) + ' km · ' : ''}${list.reduce((n, a) => n + a.min, 0)} min</span></div>`;
+  }).join('') : 'No sessions logged yet.';
+  updatePreview();
+}
+
+/* ------------------------------------------------------------------ *
+ *  9. FEEDING
+ * ------------------------------------------------------------------ */
+function feed(id){
+  const F = FOODS[id];
+  if(!S.foods[id]){ toast('None left — buy some in the shop.'); return; }
+  if(S.food > 96 && F.fill > 0){ toast('Too full! Go log a session first.'); return; }
+  S.foods[id]--; if(!S.foods[id]) delete S.foods[id];
+  S.food   = clamp(S.food + F.fill, 0, 100);
+  S.happy  = clamp(S.happy + (F.joy || 0), 0, 100);
+  S.energy = clamp(S.energy + (F.en || 0), 0, 100);
+  if(F.spd) S.spdPts += F.spd;
+  if(F.end) S.endPts += F.end;
+  if(F.xp){ S.xp += F.xp; }
+  save();
+  go('home');
+  floater(F.emo, '#ffd166');
+  toast(`${F.emo} ${F.name} — fed ${sig(F.fill)} · happy ${sig(F.joy || 0)} · energy ${sig(F.en || 0)}`, 2600);
+  if(canEvolve()) setTimeout(startEvolution, 800);
+}
+function renderFeed(){
+  const ids = Object.keys(FOODS).filter(id => S.foods[id]);
+  $('pantryList').innerHTML = ids.length ? ids.map(id => {
+    const F = FOODS[id];
+    return `<div class="card"><div class="emo">${F.emo}</div>
+      <div class="grow"><div class="t">${F.name.toUpperCase()} <span class="dim">×${S.foods[id]}</span></div>
+        <div class="d">${F.d}<br>fed ${sig(F.fill)} · happy ${sig(F.joy || 0)} · energy ${sig(F.en || 0)}${F.spd ? ' · spd +' + F.spd : ''}${F.end ? ' · end +' + F.end : ''}${F.xp ? ' · +' + F.xp + ' XP' : ''}</div></div>
+      <div class="side"><button class="sm good" onclick="feed('${id}')">FEED</button></div></div>`;
+  }).join('') : `<div class="panel"><div class="tiny dim">The pantry is empty. Win ◆ stones in the mini-games
+      and stock up in the shop — logging a session also shakes a snack loose.</div></div>`;
+}
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  10. SHOP
+ * ------------------------------------------------------------------ */
+function buyFood(id){
+  const F = FOODS[id];
+  if(S.stones < F.price){ toast('Not enough ◆ stones — go win some.'); return; }
+  S.stones -= F.price; S.foods[id] = (S.foods[id] || 0) + 1;
+  save(); renderAll(); toast(`Bought ${F.emo} ${F.name}`);
+}
+function buyGear(id){
+  const G = GEAR[id];
+  if(S.gear.indexOf(id) >= 0) return;
+  if(S.stones < G.price){ toast('Not enough ◆ stones — go win some.'); return; }
+  S.stones -= G.price; S.gear.push(id); equipGear(id);
+  toast(`${G.emo} ${G.name} unlocked!`);
+}
+function equipGear(id){
+  const G = GEAR[id];
+  S.equip = S.equip.filter(e => GEAR[e].slot !== G.slot);
+  S.equip.push(id); save(); renderAll();
+}
+function unequipGear(id){ S.equip = S.equip.filter(e => e !== id); save(); renderAll(); }
+function shopTab(t){ ui.shopTab = t; renderShop(); }
+function renderShop(){
+  $('shopTabs').innerHTML = [['fuel', '🍌 FUEL'], ['gear', '👟 GEAR']].map(([k, n]) =>
+    `<button class="${ui.shopTab === k ? 'primary' : ''}" onclick="shopTab('${k}')">${n}</button>`).join('');
+
+  if(ui.shopTab === 'fuel'){
+    $('shopList').innerHTML = Object.keys(FOODS).map(id => {
+      const F = FOODS[id], can = S.stones >= F.price;
+      return `<div class="card"><div class="emo">${F.emo}</div>
+        <div class="grow"><div class="t">${F.name.toUpperCase()}</div>
+          <div class="d">${F.d}<br>fed ${sig(F.fill)} · happy ${sig(F.joy || 0)} · energy ${sig(F.en || 0)}${F.spd ? ' · spd +' + F.spd : ''}${F.end ? ' · end +' + F.end : ''}</div></div>
+        <div class="side"><button class="sm ${can ? '' : ''}" ${can ? '' : 'disabled'} onclick="buyFood('${id}')">◆ ${F.price}</button>
+          <div class="tiny dim" style="margin-top:5px">have ${S.foods[id] || 0}</div></div></div>`;
+    }).join('');
+  } else {
+    $('shopList').innerHTML = Object.keys(GEAR).map(id => {
+      const G = GEAR[id], owned = S.gear.indexOf(id) >= 0, on = S.equip.indexOf(id) >= 0;
+      const btn = owned
+        ? (on ? `<button class="sm warn" onclick="unequipGear('${id}')">TAKE OFF</button>`
+              : `<button class="sm good" onclick="equipGear('${id}')">WEAR</button>`)
+        : `<button class="sm" ${S.stones >= G.price ? '' : 'disabled'} onclick="buyGear('${id}')">◆ ${G.price}</button>`;
+      return `<div class="card"><div class="emo">${G.emo}</div>
+        <div class="grow"><div class="t">${G.name.toUpperCase()}</div>
+          <div class="d">${G.d}<br><span class="chip">${G.slot.toUpperCase()}</span>${on ? '<span class="chip on">WORN</span>' : ''}</div></div>
+        <div class="side">${btn}</div></div>`;
+    }).join('');
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  11. DEX
+ * ------------------------------------------------------------------ */
+function renderDex(){
+  const tot = Math.max(1, S.spdPts + S.endPts);
+  const sPct = Math.round(S.spdPts / tot * 100);
+  $('pathMeter').innerHTML =
+    `SPEED <b style="color:var(--sky)">${S.spdPts.toFixed(1)}</b> &nbsp;·&nbsp; ENDURANCE <b style="color:var(--sun)">${S.endPts.toFixed(1)}</b><br>
+     <div class="bar" style="margin-top:6px"><i style="width:${sPct}%;background-color:#6fd3ff"></i></div>
+     <div style="margin-top:6px">${S.path ? 'LOCKED IN: ' + (S.path === 'speed' ? 'SPEED LINE' : 'ENDURANCE LINE')
+        : 'The first evolution locks your line.'}</div>`;
+
+  const rows = [];
+  rows.push(dexRow('joglet', true));
+  ['speed', 'endur'].forEach(p => {
+    rows.push(`<div class="panel flat" style="margin:10px 0 2px;padding:6px 8px">
+      <h3 style="color:${p === 'speed' ? 'var(--sky)' : 'var(--sun)'}">${p === 'speed' ? '⚡ SPEED LINE' : '🥾 ENDURANCE LINE'}</h3>
+      <div class="tiny dim">${p === 'speed' ? 'Intervals · tempo · hills · strength' : 'Long runs · easy miles · walks · cycling'}</div></div>`);
+    CHAIN[p].forEach((key, i) => {
+      const seen = SPECIES[key].stage <= sp().stage && (S.path === p || SPECIES[key].stage === 0);
+      rows.push(dexRow(key, seen, EVO[i + 1]));
+    });
+  });
+  $('dexList').innerHTML = rows.join('');
+  Object.keys(SPECIES).forEach(key => {
+    const cv = $('dex-' + key); if(!cv) return;
+    const seen = key === 'joglet' || (SPECIES[key].stage <= sp().stage && S.path === SPECIES[key].path);
+    const b = new Buf(62, 62);
+    b.stamp(creatureSprite(SPECIES[key], { t: 1.2, run: .4, equip: [] }), 0, 0);
+    if(!seen) for(let i = 0; i < b.d.length; i++) if(b.d[i]) b.d[i] = C('#3a2f5e');
+    cv.width = 62 * 2; cv.height = 62 * 2;
+    b.blit(cv.getContext('2d'), 2);
+  });
+}
+function dexRow(key, seen, req){
+  const s = SPECIES[key];
+  const isNow = key === S.species;
+  return `<div class="card" style="${isNow ? 'border-color:var(--pink)' : ''}">
+    <canvas id="dex-${key}" style="width:62px;height:62px"></canvas>
+    <div class="grow"><div class="t">${seen ? s.name : '???'} ${isNow ? '<span class="chip on">NOW</span>' : ''}</div>
+      <div class="d">${seen ? s.blurb : 'Not yet discovered.'}
+        ${req ? `<br><span class="chip ${s.path === 'speed' ? 'spd' : 'end'}">${req.xp} XP · ${req.acts} LOGS · ${req.happy}% HAPPY</span>` : ''}</div></div></div>`;
+}
+
+/* ------------------------------------------------------------------ *
+ *  12. SAVE UTILITIES
+ * ------------------------------------------------------------------ */
+function exportSave(){
+  const txt = JSON.stringify(S);
+  modal(`<h2>SAVE DATA</h2><div class="tiny dim" style="margin:6px 0">Copy this somewhere safe.</div>
+    <textarea style="width:100%;height:130px;background:#0b0817;color:var(--txt);border:3px solid var(--line);
+      font-family:var(--mono);font-size:11px">${txt.replace(/</g, '&lt;')}</textarea>
+    <button class="primary" style="width:100%;margin-top:10px" onclick="closeModal()">DONE</button>`);
+}
+function hardReset(){
+  modal(`<h2 style="color:var(--red)">RESET EGG?</h2>
+    <div class="tiny dim" style="margin:8px 0 12px">Your RunMon, training log, stones and gear are all wiped.
+      There is no undo.</div>
+    <div class="btnrow"><button onclick="closeModal()">CANCEL</button>
+      <button class="warn" onclick="doReset()">WIPE IT</button></div>`);
+}
+function doReset(){ S = fresh(); save(); closeModal(); go('home'); toast('A new egg wobbles into view.'); }
+</script>
+<script>
+/* ------------------------------------------------------------------ *
+ *  13. MINI-GAMES — running themed, pay ⚡ energy, win ◆ stones
+ * ------------------------------------------------------------------ */
+const GAMES = {
+  hurdle: { name:'HURDLE DASH', emo:'🏃', cost:12, d:'Endless runner. Hop the hurdles, bank the metres.' },
+  sprint: { name:'100M SPRINT', emo:'⚡', cost:10, d:'Alternate LEFT / RIGHT as fast as your thumbs go.' },
+  pace:   { name:'PACE KEEPER', emo:'⏱️', cost:8,  d:'Eight reps. Stop the needle inside the pace zone.' },
+};
+const gameState = { live:false, id:null, frame(){}, tap(){}, cleanup:null };
+
+function renderGames(){
+  $('gameList').innerHTML = Object.keys(GAMES).map(id => {
+    const G = GAMES[id], can = S.energy >= G.cost;
+    const best = S.best[id];
+    return `<div class="card"><div class="emo">${G.emo}</div>
+      <div class="grow"><div class="t">${G.name}</div>
+        <div class="d">${G.d}<br><span class="chip">⚡ ${G.cost} ENERGY</span>${best ? `<span class="chip on">BEST ${best}</span>` : ''}</div></div>
+      <div class="side"><button class="sm good" ${can ? '' : 'disabled'} onclick="startGame('${id}')">PLAY</button></div></div>`;
+  }).join('');
+}
+function startGame(id){
+  const G = GAMES[id];
+  if(S.energy < G.cost){ toast('Too tired — feed your RunMon first.'); return; }
+  S.energy = clamp(S.energy - G.cost, 0, 100);
+  S.happy = clamp(S.happy + 3, 0, 100);
+  S.plays++; save();
+  $('gameMenu').style.display = 'none';
+  $('gameHost').style.display = 'block';
+  gameState.live = true; gameState.id = id;
+  ({ hurdle: gameHurdle, sprint: gameSprint, pace: gamePace })[id]();
+}
+function stopGame(){
+  if(gameState.cleanup) gameState.cleanup();
+  gameState.live = false; gameState.id = null;
+  gameState.frame = () => {}; gameState.cleanup = null;
+  $('gameHost').style.display = 'none'; $('gameHost').innerHTML = '';
+  $('gameMenu').style.display = 'block';
+  renderGames();
+}
+function quitGame(){ stopGame(); }
+function gameResult(id, headline, lines, stones){
+  gameState.live = false;
+  if(gameState.cleanup){ gameState.cleanup(); gameState.cleanup = null; }
+  S.stones += stones; save();
+  $('gameHost').innerHTML = `<div class="panel center">
+    <h2 style="color:var(--sun)">${headline}</h2>
+    <div class="tiny dim" style="margin:10px 0;line-height:1.7">${lines}</div>
+    <div class="pix" style="font-size:16px;color:var(--sun);margin:12px 0">+ ${stones} ◆</div>
+    <div class="btnrow"><button class="primary" onclick="stopGame();startGame('${id}')">PLAY AGAIN</button>
+      <button onclick="stopGame()">✕ DONE</button></div></div>`;
+  renderHome();
+}
+
+/* ---- 13a. HURDLE DASH ---- */
+function gameHurdle(){
+  const W = 160, H = 90, GY = 74, PX = 44;
+  $('gameHost').innerHTML = `<div class="panel">
+    <div class="hud"><span>🏃 HURDLE DASH</span><span id="hudScore">0 M</span></div>
+    <div class="gamewrap"><canvas id="gcv" width="${W * 3}" height="${H * 3}"></canvas></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="primary" id="jumpBtn">▲ JUMP</button>
+      <button onclick="quitGame()">✕ QUIT</button></div>
+    <div class="tiny dim center" style="margin-top:8px">Tap JUMP (or the track, or SPACE) to hop.</div></div>`;
+
+  const ctx = $('gcv').getContext('2d'), buf = new Buf(W, H);
+  const st = { t:0, y:0, vy:0, spd:46, dist:0, obs:[{ x: 210, h: Math.round(8 + sp().size * 7) }], dead:false, done:false };
+  const jump = () => { if(!st.dead && st.y >= -0.5){ st.vy = -108; st.y = -0.6; } };
+  const key = e => { if(e.code === 'Space'){ e.preventDefault(); jump(); } };
+  $('jumpBtn').onclick = jump;
+  $('gcv').onclick = jump;
+  document.addEventListener('keydown', key);
+  gameState.cleanup = () => document.removeEventListener('keydown', key);
+
+  gameState.frame = dt => {
+    if(!st.dead){
+      st.t += dt;
+      st.spd = 46 + st.t * 2.2;
+      st.dist += st.spd * dt;
+      st.vy += 300 * dt; st.y += st.vy * dt;
+      if(st.y > 0){ st.y = 0; st.vy = 0; }
+      st.obs.forEach(o => o.x -= st.spd * dt);
+      st.obs = st.obs.filter(o => o.x > -12);
+      const last = st.obs[st.obs.length - 1];
+      if(!last || last.x < W - 52 - Math.random() * 46)
+        st.obs.push({ x: W + 8, h: Math.round(8 + sp().size * 7 + Math.random() * 6) });
+      /* collision — a generous box, this is meant to be fun */
+      const pw = 9 + sp().size * 4, ph = 20 + sp().size * 10;
+      const pl = PX - pw, pr = PX + pw, feet = GY + st.y;
+      for(const o of st.obs)
+        if(pr > o.x && pl < o.x + 7 && feet > GY - o.h && feet - ph < GY){ st.dead = true; break; }
+    } else if(!st.done){
+      st.done = true;
+      const m = Math.round(st.dist / 10);
+      const stones = clamp(Math.round(m / 12), 1, 30);
+      if(!S.best.hurdle || m > +S.best.hurdle) S.best.hurdle = m + 'm';
+      setTimeout(() => gameResult('hurdle', 'CLIPPED A HURDLE!',
+        `Distance <b>${m} m</b> · top speed <b>${(st.spd / 10).toFixed(1)} m/s</b>`, stones), 750);
+    }
+
+    /* --- draw --- */
+    buf.clear(0);
+    for(let y = 0; y < GY; y++) buf.rect(0, y, W, 1, y < 26 ? C('#31245c') : y < 50 ? C('#4a3775') : C('#5d4589'));
+    for(let k = 0; k < 4; k++){
+      const x = Math.round((k * 44 - st.dist * .12) % 190) - 20;
+      buf.ellipse(x, 14 + (k % 2) * 8, 7, 2, PAL.cloud);
+    }
+    for(let x = 0; x < W; x++)
+      buf.rect(x, GY - 10 - Math.round(5 + Math.sin((x + st.dist * .2) / 11) * 4), 1, 20, C('#3b4f7a'));
+    buf.rect(0, GY - 2, W, 2, PAL.grass);
+    buf.rect(0, GY, W, H - GY, PAL.track);
+    const scroll = Math.round(st.dist) % 20;
+    for(let x = -scroll; x < W; x += 20){ buf.rect(x, GY + 6, 10, 1, PAL.lane); buf.rect(x + 4, GY + 13, 10, 1, PAL.lane); }
+    st.obs.forEach(o => {
+      const x = Math.round(o.x);
+      buf.rect(x, GY - o.h, 2, o.h, C('#f0e6d8'));
+      buf.rect(x + 5, GY - o.h, 2, o.h, C('#f0e6d8'));
+      buf.rect(x - 1, GY - o.h, 9, 3, PAL.red);
+      buf.rect(x - 1, GY - o.h + 3, 9, 1, C('#b8434b'));
+    });
+    buf.ellipse(PX, GY + 1, 8, 2, PAL.shadow);
+    const spr = creatureSprite(sp(), { t: st.t, run: st.dead ? 0 : 1, equip: S.equip, blink: st.dead });
+    buf.stamp(spr, PX - 31, Math.round(GY + st.y) - 56);
+    if(st.dead){ buf.rect(PX - 12, GY - 44, 3, 3, PAL.red); buf.rect(PX + 9, GY - 44, 3, 3, PAL.red); }
+    buf.blit(ctx, 3);
+    $('hudScore').textContent = Math.round(st.dist / 10) + ' M';
+  };
+}
+
+/* ---- 13b. 100M SPRINT ---- */
+function gameSprint(){
+  const W = 160, H = 54, GY = 44;
+  $('gameHost').innerHTML = `<div class="panel">
+    <div class="hud"><span>⚡ 100M SPRINT</span><span id="hudT">0.0s</span></div>
+    <div class="gamewrap"><canvas id="gcv" width="${W * 3}" height="${H * 3}"></canvas></div>
+    <div class="bar" style="margin-top:8px"><i id="sprintBar" style="background-color:var(--mint)"></i></div>
+    <div class="tapzone"><button id="btnL">◀ LEFT</button><button id="btnR">RIGHT ▶</button></div>
+    <div class="tiny dim center" style="margin-top:8px">Alternate the two buttons. Hitting the same one twice trips you up.</div>
+    <button class="sm" style="width:100%;margin-top:8px" onclick="quitGame()">✕ QUIT</button></div>`;
+
+  const ctx = $('gcv').getContext('2d'), buf = new Buf(W, H);
+  const st = { m:0, t:0, started:false, last:null, done:false, stumble:0, anim:0 };
+  const step = side => {
+    if(st.done) return;
+    st.started = true;
+    if(st.last === side){ st.m = Math.max(0, st.m - .8); st.stumble = .35; }
+    else { st.m += 1.9; st.anim += .6; }
+    st.last = side;
+    $('sprintBar').style.width = clamp(st.m, 0, 100) + '%';
+  };
+  $('btnL').onclick = () => step('L');
+  $('btnR').onclick = () => step('R');
+  const key = e => { if(e.code === 'ArrowLeft') step('L'); if(e.code === 'ArrowRight') step('R'); };
+  document.addEventListener('keydown', key);
+  gameState.cleanup = () => document.removeEventListener('keydown', key);
+
+  gameState.frame = dt => {
+    if(st.started && !st.done) st.t += dt;
+    st.stumble = Math.max(0, st.stumble - dt);
+    if(!st.done && (st.m >= 100 || st.t > 45)){
+      st.done = true;
+      const time = st.t;
+      const win = st.m >= 100;
+      const stones = win ? clamp(Math.round(420 / Math.max(6, time)), 5, 30) : 3;
+      if(win && (!S.best.sprint || time < parseFloat(S.best.sprint))) S.best.sprint = time.toFixed(1) + 's';
+      setTimeout(() => gameResult('sprint', win ? 'FINISH LINE!' : 'TIMED OUT',
+        win ? `100 m in <b>${time.toFixed(1)}s</b> · <b>${(100 / time).toFixed(1)} m/s</b>`
+            : `Only <b>${st.m.toFixed(0)} m</b> covered.`, stones), 700);
+    }
+    buf.clear(0);
+    for(let y = 0; y < GY; y++) buf.rect(0, y, W, 1, y < 18 ? C('#31245c') : C('#4a3775'));
+    buf.rect(0, GY - 2, W, 2, PAL.grass);
+    buf.rect(0, GY, W, H - GY, PAL.track);
+    for(let k = 0; k <= 10; k++){                              // 10m markers
+      buf.rect(Math.round(8 + k * 14), GY + 3, 1, 3, PAL.lane);
+    }
+    buf.rect(W - 8, GY - 22, 2, 22, PAL.lane);                  // finish post
+    for(let j = 0; j < 5; j++) buf.rect(W - 14, GY - 22 + j * 3, 8, 2, j % 2 ? PAL.lane : PAL.dark);
+    const px = Math.round(10 + clamp(st.m, 0, 100) / 100 * (W - 34));
+    buf.ellipse(px, GY + 1, 7, 2, PAL.shadow);
+    buf.stamp(creatureSprite(sp(), { t: st.anim + st.t * .4, run: st.done ? 0 : 1, equip: S.equip }), px - 31, GY - 56 + 8);
+    if(st.stumble > 0) buf.rect(px - 4, GY - 40, 9, 3, PAL.red);
+    buf.blit(ctx, 3);
+    $('hudT').textContent = st.t.toFixed(1) + 's · ' + Math.round(st.m) + 'm';
+  };
+}
+
+/* ---- 13c. PACE KEEPER ---- */
+function gamePace(){
+  $('gameHost').innerHTML = `<div class="panel">
+    <div class="hud"><span>⏱️ PACE KEEPER</span><span id="hudRep">REP 1/8</span></div>
+    <div class="gamewrap" style="margin-bottom:8px"><canvas id="pcv" width="480" height="141"></canvas></div>
+    <div class="track" id="paceTrack" style="height:40px">
+      <div class="zone" id="paceZone"></div><div class="needle" id="paceNeedle"></div>
+      <div class="runner" id="paceRunner">🏃</div></div>
+    <div class="tiny center" id="paceFb" style="margin:10px 0;height:16px;color:var(--mint)"></div>
+    <div class="btnrow g1"><button class="primary" id="lockBtn" style="padding:18px">⏱ LOCK IT</button></div>
+    <div class="btnrow" style="margin-top:8px"><button class="sm" onclick="quitGame()">✕ QUIT</button>
+      <div class="tiny dim center" style="align-self:center">SPACE works too</div></div></div>`;
+
+  const st = { rep:1, reps:8, pos:.5, dir:1, spd:.85, zc:.5, zw:.22, score:0, done:false, lock:0, t:0, cheer:0 };
+  const PW = 160, PH = 47, PGY = 39;
+  const pctx = $('pcv').getContext('2d'), pbuf = new Buf(PW, PH);
+  const newRep = () => {
+    st.zw = .22 - (st.rep - 1) * .016;
+    st.spd = .85 + (st.rep - 1) * .13;
+    st.zc = .2 + Math.random() * .6;
+    st.dir = Math.random() < .5 ? 1 : -1;
+    $('paceZone').style.left = ((st.zc - st.zw / 2) * 100) + '%';
+    $('paceZone').style.width = (st.zw * 100) + '%';
+    $('hudRep').textContent = `REP ${st.rep}/${st.reps}`;
+  };
+  const lock = () => {
+    if(st.done || st.lock > 0) return;
+    const d = Math.abs(st.pos - st.zc), half = st.zw / 2;
+    const hit = d <= half;
+    const acc = hit ? clamp(1 - d / half, 0, 1) : 0;
+    st.score += hit ? .45 + .55 * acc : 0;
+    $('paceFb').textContent = !hit ? '✗ OFF PACE' : acc > .75 ? '★ PERFECT SPLIT' : acc > .4 ? '✓ ON PACE' : '~ RAGGED';
+    $('paceFb').style.color = !hit ? 'var(--red)' : acc > .75 ? 'var(--sun)' : 'var(--mint)';
+    st.lock = .45;
+    st.rep++;
+    if(st.rep > st.reps){
+      st.done = true;
+      const pct = st.score / st.reps;
+      const stones = clamp(Math.round(pct * 32), 1, 30);
+      const grade = pct > .85 ? 'METRONOME' : pct > .6 ? 'SOLID SESSION' : pct > .35 ? 'A BIT RAGGED' : 'ROUGH DAY';
+      if(!S.best.pace || pct * 100 > parseFloat(S.best.pace)) S.best.pace = Math.round(pct * 100) + '%';
+      setTimeout(() => gameResult('pace', grade,
+        `Pace accuracy <b>${Math.round(pct * 100)}%</b> over ${st.reps} reps`, stones), 800);
+    } else setTimeout(newRep, 420);
+  };
+  $('lockBtn').onclick = lock;
+  const key = e => { if(e.code === 'Space'){ e.preventDefault(); lock(); } };
+  document.addEventListener('keydown', key);
+  gameState.cleanup = () => document.removeEventListener('keydown', key);
+  newRep();
+
+  gameState.frame = dt => {
+    st.t += dt;
+    st.cheer = Math.max(0, st.cheer - dt);
+    /* your RunMon jogging the rep out on the track */
+    pbuf.clear(0);
+    for(let y = 0; y < PGY; y++) pbuf.rect(0, y, PW, 1, y < 12 ? C('#31245c') : C('#4a3775'));
+    for(let k = 0; k < 3; k++)
+      pbuf.ellipse(Math.round((k * 56 + st.t * 6) % 190) - 16, 6 + k * 5, 6, 2, PAL.cloud);
+    pbuf.rect(0, PGY - 2, PW, 2, PAL.grass);
+    pbuf.rect(0, PGY, PW, PH - PGY, PAL.track);
+    const sc = Math.round(st.t * 34) % 18;
+    for(let x = -sc; x < PW; x += 18){ pbuf.rect(x, PGY + 2, 9, 1, PAL.lane); pbuf.rect(x + 4, PGY + 6, 9, 1, PAL.lane); }
+    pbuf.ellipse(PW / 2, PGY + 1, 7, 2, PAL.shadow);
+    pbuf.stamp(creatureSprite(sp(), { t: st.t, run: st.done ? 0 : 1, equip: S.equip }), PW / 2 - 31, PGY - 56 + 6);
+    pbuf.blit(pctx, 3);
+
+    st.lock = Math.max(0, st.lock - dt);
+    if(!st.done && st.lock <= 0){
+      st.pos += st.dir * st.spd * dt;
+      if(st.pos > 1){ st.pos = 1; st.dir = -1; }
+      if(st.pos < 0){ st.pos = 0; st.dir = 1; }
+    }
+    $('paceNeedle').style.left = (st.pos * 100) + '%';
+    $('paceRunner').style.left = (st.pos * 100) + '%';
+    $('paceRunner').style.transform = 'translateX(-50%) scaleX(' + (st.dir > 0 ? 1 : -1) + ')';
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ *  14. BOOT
+ * ------------------------------------------------------------------ */
+function renderAll(){
+  $('stoneCount').textContent = Math.floor(S.stones);
+  renderHome();
+  if(ui.tab === 'log')  renderLog();
+  if(ui.tab === 'feed') renderFeed();
+  if(ui.tab === 'shop') renderShop();
+  if(ui.tab === 'dex')  renderDex();
+  if(ui.tab === 'play' && !gameState.live) renderGames();
+}
+/* periodic upkeep must never rebuild the log inputs under the player's fingers */
+function softRefresh(){
+  tick();
+  if(gameState.live) return;
+  renderHome();
+  if(ui.tab === 'log')  refreshLog();
+  if(ui.tab === 'feed') renderFeed();
+  if(ui.tab === 'shop') renderShop();
+  if(ui.tab === 'play') renderGames();
+}
+function init(){
+  buildTabs();
+  $('creatureCanvas').addEventListener('click', pokeCreature);
+  $('modal').addEventListener('click', e => { if(e.target === $('modal')) closeModal(); });
+  tick(); renderAll(); renderGames();
+  setInterval(softRefresh, 20000);
+  requestAnimationFrame(loop);
+  if(!S.acts.length && S.xp === 0)
+    setTimeout(() => toast('Tap your RunMon to say hi — then log a run.', 3600), 700);
+}
+init();
+</script>
+</body>
+</html>
