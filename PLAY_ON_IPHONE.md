@@ -46,6 +46,15 @@ use Option A or C instead.)
 
 ---
 
+## Bonus: PolyMe
+
+The same repo has **[`polyme/`](polyme/)** — take a selfie, get a low-poly PS1
+character you can ragdoll. Once Pages is set up (Option A), it lives at
+`https://sliekery.github.io/text-raiding/polyme/`. Add that to your home screen
+too. It also runs fully offline from the file, same as the game.
+
+---
+
 ## Notes
 
 - Everything runs **on your phone**; there is no server and no data leaves the device.

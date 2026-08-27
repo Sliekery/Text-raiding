@@ -39,6 +39,19 @@ The browser and terminal versions share identical game data and balance.
 Your progress (character, gear, cleared bosses) is saved automatically to
 `textraid_save.json` in the working directory.
 
+---
+
+## 🕹️ Also in here: PolyMe
+
+**[`polyme/`](polyme/)** is a separate toy in the same spirit — one
+self-contained `index.html`, no dependencies, works on a phone. Upload a photo
+of yourself and it builds a **low-poly PlayStation-era character** (180
+triangles, a 128×128 texture baked from the photo) that you can stand up, make
+dance, and throw around as a ragdoll. Nothing is uploaded — it all runs in the
+browser. See [polyme/README.md](polyme/README.md).
+
+---
+
 ## How it works
 
 Each round you choose **one** action. Watch the `⚠ INCOMING` banner — it

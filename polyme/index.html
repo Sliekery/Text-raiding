@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PolyMe">
+<meta name="theme-color" content="#0d0f15">
+<title>PolyMe — PS1 Ragdoll Maker</title>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#161a24; --panel2:#1d2331; --line:#2a3142;
+    --txt:#d7dcea; --dim:#8a92a6; --gold:#ffcc55; --red:#ff5d5d; --green:#5dd98a;
+    --blue:#6db3ff; --mag:#c98bff; --cyan:#62e6e0;
+    --safeT:env(safe-area-inset-top); --safeB:env(safe-area-inset-bottom);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--txt);
+    font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace; font-size:15px;
+    -webkit-text-size-adjust:100%; overscroll-behavior:none;
+  }
+  body{overflow:hidden;}
+  .screen{
+    position:fixed; inset:0; display:none; flex-direction:column;
+    overflow:hidden;
+  }
+  .screen.on{display:flex;}
+  .scroll{overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1;}
+
+  /* ---------- shared bits ---------- */
+  h1,h2,h3{margin:.3em 0;}
+  .wrap{max-width:560px; margin:0 auto; width:100%; padding:0 14px;}
+  .title{text-align:center; padding:calc(var(--safeT) + 22px) 0 2px;}
+  .title .big{
+    font-size:34px; font-weight:800; letter-spacing:2px;
+    background:linear-gradient(90deg,var(--mag),var(--cyan));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .title .sub{color:var(--dim); font-size:12.5px; line-height:1.5; margin-top:4px;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px; margin:10px 0;}
+  button{
+    font-family:inherit; font-size:15px; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:10px; padding:13px 12px; width:100%;
+    text-align:left; cursor:pointer; transition:transform .05s, background .1s;
+    min-height:48px;
+  }
+  button:active{transform:scale(.98); background:#283248;}
+  button:disabled{opacity:.4;}
+  button.primary{
+    background:linear-gradient(90deg,#3a2a5a,#264a5a); border-color:#3a4a66;
+    text-align:center; font-weight:700; letter-spacing:.5px;
+  }
+  button.ghost{background:transparent;}
+  .btn-title{font-weight:700;}
+  .btn-desc{color:var(--dim); font-size:12px; margin-top:3px; line-height:1.35;}
+  .stack > *{margin:8px 0;}
+  .note{color:var(--dim); font-size:11.5px; line-height:1.6;}
+  .note b{color:var(--txt); font-weight:600;}
+  .hidden{display:none !important;}
+  input[type=file]{display:none;}
+
+  /* ---------- capture screen ---------- */
+  #capTips li{margin:3px 0;}
+  #capTips{margin:6px 0 0; padding-left:18px;}
+
+  /* ---------- align screen ---------- */
+  #alignStage{
+    flex:1; position:relative; display:flex; align-items:center;
+    justify-content:center; min-height:0; padding:6px 8px;
+  }
+  #alignCanvas{
+    touch-action:none; max-width:100%; max-height:100%;
+    border-radius:10px; border:1px solid var(--line); background:#05070c;
+    display:block;
+  }
+  .topbar{
+    display:flex; align-items:center; gap:8px; padding:calc(var(--safeT) + 8px) 12px 8px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .topbar .tb-title{flex:1; font-weight:700; font-size:14px; letter-spacing:.5px;}
+  .topbar button{width:auto; padding:9px 12px; min-height:40px; font-size:13px;}
+  .bottombar{
+    padding:8px 12px calc(var(--safeB) + 10px); border-top:1px solid var(--line);
+    background:var(--panel);
+  }
+  .chiprow{display:flex; gap:8px; margin-bottom:8px;}
+  .chiprow button{width:auto; flex:1; text-align:center; font-size:13px; padding:10px 6px; min-height:42px;}
+  .chiprow button.act{background:#2d3a52; border-color:#42557a; color:#fff;}
+
+  /* ---------- play screen ---------- */
+  #playScreen{background:#05070c;}
+  #gl{
+    position:absolute; inset:0; width:100%; height:100%; display:block;
+    touch-action:none; image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  #hudTop{
+    position:absolute; top:0; left:0; right:0; z-index:5;
+    display:flex; align-items:center; gap:8px;
+    padding:calc(var(--safeT) + 8px) 10px 8px;
+    background:linear-gradient(180deg,rgba(5,7,12,.85),rgba(5,7,12,0));
+    pointer-events:none;
+  }
+  #hudTop button{pointer-events:auto;}
+  #hudTop .sp{flex:1;}
+  .iconbtn{
+    width:auto !important; min-height:40px; padding:8px 11px; font-size:14px;
+    background:rgba(29,35,49,.82); border:1px solid var(--line); border-radius:10px;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+  #hudBottom{
+    position:absolute; left:0; right:0; bottom:0; z-index:5;
+    padding:10px 8px calc(var(--safeB) + 10px);
+    background:linear-gradient(0deg,rgba(5,7,12,.9),rgba(5,7,12,0));
+  }
+  #poseRow, #actRow{
+    display:flex; gap:6px; max-width:560px; margin:0 auto 6px;
+  }
+  #poseRow button, #actRow button{
+    flex:1; width:auto; text-align:center; padding:9px 2px; min-height:52px;
+    font-size:10.5px; line-height:1.25; border-radius:11px;
+    background:rgba(29,35,49,.85); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+  #poseRow button .em, #actRow button .em{display:block; font-size:19px; margin-bottom:2px;}
+  #poseRow button.act{background:#33405c; border-color:#4a5f8a; color:#fff;}
+
+  /* FX drawer */
+  #fxPanel{
+    position:absolute; left:0; right:0; bottom:0; z-index:6;
+    background:var(--panel); border-top:1px solid var(--line);
+    border-radius:14px 14px 0 0; padding:12px 14px calc(var(--safeB) + 14px);
+    transform:translateY(102%); transition:transform .22s ease; max-height:78%;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  #fxPanel.on{transform:translateY(0);}
+  .fxrow{display:flex; align-items:center; gap:10px; margin:11px 0;}
+  .fxrow label{flex:0 0 96px; font-size:12px; color:var(--dim);}
+  .fxrow input[type=range]{flex:1; accent-color:var(--cyan); height:26px;}
+  .fxrow .val{flex:0 0 34px; text-align:right; font-size:11px; color:var(--dim);}
+  .seg{display:flex; gap:6px; flex:1;}
+  .seg button{
+    flex:1; width:auto; text-align:center; font-size:12px; padding:8px 4px; min-height:38px;
+  }
+  .seg button.act{background:#33405c; border-color:#4a5f8a; color:#fff;}
+  .fxhead{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+  .fxhead b{font-size:13px; letter-spacing:.5px;}
+  .fxhead button{width:auto; padding:6px 12px; min-height:34px; font-size:13px;}
+
+  /* Landscape on a phone: two full-width rows eat a third of the screen, so
+     fold the eight controls into one compact row. */
+  @media (orientation:landscape) and (max-height:540px){
+    #hudBottom{display:flex; gap:6px; max-width:940px; margin:0 auto;
+      padding:6px 8px calc(var(--safeB) + 6px);}
+    #poseRow, #actRow{flex:1; margin:0;}
+    #poseRow button, #actRow button{min-height:44px; font-size:9.5px; padding:5px 2px;}
+    #poseRow button .em, #actRow button .em{font-size:15px; margin-bottom:1px;}
+    #fxPanel{max-height:92%;}
+    #fxPanel .fxrow{margin:7px 0;}
+  }
+
+  /* toast */
+  #toast{
+    position:absolute; left:50%; top:15%; transform:translate(-50%,-50%);
+    z-index:9; background:rgba(13,15,21,.94); border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px; max-width:300px; text-align:center;
+    font-size:12.5px; line-height:1.7; color:var(--txt); pointer-events:none;
+    opacity:0; transition:opacity .3s;
+  }
+  #toast.on{opacity:1;}
+  #toast .k{color:var(--cyan);}
+
+  /* busy overlay */
+  #busy{
+    position:fixed; inset:0; z-index:50; background:rgba(13,15,21,.92);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    gap:12px; font-size:13px; color:var(--dim);
+  }
+  #busy.on{display:flex;}
+  .spin{
+    width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--cyan);
+    border-radius:50%; animation:sp .8s linear infinite;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- ============================ CAPTURE ============================ -->
+<div class="screen on" id="capScreen">
+  <div class="scroll">
+    <div class="wrap">
+      <div class="title">
+        <div class="big">POLYME</div>
+        <div class="sub">Turn a photo of yourself into a low-poly<br>PlayStation-era character. Then throw them around.</div>
+      </div>
+
+      <div class="panel stack">
+        <button class="primary" id="btnCamera">📸 &nbsp;Take a photo</button>
+        <button id="btnUpload">
+          <div class="btn-title">🖼️ Choose a photo</div>
+          <div class="btn-desc">Pick a full-body shot from your library</div>
+        </button>
+        <button id="btnSkip" class="ghost">
+          <div class="btn-title">🎲 Skip — use a stock body</div>
+          <div class="btn-desc">Jump straight to the ragdoll playground</div>
+        </button>
+        <button id="btnResume" class="ghost hidden">
+          <div class="btn-title">↩️ Load my last character</div>
+          <div class="btn-desc">Saved on this device</div>
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="note"><b>For the best result</b>
+          <ul id="capTips">
+            <li>Stand back so your <b>whole body</b> is in frame.</li>
+            <li>Arms slightly out from your sides.</li>
+            <li>Plain wall behind you, decent light.</li>
+            <li>Portrait orientation works best.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="note">🔒 <b>Nothing is uploaded.</b> Your photo never leaves this
+          device — the character is built entirely in your browser, and works offline.</div>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+  </div>
+  <input type="file" id="fileCamera" accept="image/*" capture="user">
+  <input type="file" id="fileUpload" accept="image/*">
+</div>
+
+<!-- ============================ ALIGN ============================ -->
+<div class="screen" id="alignScreen">
+  <div class="topbar">
+    <button id="alignBack">‹ Back</button>
+    <div class="tb-title">Mark your body</div>
+    <button id="alignAuto">Auto</button>
+  </div>
+  <div id="alignStage"><canvas id="alignCanvas"></canvas></div>
+  <div class="bottombar">
+    <div class="note" style="margin-bottom:8px; text-align:center">
+      Drag the dots onto your <b>head, chin, shoulders, hips</b> and <b>feet</b>.
+    </div>
+    <div class="chiprow">
+      <button id="alignFlip">↔ Flip</button>
+      <button id="alignReset">Reset dots</button>
+    </div>
+    <button class="primary" id="alignGo">Build my character →</button>
+  </div>
+</div>
+
+<!-- ============================ PLAY ============================ -->
+<div class="screen" id="playScreen">
+  <canvas id="gl"></canvas>
+
+  <div id="hudTop">
+    <button class="iconbtn" id="btnHome">‹</button>
+    <div class="sp"></div>
+    <button class="iconbtn" id="btnShot">📷</button>
+    <button class="iconbtn" id="btnFx">⚙️</button>
+  </div>
+
+  <div id="hudBottom">
+    <div id="poseRow">
+      <button data-pose="stand" class="act"><span class="em">🧍</span>STAND</button>
+      <button data-pose="wave"><span class="em">👋</span>WAVE</button>
+      <button data-pose="dance"><span class="em">🕺</span>DANCE</button>
+      <button data-pose="limp"><span class="em">🥴</span>RAGDOLL</button>
+    </div>
+    <div id="actRow">
+      <button id="actLaunch"><span class="em">🚀</span>LAUNCH</button>
+      <button id="actPunch"><span class="em">👊</span>SHOVE</button>
+      <button id="actGrav"><span class="em">🌍</span>EARTH</button>
+      <button id="actReset"><span class="em">🔄</span>RESET</button>
+    </div>
+  </div>
+
+  <div id="fxPanel">
+    <div class="fxhead"><b>PS1 FX</b><button id="fxClose">Done</button></div>
+    <div class="fxrow">
+      <label>Resolution</label>
+      <div class="seg" id="segRes">
+        <button data-res="144">144p</button>
+        <button data-res="224" class="act">224p</button>
+        <button data-res="320">320p</button>
+      </div>
+    </div>
+    <div class="fxrow"><label>Vertex jitter</label><input type="range" id="fxSnap" min="0" max="100" value="70"><span class="val" id="fxSnapV">70</span></div>
+    <div class="fxrow"><label>Texture warp</label><input type="range" id="fxWarp" min="0" max="100" value="100"><span class="val" id="fxWarpV">100</span></div>
+    <div class="fxrow"><label>Colour depth</label>
+      <div class="seg" id="segBits">
+        <button data-bits="4">4-bit</button>
+        <button data-bits="5" class="act">15-bit</button>
+        <button data-bits="8">True</button>
+      </div>
+    </div>
+    <div class="fxrow"><label>Fog</label>
+      <div class="seg" id="segFog">
+        <button data-fog="0">Off</button>
+        <button data-fog="1" class="act">On</button>
+      </div>
+    </div>
+    <div class="fxrow"><label>Texture</label>
+      <div class="seg" id="segTex">
+        <button data-tex="1" class="act">Photo</button>
+        <button data-tex="0">Flat</button>
+      </div>
+    </div>
+    <div class="fxrow"><label>Auto-spin</label>
+      <div class="seg" id="segSpin">
+        <button data-spin="1" class="act">On</button>
+        <button data-spin="0">Off</button>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px">
+      Drag <b>the character</b> to grab a limb · drag <b>the background</b> to orbit ·
+      pinch to zoom.
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<div id="busy"><div class="spin"></div><div id="busyMsg">Building your character…</div></div>
+<script>
+"use strict";
+/* =====================================================================
+   PolyMe — a photo of you -> a low-poly PS1 character you can ragdoll.
+   Everything runs on-device: no server, no ML, no dependencies.
+
+   Pipeline:
+     photo -> body landmarks (auto-guess + user drags)
+           -> body proportions  (drives a procedural low-poly mesh)
+           -> 128x128 texture atlas baked from photo regions, quantised
+           -> verlet ragdoll skeleton + procedural poses
+           -> WebGL1 renderer with PS1 tricks (vertex snap, affine UVs,
+              15-bit dithered colour, 224p internal framebuffer, fog)
+   ===================================================================== */
+
+/* ------------------------------ helpers ------------------------------ */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const TAU = Math.PI * 2;
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
+  return c;
+}
+function showBusy(msg) {
+  $('#busyMsg').textContent = msg || 'Working…';
+  $('#busy').classList.add('on');
+}
+function hideBusy() { $('#busy').classList.remove('on'); }
+function nextFrame() { return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
+
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('on'));
+  $('#' + id).classList.add('on');
+}
+
+let toastTimer = 0;
+function toast(html, ms) {
+  const t = $('#toast');
+  t.innerHTML = html;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), ms || 3200);
+}
+
+/* --------------------------- image loading --------------------------- */
+const MAX_DIM = 1024;
+
+async function loadImageFile(file) {
+  let bmp = null;
+  if (window.createImageBitmap) {
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) { try { bmp = await createImageBitmap(file); } catch (e2) { bmp = null; } }
+  }
+  if (!bmp) {
+    bmp = await new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => { URL.revokeObjectURL(url); res(im); };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+      im.src = url;
+    });
+  }
+  const iw = bmp.width, ih = bmp.height;
+  const s = Math.min(1, MAX_DIM / Math.max(iw, ih));
+  const c = makeCanvas(iw * s, ih * s);
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  return c;
+}
+
+function flipCanvasX(src) {
+  const c = makeCanvas(src.width, src.height);
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width, 0); ctx.scale(-1, 1);
+  ctx.drawImage(src, 0, 0);
+  return c;
+}
+
+/* ---------------------- landmarks & auto-detection -------------------- */
+// Landmarks live in working-image pixel space.
+const LM_KEYS = ['headTop', 'chin', 'shL', 'shR', 'hipL', 'hipR', 'feet'];
+const LM_LABEL = {
+  headTop: 'head', chin: 'chin', shL: 'shoulder', shR: 'shoulder',
+  hipL: 'hip', hipR: 'hip', feet: 'feet'
+};
+
+// Anatomically plausible starting guess for a subject filling the frame.
+// Widths are expressed relative to image *height* so the guess stays correct
+// whatever the photo's aspect ratio is.
+function defaultLandmarks(w, h) {
+  const cx = w * 0.5;
+  const sw = Math.min(h * 0.111, w * 0.42);   // half shoulder width, px
+  const hw = Math.min(h * 0.069, w * 0.30);   // half hip width, px
+  const P = (x, fy) => ({ x: clamp(x, 2, w - 2), y: h * fy });
+  return {
+    headTop: P(cx, 0.050), chin: P(cx, 0.178),
+    shL: P(cx - sw, 0.200), shR: P(cx + sw, 0.200),
+    hipL: P(cx - hw, 0.484), hipR: P(cx + hw, 0.484),
+    feet: P(cx, 0.955)
+  };
+}
+
+// Very small foreground guess: model the border as background, keep pixels far
+// from it, then read the silhouette's row widths. Deliberately conservative —
+// if it looks wrong we fall back to the centred default and the user drags.
+function autoDetectLandmarks(img) {
+  const W = 72, H = Math.max(8, Math.round(72 * img.height / img.width));
+  const c = makeCanvas(W, H);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, 0, 0, W, H);
+  let px;
+  try { px = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; }
+
+  // background model from a 2px border frame
+  let br = 0, bg = 0, bb = 0, n = 0;
+  const push = (x, y) => { const i = (y * W + x) * 4; br += px[i]; bg += px[i + 1]; bb += px[i + 2]; n++; };
+  for (let x = 0; x < W; x++) { push(x, 0); push(x, 1); push(x, H - 1); push(x, H - 2); }
+  for (let y = 0; y < H; y++) { push(0, y); push(1, y); push(W - 1, y); push(W - 2, y); }
+  br /= n; bg /= n; bb /= n;
+  let varSum = 0;
+  const pushV = (x, y) => {
+    const i = (y * W + x) * 4;
+    varSum += (px[i] - br) ** 2 + (px[i + 1] - bg) ** 2 + (px[i + 2] - bb) ** 2;
+  };
+  for (let x = 0; x < W; x++) { pushV(x, 0); pushV(x, 1); pushV(x, H - 1); pushV(x, H - 2); }
+  for (let y = 0; y < H; y++) { pushV(0, y); pushV(1, y); pushV(W - 1, y); pushV(W - 2, y); }
+  const bStd = Math.sqrt(varSum / n);
+  const thresh = Math.max(46, Math.min(150, bStd * 2.2 + 30));
+
+  // silhouette rows
+  const rowMin = new Int16Array(H).fill(9999);
+  const rowMax = new Int16Array(H).fill(-1);
+  const rowCnt = new Int16Array(H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const d = Math.sqrt((px[i] - br) ** 2 + (px[i + 1] - bg) ** 2 + (px[i + 2] - bb) ** 2);
+      if (d > thresh) {
+        if (x < rowMin[y]) rowMin[y] = x;
+        if (x > rowMax[y]) rowMax[y] = x;
+        rowCnt[y]++;
+      }
+    }
+  }
+  const minRun = Math.max(2, Math.round(W * 0.035));
+  let top = -1, bot = -1;
+  for (let y = 0; y < H; y++) if (rowCnt[y] >= minRun) { top = y; break; }
+  for (let y = H - 1; y >= 0; y--) if (rowCnt[y] >= minRun) { bot = y; break; }
+  if (top < 0 || bot < 0) return null;
+  const bh = bot - top;
+  if (bh < H * 0.35) return null;                 // subject too small — don't trust it
+
+  const sx = img.width / W, sy = img.height / H;
+  const cxOf = (y) => (rowMin[y] + rowMax[y]) * 0.5;
+
+  // shoulders: widest row in the upper quarter-ish of the body
+  let shY = top + Math.round(bh * 0.20), best = -1;
+  for (let y = top + Math.round(bh * 0.11); y <= top + Math.round(bh * 0.30); y++) {
+    const w = rowMax[y] - rowMin[y];
+    if (w > best) { best = w; shY = y; }
+  }
+  // head: narrowest row above the shoulders gives the neck; head top is `top`
+  let neckY = shY, narrow = 1e9;
+  for (let y = top + Math.round(bh * 0.06); y < shY; y++) {
+    const w = rowMax[y] - rowMin[y];
+    if (w <= narrow) { narrow = w; neckY = y; }
+  }
+  const chinY = clamp(neckY - bh * 0.015, top + bh * 0.05, shY - 1);
+  const hipY = top + Math.round(bh * 0.52);
+
+  const shW = Math.max(best, W * 0.08);
+  const hipW = Math.max(rowMax[hipY] - rowMin[hipY], W * 0.06);
+  const headCx = cxOf(clamp(Math.round(top + bh * 0.06), 0, H - 1));
+  const shCx = cxOf(shY), hipCx = cxOf(hipY), botCx = cxOf(bot);
+
+  const P = (x, y) => ({ x: clamp(x * sx, 0, img.width), y: clamp(y * sy, 0, img.height) });
+  return {
+    headTop: P(headCx, top + 0.5),
+    chin: P(headCx, chinY),
+    // pull shoulders in a little: the widest row usually includes the arms
+    shL: P(shCx - shW * 0.40, shY),
+    shR: P(shCx + shW * 0.40, shY),
+    hipL: P(hipCx - hipW * 0.42, hipY),
+    hipR: P(hipCx + hipW * 0.42, hipY),
+    feet: P(botCx, bot)
+  };
+}
+
+/* ------------------------- proportions from LM ------------------------ */
+// Turns landmarks into a body description in metres. Height is nudged by how
+// many "heads tall" the person reads as, so builds differ without the camera
+// framing falling apart.
+function proportionsFromLandmarks(lm) {
+  const headTopY = lm.headTop.y, chinY = lm.chin.y;
+  const shY = (lm.shL.y + lm.shR.y) * 0.5;
+  const hipY = (lm.hipL.y + lm.hipR.y) * 0.5;
+  const feetY = lm.feet.y;
+
+  const Hpx = Math.max(1e-3, feetY - headTopY);
+  const headPx = Math.max(Hpx * 0.05, chinY - headTopY);
+  const headsTall = clamp(Hpx / headPx, 5.4, 8.8);
+  const worldH = 1.75 * clamp(headsTall / 7.4, 0.90, 1.10);
+
+  // Every measurement is clamped into a plausible human range. Landmarks the
+  // user has dragged somewhere silly then bend the character rather than
+  // breaking it.
+  const f = (px) => (px / Hpx) * worldH;
+  const headH = clamp(f(headPx), worldH * 0.115, worldH * 0.165);
+  const torsoLen = clamp(f(hipY - shY), worldH * 0.24, worldH * 0.36);
+  const legLen = clamp(f(feetY - hipY), worldH * 0.42, worldH * 0.56);
+  const shoulderW = clamp(f(Math.abs(lm.shR.x - lm.shL.x)), worldH * 0.20, worldH * 0.30);
+  const hipW = clamp(f(Math.abs(lm.hipR.x - lm.hipL.x)),
+    worldH * 0.13, Math.min(worldH * 0.21, shoulderW * 0.95));
+  const build = clamp(shoulderW / (worldH * 0.245), 0.82, 1.28); // <1 slim, >1 broad
+
+  return {
+    height: worldH, headH: headH * 1.06,
+    // slightly oversized head — anatomically correct reads as pin-headed next
+    // to a boxy low-poly torso, and PS1 characters were stylised this way too
+    headW: headH * 0.82, headD: headH * 0.86,
+    torsoLen: torsoLen, legLen: legLen,
+    shoulderW: shoulderW, hipW: hipW,
+    torsoD: shoulderW * (0.46 + 0.14 * (build - 1)),
+    upperArm: worldH * 0.190, foreArm: worldH * 0.152,
+    armR: worldH * 0.0315 * build,
+    thigh: legLen * 0.50, shin: legLen * 0.44,
+    legR: worldH * 0.047 * build,
+    footLen: worldH * 0.150, footH: worldH * 0.032,
+    handR: worldH * 0.035,
+    headsTall: headsTall, build: build
+  };
+}
+
+/* -------------------------- texture atlas bake ------------------------ */
+const ATLAS = 128;
+// pixel rects inside the 128x128 atlas
+const R = {
+  headF: [0, 0, 32, 32], headB: [32, 0, 32, 32], headS: [64, 0, 32, 32], headT: [96, 0, 32, 32],
+  torsoF: [0, 32, 32, 48], torsoB: [32, 32, 32, 48], torsoS: [64, 32, 16, 48],
+  arm: [80, 32, 16, 48], leg: [96, 32, 16, 48],
+  // the arm/leg strips run shoulder-to-hand and hip-to-ankle, so each limb
+  // segment takes its own half — otherwise sleeve and skin repeat twice down
+  // the same arm
+  armU: [80, 32, 16, 24], armL: [80, 56, 16, 24],
+  legU: [96, 32, 16, 24], legL: [96, 56, 16, 24],
+  hand: [112, 32, 16, 16], foot: [112, 48, 16, 16]
+};
+
+// Box-filtered downscale by repeated halving. A single drawImage from a 500px
+// region straight down to a few pixels only samples the region's *centre* on
+// every browser, which is both aliased and — for colour sampling — flat wrong.
+function downscaleTo(src, sx, sy, sw, sh, dw, dh) {
+  sw = Math.max(2, sw); sh = Math.max(2, sh);
+  sx = clamp(sx, 0, src.width - 2); sy = clamp(sy, 0, src.height - 2);
+  sw = Math.min(sw, src.width - sx); sh = Math.min(sh, src.height - sy);
+  dw = Math.max(1, Math.round(dw)); dh = Math.max(1, Math.round(dh));
+
+  let cur = makeCanvas(sw, sh);
+  let cctx = cur.getContext('2d', { willReadFrequently: true });
+  cctx.imageSmoothingEnabled = true;
+  cctx.drawImage(src, sx, sy, sw, sh, 0, 0, cur.width, cur.height);
+
+  while (cur.width > dw * 2 && cur.height > dh * 2) {
+    const nx = makeCanvas(Math.max(dw, cur.width >> 1), Math.max(dh, cur.height >> 1));
+    const nctx = nx.getContext('2d', { willReadFrequently: true });
+    nctx.imageSmoothingEnabled = true;
+    nctx.drawImage(cur, 0, 0, cur.width, cur.height, 0, 0, nx.width, nx.height);
+    cur = nx;
+  }
+  return cur;
+}
+
+function drawRegion(dctx, src, sx, sy, sw, sh, dst) {
+  const cur = downscaleTo(src, sx, sy, sw, sh, dst[2], dst[3]);
+  dctx.imageSmoothingEnabled = true;
+  dctx.drawImage(cur, 0, 0, cur.width, cur.height, dst[0], dst[1], dst[2], dst[3]);
+}
+
+// A representative colour for a patch: average the middle 50% by luminance, so
+// a mouth, a logo or a sliver of background doesn't drag the result away.
+function avgColor(src, sx, sy, sw, sh) {
+  const c = downscaleTo(src, sx, sy, sw, sh, 8, 8);
+  let d;
+  try { d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data; }
+  catch (e) { return [128, 128, 128]; }
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) {
+    px.push([d[i], d[i + 1], d[i + 2], 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]]);
+  }
+  if (!px.length) return [128, 128, 128];
+  px.sort((a, b) => a[3] - b[3]);
+  const lo = Math.floor(px.length * 0.25), hi = Math.max(lo + 1, Math.ceil(px.length * 0.75));
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = lo; i < hi; i++) { r += px[i][0]; g += px[i][1]; b += px[i][2]; n++; }
+  return [r / n, g / n, b / n];
+}
+const rgbCss = (c) => 'rgb(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ')';
+function shade(c, k) { return [clamp(c[0] * k, 0, 255), clamp(c[1] * k, 0, 255), clamp(c[2] * k, 0, 255)]; }
+
+function fillRect(ctx, col, r) { ctx.fillStyle = rgbCss(col); ctx.fillRect(r[0], r[1], r[2], r[3]); }
+
+// scatter a little per-texel noise so flat fills still read as a PS1 texture
+function grain(ctx, r, amt) {
+  const [x, y, w, h] = r;
+  let img;
+  try { img = ctx.getImageData(x, y, w, h); } catch (e) { return; }
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * amt;
+    d[i] = clamp(d[i] + n, 0, 255);
+    d[i + 1] = clamp(d[i + 1] + n, 0, 255);
+    d[i + 2] = clamp(d[i + 2] + n, 0, 255);
+  }
+  ctx.putImageData(img, x, y);
+}
+
+function samplePalette(img, lm) {
+  const headH = Math.max(4, lm.chin.y - lm.headTop.y);
+  const headX = (lm.headTop.x + lm.chin.x) * 0.5;
+  const shY = (lm.shL.y + lm.shR.y) * 0.5;
+  const hipY = (lm.hipL.y + lm.hipR.y) * 0.5;
+  const hipX = (lm.hipL.x + lm.hipR.x) * 0.5;
+  const torsoW = Math.max(6, Math.abs(lm.shR.x - lm.shL.x));
+  const legLen = Math.max(6, lm.feet.y - hipY);
+  // trousers and shoes are sampled over one leg, not across the gap between them
+  const legX = hipX + Math.abs(lm.hipR.x - hipX) * 0.25;
+  return {
+    skin: avgColor(img, headX - headH * 0.20, lm.chin.y - headH * 0.46, headH * 0.40, headH * 0.24),
+    hair: avgColor(img, headX - headH * 0.22, lm.headTop.y + headH * 0.02, headH * 0.44, headH * 0.16),
+    shirt: avgColor(img, hipX - torsoW * 0.22, shY + (hipY - shY) * 0.30, torsoW * 0.44, (hipY - shY) * 0.35),
+    pants: avgColor(img, legX - torsoW * 0.09, hipY + legLen * 0.16, torsoW * 0.18, legLen * 0.20),
+    shoes: avgColor(img, legX - torsoW * 0.09, lm.feet.y - legLen * 0.055, torsoW * 0.18, legLen * 0.05)
+  };
+}
+
+// Paint the atlas out of photo regions. Faces we can't see (back, sides) get
+// mirrored/darkened stand-ins — at 32px nobody can tell, which is exactly why
+// the PS1 look makes single-photo reconstruction tractable at all.
+function bakeAtlasFromPhoto(img, lm, pal) {
+  const c = makeCanvas(ATLAS, ATLAS);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#7a7a86'; ctx.fillRect(0, 0, ATLAS, ATLAS);
+
+  const headH = Math.max(4, lm.chin.y - lm.headTop.y);
+  const headX = (lm.headTop.x + lm.chin.x) * 0.5;
+  const headW = headH * 0.82;
+  const shY = (lm.shL.y + lm.shR.y) * 0.5;
+  const shXc = (lm.shL.x + lm.shR.x) * 0.5;
+  const shW = Math.max(8, Math.abs(lm.shR.x - lm.shL.x));
+  const hipY = (lm.hipL.y + lm.hipR.y) * 0.5;
+  const hipX = (lm.hipL.x + lm.hipR.x) * 0.5;
+  const torsoH = Math.max(8, hipY - shY);
+  const legLen = Math.max(8, lm.feet.y - hipY);
+
+  // --- head ---
+  drawRegion(ctx, img, headX - headW * 0.5, lm.headTop.y, headW, headH, R.headF);
+  // side of the head: the outer third of the face, stretched
+  drawRegion(ctx, img, headX + headW * 0.16, lm.headTop.y, headW * 0.34, headH, R.headS);
+  ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(R.headS[0], R.headS[1], R.headS[2], R.headS[3]);
+  // back + top of head: hair colour
+  fillRect(ctx, shade(pal.hair, 0.86), R.headB);
+  fillRect(ctx, pal.hair, R.headT);
+  // a hairline band across the top of the "front" face is already in the photo
+
+  // --- torso ---
+  drawRegion(ctx, img, shXc - shW * 0.42, shY, shW * 0.84, torsoH, R.torsoF);
+  drawRegion(ctx, img, shXc - shW * 0.42, shY, shW * 0.84, torsoH, R.torsoB);
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.fillRect(R.torsoB[0], R.torsoB[1], R.torsoB[2], R.torsoB[3]);
+  ctx.restore();
+  drawRegion(ctx, img, shXc + shW * 0.24, shY, shW * 0.20, torsoH, R.torsoS);
+
+  // --- arms: a strip straddling the shoulder joint, shoulder down to the hand.
+  // The joint sits inboard of the arm's outer edge by about half an arm width,
+  // so centring the strip on it catches sleeve and forearm rather than wall. ---
+  drawRegion(ctx, img, lm.shR.x - shW * 0.10, shY, Math.max(4, shW * 0.26), torsoH * 1.05, R.arm);
+
+  // --- legs: strip from hip to feet, taken slightly off-centre ---
+  drawRegion(ctx, img, hipX + Math.abs(lm.hipR.x - hipX) * 0.25, hipY, Math.max(4, shW * 0.22), legLen * 0.92, R.leg);
+
+  // --- caps ---
+  fillRect(ctx, pal.skin, R.hand); grain(ctx, R.hand, 16);
+  fillRect(ctx, pal.shoes, R.foot); grain(ctx, R.foot, 16);
+
+  grain(ctx, R.headB, 12); grain(ctx, R.headT, 12);
+  punchAtlas(ctx, 1.12, 1.10);
+  return c;
+}
+
+// Flat-colour variant: same atlas layout, palette only. Robust fallback and a
+// genuinely nice "toy" look.
+function bakeAtlasFlat(pal) {
+  const c = makeCanvas(ATLAS, ATLAS);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#7a7a86'; ctx.fillRect(0, 0, ATLAS, ATLAS);
+  fillRect(ctx, pal.skin, R.headF);
+  fillRect(ctx, shade(pal.skin, 0.92), R.headS);
+  fillRect(ctx, shade(pal.hair, 0.9), R.headB);
+  fillRect(ctx, pal.hair, R.headT);
+  // hair fringe on the front face
+  ctx.fillStyle = rgbCss(pal.hair);
+  ctx.fillRect(R.headF[0], R.headF[1], R.headF[2], Math.round(R.headF[3] * 0.30));
+  // eyes + mouth, 3 dark texels each — pure PS1
+  ctx.fillStyle = 'rgba(20,16,24,0.85)';
+  ctx.fillRect(R.headF[0] + 8, R.headF[1] + 15, 3, 3);
+  ctx.fillRect(R.headF[0] + 21, R.headF[1] + 15, 3, 3);
+  ctx.fillRect(R.headF[0] + 12, R.headF[1] + 23, 8, 2);
+
+  fillRect(ctx, pal.shirt, R.torsoF);
+  fillRect(ctx, shade(pal.shirt, 0.82), R.torsoB);
+  fillRect(ctx, shade(pal.shirt, 0.90), R.torsoS);
+  fillRect(ctx, pal.shirt, R.arm);
+  // forearm half of the arm strip is skin
+  ctx.fillStyle = rgbCss(pal.skin);
+  ctx.fillRect(R.arm[0], R.arm[1] + Math.round(R.arm[3] * 0.52), R.arm[2], Math.round(R.arm[3] * 0.48));
+  fillRect(ctx, pal.pants, R.leg);
+  fillRect(ctx, pal.skin, R.hand);
+  fillRect(ctx, pal.shoes, R.foot);
+
+  Object.keys(R).forEach(k => grain(ctx, R[k], 14));
+  punchAtlas(ctx, 1.10, 1.06);
+  return c;
+}
+
+// mild saturation/contrast lift — PS1 textures were baked punchy to survive
+// 15-bit output
+function punchAtlas(ctx, sat, con) {
+  let img;
+  try { img = ctx.getImageData(0, 0, ATLAS, ATLAS); } catch (e) { return; }
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    for (let k = 0; k < 3; k++) {
+      let v = l + (d[i + k] - l) * sat;
+      v = 128 + (v - 128) * con;
+      d[i + k] = clamp(v, 0, 255);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ------------------------- environment texture ------------------------ */
+// One 64x64 tile shared by the ground and the crates.
+function bakeEnvTexture() {
+  const S = 64, c = makeCanvas(S, S), ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#3c4a68'; ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = '#485979';
+  for (let y = 0; y < S; y += 16) for (let x = 0; x < S; x += 16)
+    if (((x / 16) + (y / 16)) % 2 === 0) ctx.fillRect(x, y, 16, 16);
+  // grid lines + speckle
+  ctx.fillStyle = 'rgba(150,200,245,0.17)';
+  for (let i = 0; i < S; i += 16) { ctx.fillRect(0, i, S, 1); ctx.fillRect(i, 0, 1, S); }
+  const img = ctx.getImageData(0, 0, S, S), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * 22;
+    d[i] = clamp(d[i] + n, 0, 255); d[i + 1] = clamp(d[i + 1] + n, 0, 255); d[i + 2] = clamp(d[i + 2] + n, 0, 255);
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+/* =====================================================================
+   SKELETON + VERLET RAGDOLL
+   16 particles, distance constraints for bones, extra braces for the torso
+   and soft min/max limits so elbows and knees don't fold inside out.
+   Poses are applied as a soft pull toward animated target positions, so
+   "stand" and "ragdoll" are the same code path with one gain between them
+   — which is what makes getting up from a heap look right.
+   ===================================================================== */
+
+const J = {
+  head: 0, neck: 1, chest: 2, pelvis: 3,
+  shL: 4, elL: 5, haL: 6,
+  shR: 7, elR: 8, haR: 9,
+  hipL: 10, knL: 11, ftL: 12,
+  hipR: 13, knR: 14, ftR: 15
+};
+const NJ = 16;
+
+const POSE_W = new Float32Array([
+  0.34, 0.46, 0.46, 0.52,   // head neck chest pelvis
+  0.50, 0.30, 0.24,          // shoulder elbow hand  (L)
+  0.50, 0.30, 0.24,          // (R)
+  0.52, 0.36, 0.62,          // hip knee foot (L)
+  0.52, 0.36, 0.62           // (R)
+]);
+const RADIUS = new Float32Array([
+  0.115, 0.075, 0.095, 0.095,
+  0.070, 0.055, 0.055,
+  0.070, 0.055, 0.055,
+  0.075, 0.058, 0.062,
+  0.075, 0.058, 0.062
+]);
+
+function restPose(P) {
+  // world-ish local space: origin between the feet, +Y up, +Z is the way the
+  // character faces, +X is their (image) right.
+  const p = new Float32Array(NJ * 3);
+  const set = (j, x, y, z) => { p[j * 3] = x; p[j * 3 + 1] = y; p[j * 3 + 2] = z; };
+  const hipY = P.legLen;
+  const chestY = hipY + P.torsoLen * 0.55;
+  const neckY = hipY + P.torsoLen;
+  const shY = neckY - P.headH * 0.10;
+  // 0.44 puts the base of the head box exactly on top of the torso — any
+  // higher and the character has a visibly floating head
+  const headY = neckY + P.headH * 0.44;
+  const sw = P.shoulderW, hw = P.hipW;
+
+  set(J.pelvis, 0, hipY, 0);
+  set(J.chest, 0, chestY, 0);
+  set(J.neck, 0, neckY, 0);
+  set(J.head, 0, headY, 0);
+  set(J.shL, -sw * 0.5, shY, 0);
+  set(J.shR, sw * 0.5, shY, 0);
+  // arms hang in a slight A-pose
+  set(J.elL, -sw * 0.5 - P.upperArm * 0.30, shY - P.upperArm * 0.92, 0.01);
+  set(J.elR, sw * 0.5 + P.upperArm * 0.30, shY - P.upperArm * 0.92, 0.01);
+  set(J.haL, -sw * 0.5 - P.upperArm * 0.30 - P.foreArm * 0.22, shY - P.upperArm * 0.92 - P.foreArm * 0.94, 0.03);
+  set(J.haR, sw * 0.5 + P.upperArm * 0.30 + P.foreArm * 0.22, shY - P.upperArm * 0.92 - P.foreArm * 0.94, 0.03);
+  set(J.hipL, -hw * 0.5, hipY, 0);
+  set(J.hipR, hw * 0.5, hipY, 0);
+  set(J.knL, -hw * 0.5, hipY - P.thigh, 0.02);
+  set(J.knR, hw * 0.5, hipY - P.thigh, 0.02);
+  set(J.ftL, -hw * 0.5, hipY - P.thigh - P.shin, 0.05);
+  set(J.ftR, hw * 0.5, hipY - P.thigh - P.shin, 0.05);
+  return p;
+}
+
+function dist3(p, a, b) {
+  const dx = p[a * 3] - p[b * 3], dy = p[a * 3 + 1] - p[b * 3 + 1], dz = p[a * 3 + 2] - p[b * 3 + 2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function buildRig(P) {
+  const rest = restPose(P);
+  const bone = (a, b, k) => ({ a, b, len: dist3(rest, a, b), k: k === undefined ? 1 : k });
+  const bones = [
+    bone(J.head, J.neck), bone(J.neck, J.chest), bone(J.chest, J.pelvis),
+    bone(J.neck, J.shL), bone(J.shL, J.elL), bone(J.elL, J.haL),
+    bone(J.neck, J.shR), bone(J.shR, J.elR), bone(J.elR, J.haR),
+    bone(J.pelvis, J.hipL), bone(J.hipL, J.knL), bone(J.knL, J.ftL),
+    bone(J.pelvis, J.hipR), bone(J.hipR, J.knR), bone(J.knR, J.ftR),
+    // torso bracing — keeps the ribcage from folding like paper
+    bone(J.shL, J.shR), bone(J.hipL, J.hipR),
+    bone(J.shL, J.chest), bone(J.shR, J.chest),
+    bone(J.shL, J.pelvis, 0.6), bone(J.shR, J.pelvis, 0.6),
+    bone(J.hipL, J.chest, 0.6), bone(J.hipR, J.chest, 0.6),
+    bone(J.head, J.chest, 0.35), bone(J.shL, J.hipL, 0.4), bone(J.shR, J.hipR, 0.4)
+  ];
+  // joint limits as min/max separations (a cheap stand-in for cone limits, and
+  // it reads correctly at this fidelity)
+  const lim = (a, b, minF, maxF) => {
+    const d = dist3(rest, a, b);
+    return { a, b, min: d * minF, max: d * maxF };
+  };
+  const limits = [
+    lim(J.shL, J.haL, 0.42, 1.02), lim(J.shR, J.haR, 0.42, 1.02),
+    lim(J.hipL, J.ftL, 0.46, 1.01), lim(J.hipR, J.ftR, 0.46, 1.01),
+    lim(J.pelvis, J.head, 0.72, 1.03),
+    lim(J.ftL, J.ftR, 0.24, 4.0), lim(J.haL, J.haR, 0.18, 4.0)
+  ];
+  return { rest, bones, limits, P };
+}
+
+/* ------------------------------ arena -------------------------------- */
+const CRATES = [
+  { c: [1.75, 0.40, -0.55], h: [0.40, 0.40, 0.40] },
+  { c: [-1.95, 0.28, 0.95], h: [0.62, 0.28, 0.62] },
+  { c: [-1.15, 0.75, -2.05], h: [0.32, 0.75, 0.32] },
+  { c: [2.35, 0.18, 1.75], h: [0.75, 0.18, 0.50] }
+];
+const ARENA = 7.0;
+
+/* ------------------------------ ragdoll ------------------------------ */
+class Ragdoll {
+  constructor(P) {
+    this.P = P;
+    this.rig = buildRig(P);
+    this.pos = new Float32Array(NJ * 3);
+    this.prev = new Float32Array(NJ * 3);
+    this.tgt = new Float32Array(NJ * 3);
+    this.gravity = -9.81;
+    this.poseK = 1;          // 0 = limp, 1 = fully driven
+    this.poseKTarget = 1;
+    this.mode = 'stand';
+    this.grab = -1;
+    this.grabP = [0, 0, 0];
+    this.yaw = 0;
+    this.t = 0;
+    this.reset();
+  }
+
+  reset() {
+    const r = this.rig.rest;
+    for (let i = 0; i < NJ * 3; i += 3) {
+      this.pos[i] = r[i];
+      this.pos[i + 1] = r[i + 1] + 0.02;
+      this.pos[i + 2] = r[i + 2];
+    }
+    this.prev.set(this.pos);
+    this.yaw = 0; this.t = 0; this.grab = -1;
+    this.setMode(this.mode === 'limp' ? 'stand' : this.mode);
+  }
+
+  setMode(m) {
+    this.mode = m;
+    this.poseKTarget = (m === 'limp') ? 0 : 1;
+  }
+
+  impulse(j, vx, vy, vz, dt) {
+    this.prev[j * 3] -= vx * dt;
+    this.prev[j * 3 + 1] -= vy * dt;
+    this.prev[j * 3 + 2] -= vz * dt;
+  }
+  impulseAll(vx, vy, vz, dt, jitter) {
+    for (let j = 0; j < NJ; j++) {
+      const r = () => (Math.random() - 0.5) * (jitter || 0);
+      this.impulse(j, vx + r(), vy + r(), vz + r(), dt);
+    }
+  }
+
+  /* --- where the body currently is / which way it faces --- */
+  facingYaw() {
+    const p = this.pos;
+    let rx = p[J.shR * 3] - p[J.shL * 3], rz = p[J.shR * 3 + 2] - p[J.shL * 3 + 2];
+    const l = Math.hypot(rx, rz);
+    if (l < 1e-4) return this.yaw;
+    rx /= l; rz /= l;
+    // forward = right rotated -90 about Y  =>  (fx, fz) = (rz, -rx)... with our
+    // handedness fwd = cross(right, up) = (rz*1 - 0, .., -rx)
+    return Math.atan2(rz, -rx);
+  }
+
+  /* --- build the animated target pose in world space --- */
+  buildTargets(dt) {
+    const P = this.P, rest = this.rig.rest, T = this.tgt, t = this.t;
+
+    // root follows the pelvis so the character stands up where they landed
+    const rx = this.pos[J.pelvis * 3], rz = this.pos[J.pelvis * 3 + 2];
+    const want = this.facingYaw();
+    let d = want - this.yaw;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    this.yaw += d * Math.min(1, dt * 4);
+
+    // local animated pose
+    const L = this._loc || (this._loc = new Float32Array(NJ * 3));
+    L.set(rest);
+    const add = (j, x, y, z) => { L[j * 3] += x; L[j * 3 + 1] += y; L[j * 3 + 2] += z; };
+    const setJ = (j, x, y, z) => { L[j * 3] = x; L[j * 3 + 1] = y; L[j * 3 + 2] = z; };
+    let twist = 0;
+
+    if (this.mode === 'stand') {
+      const b = Math.sin(t * 1.5), s = Math.sin(t * 0.62);
+      add(J.chest, s * 0.012, b * 0.008, 0);
+      add(J.neck, s * 0.014, b * 0.010, 0);
+      add(J.head, s * 0.016, b * 0.010, b * 0.006);
+      add(J.pelvis, s * 0.018, -Math.abs(b) * 0.004, 0);
+      add(J.haL, s * 0.028, 0, Math.sin(t * 1.5 + 0.6) * 0.02);
+      add(J.haR, -s * 0.028, 0, Math.sin(t * 1.5 - 0.6) * 0.02);
+      add(J.elL, s * 0.014, 0, 0); add(J.elR, -s * 0.014, 0, 0);
+    } else if (this.mode === 'wave') {
+      const b = Math.sin(t * 1.4);
+      add(J.chest, 0, b * 0.008, 0); add(J.head, 0, b * 0.008, 0.01);
+      const sx = L[J.shR * 3], sy = L[J.shR * 3 + 1], sz = L[J.shR * 3 + 2];
+      setJ(J.elR, sx + P.upperArm * 0.78, sy + P.upperArm * 0.30, sz + 0.04);
+      const w = Math.sin(t * 8.5);
+      setJ(J.haR, sx + P.upperArm * 0.80 + w * P.foreArm * 0.42,
+        sy + P.upperArm * 0.30 + P.foreArm * 0.86, sz + 0.10);
+      add(J.haL, 0, 0, Math.sin(t * 1.4) * 0.02);
+    } else if (this.mode === 'dance') {
+      const a = t * 4.4, s = Math.sin(a), c = Math.cos(a), s2 = Math.sin(a * 0.5);
+      twist = s2 * 0.34;
+      add(J.pelvis, s * 0.085, -Math.abs(s) * 0.045, 0);
+      add(J.chest, -s * 0.045, -Math.abs(s) * 0.020, 0);
+      add(J.neck, -s * 0.055, 0, 0);
+      add(J.head, -s * 0.06, Math.abs(c) * 0.012, 0);
+      add(J.hipL, s * 0.085, -Math.abs(s) * 0.045, 0);
+      add(J.hipR, s * 0.085, -Math.abs(s) * 0.045, 0);
+      add(J.knL, s * 0.05, -Math.max(0, s) * 0.10, 0.03);
+      add(J.knR, s * 0.05, -Math.max(0, -s) * 0.10, 0.03);
+      // hands punch the air on alternating beats
+      const upL = Math.max(0, s), upR = Math.max(0, -s);
+      add(J.elL, -0.10 * upL, P.upperArm * 0.70 * upL, 0.04);
+      add(J.haL, -0.16 * upL, (P.upperArm + P.foreArm) * 0.92 * upL, 0.06);
+      add(J.elR, 0.10 * upR, P.upperArm * 0.70 * upR, 0.04);
+      add(J.haR, 0.16 * upR, (P.upperArm + P.foreArm) * 0.92 * upR, 0.06);
+    }
+
+    // local -> world (yaw + twist about Y, then translate onto the pelvis)
+    const ry = this.yaw + twist, cy = Math.cos(ry), sy2 = Math.sin(ry);
+    for (let j = 0; j < NJ; j++) {
+      const x = L[j * 3], y = L[j * 3 + 1], z = L[j * 3 + 2];
+      T[j * 3] = rx + x * cy + z * sy2;
+      T[j * 3 + 1] = y;
+      T[j * 3 + 2] = rz - x * sy2 + z * cy;
+    }
+  }
+
+  step(dt) {
+    this.t += dt;
+    const SUB = 2, h = dt / SUB;
+    this.poseK += (this.poseKTarget - this.poseK) * Math.min(1, dt * 3.2);
+    if (this.poseK < 0.002) this.poseK = 0;
+
+    for (let s = 0; s < SUB; s++) this._sub(h);
+  }
+
+  _sub(h) {
+    const pos = this.pos, prev = this.prev, T = this.tgt;
+    const damp = 0.995, g = this.gravity * h * h;
+
+    if (this.poseK > 0) this.buildTargets(h);
+
+    // integrate
+    for (let j = 0; j < NJ; j++) {
+      const i = j * 3;
+      for (let k = 0; k < 3; k++) {
+        const x = pos[i + k];
+        let v = (x - prev[i + k]) * damp;
+        if (v > 0.6) v = 0.6; else if (v < -0.6) v = -0.6;   // clamp explosions
+        prev[i + k] = x;
+        pos[i + k] = x + v + (k === 1 ? g : 0);
+      }
+    }
+
+    // pose pull
+    if (this.poseK > 0) {
+      for (let j = 0; j < NJ; j++) {
+        if (j === this.grab) continue;
+        const w = POSE_W[j] * this.poseK;
+        const i = j * 3;
+        pos[i] += (T[i] - pos[i]) * w;
+        pos[i + 1] += (T[i + 1] - pos[i + 1]) * w;
+        pos[i + 2] += (T[i + 2] - pos[i + 2]) * w;
+      }
+    }
+
+    // constraints
+    const bones = this.rig.bones, limits = this.rig.limits;
+    for (let it = 0; it < 6; it++) {
+      for (let b = 0; b < bones.length; b++) {
+        const c = bones[b];
+        this._solve(c.a, c.b, c.len, c.len, c.k);
+      }
+      for (let b = 0; b < limits.length; b++) {
+        const c = limits[b];
+        this._solve(c.a, c.b, c.min, c.max, 0.8);
+      }
+      this._pin();
+    }
+    this._collide();
+    this._pin();
+  }
+
+  _solve(a, b, min, max, k) {
+    const p = this.pos, ia = a * 3, ib = b * 3;
+    let dx = p[ib] - p[ia], dy = p[ib + 1] - p[ia + 1], dz = p[ib + 2] - p[ia + 2];
+    let d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (d < 1e-6) { d = 1e-6; dx = 1e-6; }
+    let target = d < min ? min : (d > max ? max : d);
+    if (target === d) return;
+    const diff = (d - target) / d * 0.5 * k;
+    const ax = dx * diff, ay = dy * diff, az = dz * diff;
+    if (a !== this.grab) { p[ia] += ax; p[ia + 1] += ay; p[ia + 2] += az; }
+    if (b !== this.grab) { p[ib] -= ax; p[ib + 1] -= ay; p[ib + 2] -= az; }
+  }
+
+  // A grabbed joint is kinematic: pinned with zero velocity. Momentum still
+  // reaches the rest of the body through the constraint solver, and the throw
+  // velocity is applied explicitly on release.
+  _pin() {
+    if (this.grab < 0) return;
+    const i = this.grab * 3;
+    this.pos[i] = this.grabP[0]; this.pos[i + 1] = this.grabP[1]; this.pos[i + 2] = this.grabP[2];
+    this.prev[i] = this.pos[i]; this.prev[i + 1] = this.pos[i + 1]; this.prev[i + 2] = this.pos[i + 2];
+  }
+
+  _collide() {
+    const p = this.pos, pv = this.prev;
+    for (let j = 0; j < NJ; j++) {
+      const i = j * 3, r = RADIUS[j];
+
+      // ground
+      if (p[i + 1] < r) {
+        p[i + 1] = r;
+        const fx = 0.72;
+        pv[i] = p[i] - (p[i] - pv[i]) * fx;
+        pv[i + 2] = p[i + 2] - (p[i + 2] - pv[i + 2]) * fx;
+        if (pv[i + 1] > p[i + 1]) pv[i + 1] = p[i + 1] + (pv[i + 1] - p[i + 1]) * 0.30;
+      }
+
+      // crates (AABB push-out along the shallowest axis)
+      for (let b = 0; b < CRATES.length; b++) {
+        const B = CRATES[b], c = B.c, e = B.h;
+        const dx = p[i] - c[0], dy = p[i + 1] - c[1], dz = p[i + 2] - c[2];
+        const ox = e[0] + r - Math.abs(dx); if (ox <= 0) continue;
+        const oy = e[1] + r - Math.abs(dy); if (oy <= 0) continue;
+        const oz = e[2] + r - Math.abs(dz); if (oz <= 0) continue;
+        if (ox < oy && ox < oz) {
+          p[i] = c[0] + Math.sign(dx || 1) * (e[0] + r);
+          pv[i] = p[i] - (p[i] - pv[i]) * 0.35;
+        } else if (oy < oz) {
+          p[i + 1] = c[1] + Math.sign(dy || 1) * (e[1] + r);
+          pv[i] = p[i] - (p[i] - pv[i]) * 0.75;
+          pv[i + 2] = p[i + 2] - (p[i + 2] - pv[i + 2]) * 0.75;
+        } else {
+          p[i + 2] = c[2] + Math.sign(dz || 1) * (e[2] + r);
+          pv[i + 2] = p[i + 2] - (p[i + 2] - pv[i + 2]) * 0.35;
+        }
+      }
+
+      // soft arena walls
+      if (p[i] < -ARENA) { p[i] = -ARENA; pv[i] = p[i] + 0.02; }
+      if (p[i] > ARENA) { p[i] = ARENA; pv[i] = p[i] - 0.02; }
+      if (p[i + 2] < -ARENA) { p[i + 2] = -ARENA; pv[i + 2] = p[i + 2] + 0.02; }
+      if (p[i + 2] > ARENA) { p[i + 2] = ARENA; pv[i + 2] = p[i + 2] - 0.02; }
+    }
+  }
+}
+
+/* =====================================================================
+   LOW-POLY MESH
+   15 boxes = 180 triangles. Every face gets an explicit atlas rect, and
+   the whole thing is re-transformed on the CPU each frame into one buffer
+   (900 vertices — cheaper than 15 draw calls and far simpler than skinning).
+   ===================================================================== */
+
+function uvOf(rect, u, v) {
+  const inset = 0.5;
+  const x = (rect[0] + inset + (rect[2] - inset * 2) * u) / ATLAS;
+  const y = (rect[1] + inset + (rect[3] - inset * 2) * v) / ATLAS;
+  return [x, y];
+}
+
+// faces: [+Z, -Z, +X, -X, +Y, -Y] atlas rects
+function boxGeom(w, h, d, faces, taperTop, taperBot) {
+  const hw = w * 0.5, hh = h * 0.5, hd = d * 0.5;
+  const tT = taperTop === undefined ? 1 : taperTop;
+  const tB = taperBot === undefined ? 1 : taperBot;
+  const V = [], N = [], UV = [], I = [];
+  const C = (x, y, z) => { const s = y > 0 ? tT : tB; return [x * s, y, z * s]; };
+  const quad = (a, b, c, e, nx, ny, nz, rect, flipU) => {
+    const base = V.length / 3;
+    const cs = [a, b, c, e];
+    // uv order matches BL, BR, TR, TL
+    const uvs = flipU
+      ? [[1, 1], [0, 1], [0, 0], [1, 0]]
+      : [[0, 1], [1, 1], [1, 0], [0, 0]];
+    for (let i = 0; i < 4; i++) {
+      V.push(cs[i][0], cs[i][1], cs[i][2]);
+      N.push(nx, ny, nz);
+      const t = uvOf(rect, uvs[i][0], uvs[i][1]);
+      UV.push(t[0], t[1]);
+    }
+    I.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  quad(C(-hw, -hh, hd), C(hw, -hh, hd), C(hw, hh, hd), C(-hw, hh, hd), 0, 0, 1, faces[0], false);
+  quad(C(hw, -hh, -hd), C(-hw, -hh, -hd), C(-hw, hh, -hd), C(hw, hh, -hd), 0, 0, -1, faces[1], false);
+  quad(C(hw, -hh, hd), C(hw, -hh, -hd), C(hw, hh, -hd), C(hw, hh, hd), 1, 0, 0, faces[2], false);
+  quad(C(-hw, -hh, -hd), C(-hw, -hh, hd), C(-hw, hh, hd), C(-hw, hh, -hd), -1, 0, 0, faces[3], true);
+  quad(C(-hw, hh, hd), C(hw, hh, hd), C(hw, hh, -hd), C(-hw, hh, -hd), 0, 1, 0, faces[4], false);
+  quad(C(-hw, -hh, -hd), C(hw, -hh, -hd), C(hw, -hh, hd), C(-hw, -hh, hd), 0, -1, 0, faces[5], false);
+  return { V, N, UV, I };
+}
+
+// A part is a box bound to the skeleton. `bone` gives the local +Y axis
+// (from b toward a); `at` says where the box centre sits.
+function buildParts(P) {
+  const AU = R.armU, AL = R.armL, LU = R.legU, LL = R.legL;
+  const armUF = [AU, AU, AU, AU, R.hand, R.hand];
+  const armLF = [AL, AL, AL, AL, R.hand, R.hand];
+  const legUF = [LU, LU, LU, LU, LU, LU];
+  const legLF = [LL, LL, LL, LL, LL, R.foot];
+  const headF = [R.headF, R.headB, R.headS, R.headS, R.headT, R.headB];
+  const torsoF = [R.torsoF, R.torsoB, R.torsoS, R.torsoS, R.torsoS, R.torsoS];
+  const handF = [R.hand, R.hand, R.hand, R.hand, R.hand, R.hand];
+  const footF = [R.foot, R.foot, R.foot, R.foot, R.foot, R.foot];
+
+  const ar = P.armR, lr = P.legR;
+  return [
+    // head: sits on the neck->head axis, nudged up so the chin clears the torso
+    { g: boxGeom(P.headW, P.headH, P.headD, headF, 0.94, 0.86), bone: [J.head, J.neck], at: 'a', off: [0, P.headH * 0.02, 0] },
+    { g: boxGeom(P.shoulderW * 0.98, 1, P.torsoD, torsoF, 1.0, 0.90), bone: [J.neck, J.chest], at: 'mid', stretch: 1.06 },
+    { g: boxGeom(P.shoulderW * 0.88, 1, P.torsoD * 0.94, torsoF, 1.0, 0.98), bone: [J.chest, J.pelvis], at: 'mid', stretch: 1.10 },
+
+    { g: boxGeom(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88), bone: [J.shL, J.elL], at: 'mid', stretch: 1.05 },
+    { g: boxGeom(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86), bone: [J.elL, J.haL], at: 'mid', stretch: 1.02 },
+    { g: boxGeom(ar * 1.9, ar * 2.2, ar * 1.5, handF), bone: [J.haL, J.elL], at: 'a', off: [0, -ar * 0.6, 0] },
+
+    { g: boxGeom(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88), bone: [J.shR, J.elR], at: 'mid', stretch: 1.05 },
+    { g: boxGeom(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86), bone: [J.elR, J.haR], at: 'mid', stretch: 1.02 },
+    { g: boxGeom(ar * 1.9, ar * 2.2, ar * 1.5, handF), bone: [J.haR, J.elR], at: 'a', off: [0, -ar * 0.6, 0] },
+
+    { g: boxGeom(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86), bone: [J.hipL, J.knL], at: 'mid', stretch: 1.06 },
+    { g: boxGeom(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84), bone: [J.knL, J.ftL], at: 'mid', stretch: 1.04 },
+    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftL, J.knL], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] },
+
+    { g: boxGeom(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86), bone: [J.hipR, J.knR], at: 'mid', stretch: 1.06 },
+    { g: boxGeom(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84), bone: [J.knR, J.ftR], at: 'mid', stretch: 1.04 },
+    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftR, J.knR], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] }
+  ];
+}
+
+// Packs all parts into interleaved [px,py,pz, nx,ny,nz, u,v] and an index
+// buffer. Positions/normals are rewritten every frame by `poseMesh`.
+function packParts(parts) {
+  let nv = 0, ni = 0;
+  parts.forEach(p => { nv += p.g.V.length / 3; ni += p.g.I.length; });
+  const verts = new Float32Array(nv * 8);
+  const idx = new Uint16Array(ni);
+  let io = 0, base = 0;
+  parts.forEach(p => {
+    const n = p.g.V.length / 3;
+    p.vStart = base; p.vCount = n;
+    for (let i = 0; i < n; i++) {
+      const o = (base + i) * 8;
+      verts[o] = p.g.V[i * 3]; verts[o + 1] = p.g.V[i * 3 + 1]; verts[o + 2] = p.g.V[i * 3 + 2];
+      verts[o + 3] = p.g.N[i * 3]; verts[o + 4] = p.g.N[i * 3 + 1]; verts[o + 5] = p.g.N[i * 3 + 2];
+      verts[o + 6] = p.g.UV[i * 2]; verts[o + 7] = p.g.UV[i * 2 + 1];
+    }
+    for (let i = 0; i < p.g.I.length; i++) idx[io + i] = base + p.g.I[i];
+    io += p.g.I.length; base += n;
+  });
+  return { verts, idx, local: verts.slice(0), vCount: nv, iCount: ni };
+}
+
+// Rebuild world-space vertices from the current ragdoll pose.
+function poseMesh(mesh, parts, doll) {
+  const p = doll.pos, out = mesh.verts, loc = mesh.local;
+
+  // body frame used as the twist reference for every limb
+  let rx = p[J.shR * 3] - p[J.shL * 3], ry = p[J.shR * 3 + 1] - p[J.shL * 3 + 1], rz = p[J.shR * 3 + 2] - p[J.shL * 3 + 2];
+  let ux = p[J.neck * 3] - p[J.pelvis * 3], uy = p[J.neck * 3 + 1] - p[J.pelvis * 3 + 1], uz = p[J.neck * 3 + 2] - p[J.pelvis * 3 + 2];
+  let fx = ry * uz - rz * uy, fy = rz * ux - rx * uz, fz = rx * uy - ry * ux;
+  let fl = Math.hypot(fx, fy, fz);
+  if (fl < 1e-5) { fx = 0; fy = 0; fz = 1; fl = 1; }
+  fx /= fl; fy /= fl; fz /= fl;
+
+  for (let k = 0; k < parts.length; k++) {
+    const part = parts[k];
+    const a = part.bone[0] * 3, b = part.bone[1] * 3;
+    // local +Y points from b to a
+    let yx = p[a] - p[b], yy = p[a + 1] - p[b + 1], yz = p[a + 2] - p[b + 2];
+    let len = Math.hypot(yx, yy, yz);
+    if (len < 1e-5) { yx = 0; yy = 1; yz = 0; len = 1e-5; } else { yx /= len; yy /= len; yz /= len; }
+
+    // X = up x fwd, Z = X x up  (right-handed, twist referenced to the torso)
+    let xx = yy * fz - yz * fy, xy = yz * fx - yx * fz, xz = yx * fy - yy * fx;
+    let xl = Math.hypot(xx, xy, xz);
+    if (xl < 1e-4) {                     // limb parallel to body-forward: use up x worldZ
+      xx = yy; xy = -yx; xz = 0;
+      xl = Math.hypot(xx, xy, xz);
+      if (xl < 1e-4) { xx = 1; xy = 0; xz = 0; xl = 1; }
+    }
+    xx /= xl; xy /= xl; xz /= xl;
+    const zx = xy * yz - xz * yy, zy = xz * yx - xx * yz, zz = xx * yy - xy * yx;
+
+    // origin
+    let ox, oy, oz;
+    if (part.at === 'a') { ox = p[a]; oy = p[a + 1]; oz = p[a + 2]; }
+    else { ox = (p[a] + p[b]) * 0.5; oy = (p[a + 1] + p[b + 1]) * 0.5; oz = (p[a + 2] + p[b + 2]) * 0.5; }
+    if (part.off) {
+      const o = part.off;
+      ox += xx * o[0] + yx * o[1] + zx * o[2];
+      oy += xy * o[0] + yy * o[1] + zy * o[2];
+      oz += xz * o[0] + yz * o[1] + zz * o[2];
+    }
+    // bone parts stretch to the live joint distance so gaps never open up
+    const sy = part.stretch ? len * part.stretch : 1;
+
+    const v0 = part.vStart, n = part.vCount;
+    for (let i = 0; i < n; i++) {
+      const o = (v0 + i) * 8;
+      const lx = loc[o], ly = loc[o + 1] * sy, lz = loc[o + 2];
+      out[o] = ox + xx * lx + yx * ly + zx * lz;
+      out[o + 1] = oy + xy * lx + yy * ly + zy * lz;
+      out[o + 2] = oz + xz * lx + yz * ly + zz * lz;
+      const nx = loc[o + 3], ny = loc[o + 4], nz = loc[o + 5];
+      out[o + 3] = xx * nx + yx * ny + zx * nz;
+      out[o + 4] = xy * nx + yy * ny + zy * nz;
+      out[o + 5] = xz * nx + yz * ny + zz * nz;
+    }
+  }
+}
+
+/* =====================================================================
+   WEBGL1 RENDERER  —  the PS1 part
+     * everything is drawn into a 224p framebuffer, then point-upscaled
+     * vertices snap to that framebuffer's pixel grid  (the famous wobble)
+     * UVs are interpolated affinely, not perspective-correct  (the swim)
+     * output is quantised to 15-bit with a 4x4 Bayer dither
+     * vertex lighting only, hard fog, no filtering anywhere
+   ===================================================================== */
+
+/* ------------------------------ mat4 --------------------------------- */
+function mPerspective(out, fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+  out[0] = f / aspect; out[1] = 0; out[2] = 0; out[3] = 0;
+  out[4] = 0; out[5] = f; out[6] = 0; out[7] = 0;
+  out[8] = 0; out[9] = 0; out[10] = (far + near) * nf; out[11] = -1;
+  out[12] = 0; out[13] = 0; out[14] = 2 * far * near * nf; out[15] = 0;
+  return out;
+}
+function mLookAt(out, ex, ey, ez, cx, cy, cz, ux, uy, uz) {
+  let zx = ex - cx, zy = ey - cy, zz = ez - cz;
+  let l = Math.hypot(zx, zy, zz) || 1; zx /= l; zy /= l; zz /= l;
+  let xx = uy * zz - uz * zy, xy = uz * zx - ux * zz, xz = ux * zy - uy * zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  out[0] = xx; out[1] = yx; out[2] = zx; out[3] = 0;
+  out[4] = xy; out[5] = yy; out[6] = zy; out[7] = 0;
+  out[8] = xz; out[9] = yz; out[10] = zz; out[11] = 0;
+  out[12] = -(xx * ex + xy * ey + xz * ez);
+  out[13] = -(yx * ex + yy * ey + yz * ez);
+  out[14] = -(zx * ex + zy * ey + zz * ez);
+  out[15] = 1;
+  return out;
+}
+function mMul(out, a, b) {
+  for (let c = 0; c < 4; c++) {
+    const b0 = b[c * 4], b1 = b[c * 4 + 1], b2 = b[c * 4 + 2], b3 = b[c * 4 + 3];
+    out[c * 4] = a[0] * b0 + a[4] * b1 + a[8] * b2 + a[12] * b3;
+    out[c * 4 + 1] = a[1] * b0 + a[5] * b1 + a[9] * b2 + a[13] * b3;
+    out[c * 4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
+    out[c * 4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
+  }
+  return out;
+}
+
+/* ----------------------------- shaders ------------------------------- */
+const VS_MAIN = `
+attribute vec3 aPos;
+attribute vec3 aNrm;
+attribute vec2 aUV;
+uniform mat4 uVP;
+uniform vec2 uRes;
+uniform float uSnap;
+uniform float uWarp;
+uniform vec3 uLight;
+uniform vec3 uAmb;
+uniform vec2 uFog;
+varying vec2 vUV;
+varying float vW;
+varying vec3 vCol;
+varying float vFogF;
+void main(){
+  vec4 clip = uVP * vec4(aPos, 1.0);
+  float w = max(clip.w, 0.0001);
+
+  vec3 n = normalize(aNrm);
+  float d = max(dot(n, uLight), 0.0);
+  float up = max(-n.y, 0.0);
+  vCol = uAmb + vec3(d) * 0.92 + vec3(0.05, 0.055, 0.075) * up;
+
+  vFogF = clamp((w - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
+
+  if (uSnap > 0.0) {
+    vec2 g = uRes * 0.5;
+    vec2 sn = floor((clip.xy / w) * g + 0.5) / g;
+    clip.xy = mix(clip.xy, sn * w, uSnap);
+  }
+  gl_Position = clip;
+
+  // uWarp 0 = perspective-correct, 1 = affine (screen-linear) PS1 texturing
+  vUV = mix(aUV, aUV * w, uWarp);
+  vW  = mix(1.0, w, uWarp);
+}`;
+
+const FS_MAIN = `
+precision mediump float;
+uniform sampler2D uTex;
+uniform vec3 uFogCol;
+varying vec2 vUV;
+varying float vW;
+varying vec3 vCol;
+varying float vFogF;
+void main(){
+  vec4 t = texture2D(uTex, vUV / vW);
+  vec3 c = t.rgb * vCol;
+  c = mix(c, uFogCol, vFogF);
+  gl_FragColor = vec4(c, 1.0);
+}`;
+
+const VS_POST = `
+attribute vec2 aP;
+varying vec2 vT;
+void main(){ vT = aP * 0.5 + 0.5; gl_Position = vec4(aP, 0.0, 1.0); }`;
+
+const FS_POST = `
+precision mediump float;
+uniform sampler2D uTex;
+uniform vec2 uLow;
+uniform float uLevels;
+varying vec2 vT;
+float B2(vec2 a){ a = floor(a); return fract(a.x * 0.5 + a.y * a.y * 0.75); }
+void main(){
+  vec3 c = texture2D(uTex, vT).rgb;
+  if (uLevels < 200.0) {
+    vec2 lp = vT * uLow;
+    float b = B2(0.5 * lp) * 0.25 + B2(lp);      // 4x4 Bayer, [0,1)
+    c = floor(c * uLevels + b) / uLevels;
+  }
+  gl_FragColor = vec4(c, 1.0);
+}`;
+
+/* ---------------------------- environment ---------------------------- */
+function buildEnvGeometry() {
+  const V = [], N = [], UV = [], I = [];
+  const push = (x, y, z, nx, ny, nz, u, v) => {
+    V.push(x, y, z); N.push(nx, ny, nz); UV.push(u, v);
+  };
+  const quad = (p, n, uvScale) => {
+    const b = V.length / 3;
+    for (let i = 0; i < 4; i++) {
+      const uv = [[0, 1], [1, 1], [1, 0], [0, 0]][i];
+      push(p[i][0], p[i][1], p[i][2], n[0], n[1], n[2], uv[0] * uvScale[0], uv[1] * uvScale[1]);
+    }
+    I.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  };
+  // Ground as a grid, not one huge quad. A single quad has corners behind the
+  // camera, and everything interpolated across it (fog, affine UVs, the vertex
+  // snap) is then computed from clipped garbage. Tessellating also gives the
+  // affine warp its per-tile PS1 character instead of one giant smear.
+  const G = 24, GN = 20, step = (G * 2) / GN, GK = 1.1;
+  for (let i = 0; i < GN; i++) {
+    for (let j = 0; j < GN; j++) {
+      const x0 = -G + i * step, x1 = x0 + step;
+      const z0 = -G + j * step, z1 = z0 + step;
+      const b = V.length / 3;
+      const c4 = [[x0, 0, z1], [x1, 0, z1], [x1, 0, z0], [x0, 0, z0]];
+      for (let k = 0; k < 4; k++) {
+        push(c4[k][0], 0, c4[k][2], 0, 1, 0, c4[k][0] / GK, c4[k][2] / GK);
+      }
+      I.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    }
+  }
+  // crates
+  const K = 1.4;      // world units per texture tile
+  CRATES.forEach(B => {
+    const c = B.c, e = B.h;
+    const X = [c[0] - e[0], c[0] + e[0]], Y = [c[1] - e[1], c[1] + e[1]], Z = [c[2] - e[2], c[2] + e[2]];
+    const su = e[0] * 2 / K, sv = e[1] * 2 / K, sd = e[2] * 2 / K;
+    quad([[X[0], Y[0], Z[1]], [X[1], Y[0], Z[1]], [X[1], Y[1], Z[1]], [X[0], Y[1], Z[1]]], [0, 0, 1], [su, sv]);
+    quad([[X[1], Y[0], Z[0]], [X[0], Y[0], Z[0]], [X[0], Y[1], Z[0]], [X[1], Y[1], Z[0]]], [0, 0, -1], [su, sv]);
+    quad([[X[1], Y[0], Z[1]], [X[1], Y[0], Z[0]], [X[1], Y[1], Z[0]], [X[1], Y[1], Z[1]]], [1, 0, 0], [sd, sv]);
+    quad([[X[0], Y[0], Z[0]], [X[0], Y[0], Z[1]], [X[0], Y[1], Z[1]], [X[0], Y[1], Z[0]]], [-1, 0, 0], [sd, sv]);
+    quad([[X[0], Y[1], Z[1]], [X[1], Y[1], Z[1]], [X[1], Y[1], Z[0]], [X[0], Y[1], Z[0]]], [0, 1, 0], [su, sd]);
+  });
+  const verts = new Float32Array(V.length / 3 * 8);
+  for (let i = 0; i < V.length / 3; i++) {
+    const o = i * 8;
+    verts[o] = V[i * 3]; verts[o + 1] = V[i * 3 + 1]; verts[o + 2] = V[i * 3 + 2];
+    verts[o + 3] = N[i * 3]; verts[o + 4] = N[i * 3 + 1]; verts[o + 5] = N[i * 3 + 2];
+    verts[o + 6] = UV[i * 2]; verts[o + 7] = UV[i * 2 + 1];
+  }
+  return { verts, idx: new Uint16Array(I) };
+}
+
+/* ----------------------------- renderer ------------------------------ */
+const FOG_COL = [0.055, 0.070, 0.115];
+
+class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    const opts = {
+      alpha: false, antialias: false, depth: true, stencil: false,
+      preserveDrawingBuffer: true, powerPreference: 'high-performance',
+      failIfMajorPerformanceCaveat: false
+    };
+    this.gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+    if (!this.gl) throw new Error('WebGL is not available');
+    this.lowH = 224;
+    this.levels = 31;
+    this.snap = 0.7;
+    this.warp = 1.0;
+    this.fogOn = true;
+    this.vpW = 0; this.vpH = 0;
+    this.mProj = new Float32Array(16);
+    this.mView = new Float32Array(16);
+    this.mVP = new Float32Array(16);
+    this._setup();
+  }
+
+  _compile(type, src) {
+    const gl = this.gl, s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      throw new Error('shader: ' + gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+  _program(vs, fs, attrs) {
+    const gl = this.gl, p = gl.createProgram();
+    gl.attachShader(p, this._compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, this._compile(gl.FRAGMENT_SHADER, fs));
+    attrs.forEach((a, i) => gl.bindAttribLocation(p, i, a));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      throw new Error('link: ' + gl.getProgramInfoLog(p));
+    }
+    const u = {};
+    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++) {
+      const info = gl.getActiveUniform(p, i);
+      u[info.name] = gl.getUniformLocation(p, info.name);
+    }
+    return { p, u };
+  }
+
+  _setup() {
+    const gl = this.gl;
+    this.main = this._program(VS_MAIN, FS_MAIN, ['aPos', 'aNrm', 'aUV']);
+    this.post = this._program(VS_POST, FS_POST, ['aP']);
+
+    this.quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+
+    const env = buildEnvGeometry();
+    this.envVB = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.envVB);
+    gl.bufferData(gl.ARRAY_BUFFER, env.verts, gl.STATIC_DRAW);
+    this.envIB = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.envIB);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, env.idx, gl.STATIC_DRAW);
+    this.envCount = env.idx.length;
+
+    this.charVB = gl.createBuffer();
+    this.charIB = gl.createBuffer();
+    this.charCount = 0;
+
+    this.texChar = this._tex(null, false);
+    this.texEnv = this._tex(bakeEnvTexture(), true);
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.clearColor(FOG_COL[0], FOG_COL[1], FOG_COL[2], 1);
+  }
+
+  _tex(src, repeat) {
+    const gl = this.gl, t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const w = repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, w);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, w);
+    if (src) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+      new Uint8Array([160, 160, 170, 255]));
+    return t;
+  }
+
+  setCharTexture(canvas) {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.texChar);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  }
+
+  setCharMesh(mesh) {
+    const gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.charVB);
+    gl.bufferData(gl.ARRAY_BUFFER, mesh.verts, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.charIB);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.idx, gl.STATIC_DRAW);
+    this.charCount = mesh.idx.length;
+  }
+  updateCharMesh(mesh) {
+    const gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.charVB);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.verts);
+  }
+
+  resize() {
+    const gl = this.gl, c = this.canvas;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(c.clientWidth * dpr));
+    const h = Math.max(1, Math.round(c.clientHeight * dpr));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+
+    // "224p" means 224 pixels across the *shorter* axis, so a phone held in
+    // portrait gets the same chunkiness as a landscape TV rather than a
+    // 100px-wide sliver.
+    const aspect = w / h;
+    let lw, lh;
+    if (aspect >= 1) { lh = this.lowH; lw = Math.round(lh * aspect); }
+    else { lw = this.lowH; lh = Math.round(lw / aspect); }
+    lw = clamp(lw, 96, 900); lh = clamp(lh, 96, 900);
+    if (lw !== this.vpW || lh !== this.vpH) {
+      this.vpW = lw; this.vpH = lh;
+      this._makeFBO(lw, lh);
+    }
+    mPerspective(this.mProj, 52 * Math.PI / 180, aspect, 0.05, 60);
+  }
+
+  _makeFBO(w, h) {
+    const gl = this.gl;
+    if (this.fbo) { gl.deleteFramebuffer(this.fbo); gl.deleteTexture(this.fboTex); gl.deleteRenderbuffer(this.fboDepth); }
+    this.fboTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.fboTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    this.fboDepth = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.fboDepth);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
+    this.fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fboTex, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.fboDepth);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  setCamera(cam) {
+    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const ex = cam.target[0] + Math.sin(cam.yaw) * cp * cam.dist;
+    const ey = cam.target[1] + sp * cam.dist;
+    const ez = cam.target[2] + Math.cos(cam.yaw) * cp * cam.dist;
+    this.eye = [ex, ey, ez];
+    mLookAt(this.mView, ex, ey, ez, cam.target[0], cam.target[1], cam.target[2], 0, 1, 0);
+    mMul(this.mVP, this.mProj, this.mView);
+  }
+
+  _bindGeom(vb, ib) {
+    const gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+    const S = 32;
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, S, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, S, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, S, 24);
+  }
+
+  render() {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.viewport(0, 0, this.vpW, this.vpH);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const m = this.main, u = m.u;
+    gl.useProgram(m.p);
+    gl.uniformMatrix4fv(u.uVP, false, this.mVP);
+    gl.uniform2f(u.uRes, this.vpW, this.vpH);
+    gl.uniform1f(u.uSnap, this.snap);
+    gl.uniform1f(u.uWarp, this.warp);
+    gl.uniform3f(u.uLight, 0.42, 0.80, 0.43);
+    gl.uniform3f(u.uAmb, 0.36, 0.38, 0.46);
+    gl.uniform3f(u.uFogCol, FOG_COL[0], FOG_COL[1], FOG_COL[2]);
+    gl.uniform2f(u.uFog, this.fogOn ? 4.0 : 900, this.fogOn ? 14.5 : 1000);
+    gl.uniform1i(u.uTex, 0);
+    gl.activeTexture(gl.TEXTURE0);
+
+    gl.bindTexture(gl.TEXTURE_2D, this.texEnv);
+    this._bindGeom(this.envVB, this.envIB);
+    gl.drawElements(gl.TRIANGLES, this.envCount, gl.UNSIGNED_SHORT, 0);
+
+    if (this.charCount) {
+      gl.bindTexture(gl.TEXTURE_2D, this.texChar);
+      this._bindGeom(this.charVB, this.charIB);
+      gl.drawElements(gl.TRIANGLES, this.charCount, gl.UNSIGNED_SHORT, 0);
+    }
+
+    // upscale + quantise
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.disable(gl.DEPTH_TEST);
+    const q = this.post;
+    gl.useProgram(q.p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
+    gl.disableVertexAttribArray(1); gl.disableVertexAttribArray(2);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.fboTex);
+    gl.uniform1i(q.u.uTex, 0);
+    gl.uniform2f(q.u.uLow, this.vpW, this.vpH);
+    gl.uniform1f(q.u.uLevels, this.levels);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.enable(gl.DEPTH_TEST);
+  }
+
+  // world -> canvas CSS pixels (for hit-testing limbs under a finger)
+  project(x, y, z, out) {
+    const m = this.mVP;
+    const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
+    if (cw <= 0.0001) return false;
+    const cx = m[0] * x + m[4] * y + m[8] * z + m[12];
+    const cy = m[1] * x + m[5] * y + m[9] * z + m[13];
+    out[0] = (cx / cw * 0.5 + 0.5) * this.canvas.clientWidth;
+    out[1] = (0.5 - cy / cw * 0.5) * this.canvas.clientHeight;
+    out[2] = cw;
+    return true;
+  }
+
+  // canvas CSS pixels -> a world ray from the eye
+  unproject(px, py, out) {
+    const ndcX = px / this.canvas.clientWidth * 2 - 1;
+    const ndcY = 1 - py / this.canvas.clientHeight * 2;
+    const f = Math.tan(52 * Math.PI / 180 / 2);
+    const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+    // view-space direction, then rotate by the inverse view basis
+    const vx = ndcX * f * aspect, vy = ndcY * f, vz = -1;
+    const m = this.mView;
+    out[0] = m[0] * vx + m[1] * vy + m[2] * vz;
+    out[1] = m[4] * vx + m[5] * vy + m[6] * vz;
+    out[2] = m[8] * vx + m[9] * vy + m[10] * vz;
+    const l = Math.hypot(out[0], out[1], out[2]) || 1;
+    out[0] /= l; out[1] /= l; out[2] /= l;
+    return out;
+  }
+}
+
+/* =====================================================================
+   APP  —  screens, the landmark editor, and the playground loop
+   ===================================================================== */
+
+const SAVE_KEY = 'polyme.v1';
+
+const S = {
+  img: null, lm: null, pal: null, props: null,
+  atlasPhoto: null, atlasFlat: null,
+  doll: null, parts: null, mesh: null, ren: null,
+  cam: { yaw: 0.0, pitch: 0.14, dist: 3.5, target: [0, 0.95, 0] },
+  running: false, last: 0, raf: 0,
+  texMode: 1, spin: 1, lastInteract: 0, seenHelp: false
+};
+
+const STOCK = [
+  { skin: [222, 178, 148], hair: [58, 42, 36], shirt: [72, 116, 196], pants: [46, 52, 74], shoes: [30, 32, 40] },
+  { skin: [142, 98, 72], hair: [28, 22, 24], shirt: [212, 84, 74], pants: [58, 62, 82], shoes: [232, 232, 236] },
+  { skin: [246, 214, 190], hair: [196, 148, 72], shirt: [96, 186, 130], pants: [70, 60, 54], shoes: [40, 40, 48] },
+  { skin: [186, 140, 106], hair: [90, 58, 140], shirt: [238, 210, 96], pants: [40, 44, 62], shoes: [56, 50, 46] }
+];
+
+/* --------------------------- capture screen -------------------------- */
+$('#btnCamera').onclick = () => $('#fileCamera').click();
+$('#btnUpload').onclick = () => $('#fileUpload').click();
+$('#fileCamera').onchange = (e) => onPhoto(e.target.files && e.target.files[0]);
+$('#fileUpload').onchange = (e) => onPhoto(e.target.files && e.target.files[0]);
+
+$('#btnSkip').onclick = () => {
+  const pal = STOCK[(Math.random() * STOCK.length) | 0];
+  const lm = defaultLandmarks(600, 1000);
+  buildCharacter(proportionsFromLandmarks(lm), pal, null);
+};
+
+async function onPhoto(file) {
+  if (!file) return;
+  showBusy('Reading photo…');
+  try {
+    await nextFrame();
+    S.img = await loadImageFile(file);
+    S.lm = autoDetectLandmarks(S.img) || defaultLandmarks(S.img.width, S.img.height);
+    hideBusy();
+    showScreen('alignScreen');
+    requestAnimationFrame(alignFit);
+  } catch (err) {
+    hideBusy();
+    alert("Couldn't read that image — try another photo.");
+  }
+  $('#fileCamera').value = ''; $('#fileUpload').value = '';
+}
+
+/* --------------------------- landmark editor ------------------------- */
+const AC = $('#alignCanvas');
+let acScale = 1, acDrag = null;
+
+function alignFit() {
+  if (!S.img) return;
+  const stage = $('#alignStage');
+  const availW = stage.clientWidth - 16, availH = stage.clientHeight - 12;
+  const ar = S.img.width / S.img.height;
+  let w = availW, h = w / ar;
+  if (h > availH) { h = availH; w = h * ar; }
+  AC.style.width = w + 'px'; AC.style.height = h + 'px';
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  AC.width = Math.round(w * dpr); AC.height = Math.round(h * dpr);
+  acScale = w / S.img.width;
+  alignDraw();
+}
+
+function alignDraw() {
+  const ctx = AC.getContext('2d');
+  const dpr = AC.width / parseFloat(AC.style.width);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = AC.width / dpr, h = AC.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(S.img, 0, 0, w, h);
+  ctx.fillStyle = 'rgba(6,8,14,0.30)'; ctx.fillRect(0, 0, w, h);
+
+  const P = (k) => [S.lm[k].x * acScale, S.lm[k].y * acScale];
+  const line = (a, b) => { const p = P(a), q = P(b); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); };
+
+  // stick figure
+  ctx.strokeStyle = 'rgba(98,230,224,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  line('headTop', 'chin'); line('shL', 'shR'); line('hipL', 'hipR');
+  line('shL', 'hipL'); line('shR', 'hipR');
+  const mid = (a, b) => [(S.lm[a].x + S.lm[b].x) * 0.5 * acScale, (S.lm[a].y + S.lm[b].y) * 0.5 * acScale];
+  const c1 = P('chin'), c2 = mid('shL', 'shR'), c3 = mid('hipL', 'hipR'), c4 = P('feet');
+  ctx.moveTo(c1[0], c1[1]); ctx.lineTo(c2[0], c2[1]);
+  ctx.moveTo(c3[0], c3[1]); ctx.lineTo(c4[0], c4[1]);
+  ctx.stroke();
+
+  // handles
+  const rad = Math.max(11, Math.min(17, w * 0.030));
+  LM_KEYS.forEach(k => {
+    const p = P(k);
+    ctx.beginPath(); ctx.arc(p[0], p[1], rad, 0, TAU);
+    ctx.fillStyle = acDrag === k ? 'rgba(255,204,85,0.95)' : 'rgba(201,139,255,0.88)';
+    ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(8,10,16,0.9)'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(p[0], p[1], 2.5, 0, TAU);
+    ctx.fillStyle = '#0d0f15'; ctx.fill();
+    ctx.font = '600 10px ui-monospace, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const below = (k === 'chin' || k === 'feet');
+    ctx.fillText(LM_LABEL[k], p[0], p[1] + (below ? rad + 9 : -rad - 8));
+  });
+}
+
+function acPos(e) {
+  const r = AC.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+AC.addEventListener('pointerdown', (e) => {
+  if (!S.lm) return;
+  const [x, y] = acPos(e);
+  let best = null, bd = 40;
+  LM_KEYS.forEach(k => {
+    const d = Math.hypot(S.lm[k].x * acScale - x, S.lm[k].y * acScale - y);
+    if (d < bd) { bd = d; best = k; }
+  });
+  if (best) {
+    acDrag = best;
+    AC.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    alignDraw();
+  }
+});
+AC.addEventListener('pointermove', (e) => {
+  if (!acDrag) return;
+  const [x, y] = acPos(e);
+  S.lm[acDrag].x = clamp(x / acScale, 0, S.img.width);
+  S.lm[acDrag].y = clamp(y / acScale, 0, S.img.height);
+  e.preventDefault();
+  alignDraw();
+});
+const acEnd = () => { if (acDrag) { acDrag = null; alignDraw(); } };
+AC.addEventListener('pointerup', acEnd);
+AC.addEventListener('pointercancel', acEnd);
+
+$('#alignBack').onclick = () => showScreen('capScreen');
+$('#alignReset').onclick = () => { S.lm = defaultLandmarks(S.img.width, S.img.height); alignDraw(); };
+$('#alignAuto').onclick = () => {
+  const g = autoDetectLandmarks(S.img);
+  if (g) { S.lm = g; alignDraw(); toast("Guessed from the photo's outline."); }
+  else toast('Auto-detect needs a plainer background —<br>drag the dots instead.');
+};
+$('#alignFlip').onclick = () => {
+  S.img = flipCanvasX(S.img);
+  LM_KEYS.forEach(k => { S.lm[k].x = S.img.width - S.lm[k].x; });
+  const t = S.lm.shL; S.lm.shL = S.lm.shR; S.lm.shR = t;
+  const u = S.lm.hipL; S.lm.hipL = S.lm.hipR; S.lm.hipR = u;
+  alignDraw();
+};
+$('#alignGo').onclick = async () => {
+  showBusy('Baking a 128×128 texture…');
+  await nextFrame();
+  const pal = samplePalette(S.img, S.lm);
+  buildCharacter(proportionsFromLandmarks(S.lm), pal, S.img);
+};
+
+/* ---------------------------- build + play --------------------------- */
+function buildCharacter(props, pal, img) {
+  try {
+    S.props = props; S.pal = pal;
+    S.atlasFlat = bakeAtlasFlat(pal);
+    S.atlasPhoto = img ? bakeAtlasFromPhoto(img, S.lm, pal) : S.atlasFlat;
+    if (!img) { S.texMode = 0; syncSeg('#segTex', 'tex', '0'); }
+
+    S.doll = new Ragdoll(props);
+    S.parts = buildParts(props);
+    S.mesh = packParts(S.parts);
+
+    if (!S.ren) S.ren = new Renderer($('#gl'));
+    S.ren.setCharMesh(S.mesh);
+    applyTexture();
+    saveCharacter();
+
+    showScreen('playScreen');
+    hideBusy();
+    resetCamera();
+    S.ren.resize();
+    startLoop();
+    if (!S.seenHelp) {
+      S.seenHelp = true;
+      toast('Drag <span class="k">the character</span> to grab a limb.<br>' +
+        'Drag <span class="k">the background</span> to orbit.<br>Pinch to zoom.', 4200);
+    }
+  } catch (err) {
+    hideBusy();
+    alert('Could not start the 3D view:\n' + (err && err.message ? err.message : err));
+    showScreen('capScreen');
+  }
+}
+
+function applyTexture() {
+  S.ren.setCharTexture(S.texMode ? S.atlasPhoto : S.atlasFlat);
+}
+
+// Vertical FOV is fixed, so landscape needs to back off — the HUD eats more of
+// the frame and the character is taller than the visible band.
+function fitDist() {
+  const c = $('#gl');
+  const a = c.clientWidth / Math.max(1, c.clientHeight);
+  return a >= 1 ? 3.8 : 3.5;
+}
+function resetCamera() {
+  S.cam.yaw = 0.0; S.cam.pitch = 0.20; S.cam.dist = fitDist();
+  S.cam.target = [0, 0.85, 0];
+  S.userZoomed = false;
+}
+
+function startLoop() {
+  if (S.running) return;
+  S.running = true; S.last = performance.now();
+  S.raf = requestAnimationFrame(tick);
+}
+function stopLoop() { S.running = false; cancelAnimationFrame(S.raf); }
+
+function tick(now) {
+  if (!S.running) return;
+  S.raf = requestAnimationFrame(tick);
+  let dt = (now - S.last) / 1000;
+  S.last = now;
+  if (!(dt > 0)) dt = 1 / 60;
+  dt = Math.min(dt, 1 / 30);
+
+  S.doll.step(dt);
+  poseMesh(S.mesh, S.parts, S.doll);
+  S.ren.updateCharMesh(S.mesh);
+
+  // camera follows the torso
+  const p = S.doll.pos;
+  const tx = (p[J.pelvis * 3] + p[J.chest * 3]) * 0.5;
+  const ty = (p[J.pelvis * 3 + 1] + p[J.chest * 3 + 1]) * 0.5;
+  const tz = (p[J.pelvis * 3 + 2] + p[J.chest * 3 + 2]) * 0.5;
+  const k = Math.min(1, dt * 3.5);
+  S.cam.target[0] += (tx - S.cam.target[0]) * k;
+  S.cam.target[1] += (Math.max(ty, 0.42) - S.cam.target[1]) * k;
+  S.cam.target[2] += (tz - S.cam.target[2]) * k;
+
+  if (S.spin && now - S.lastInteract > 2600 && S.doll.grab < 0) S.cam.yaw += dt * 0.16;
+
+  S.ren.setCamera(S.cam);
+  S.ren.render();
+}
+
+/* ------------------------------- input ------------------------------- */
+const glc = $('#gl');
+const ptrs = new Map();
+let orbiting = false, pinchStart = 0, pinchDist = 0;
+let grabVel = [0, 0, 0], grabLast = null, grabLastT = 0;
+const _ray = [0, 0, 0], _prj = [0, 0, 0];
+
+function localPt(e) {
+  const r = glc.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function pickJoint(x, y) {
+  let best = -1, bd = 58;
+  for (let j = 0; j < NJ; j++) {
+    if (!S.ren.project(S.doll.pos[j * 3], S.doll.pos[j * 3 + 1], S.doll.pos[j * 3 + 2], _prj)) continue;
+    const d = Math.hypot(_prj[0] - x, _prj[1] - y);
+    if (d < bd) { bd = d; best = j; }
+  }
+  return best;
+}
+
+// point on the camera-facing plane through `depthPoint`
+function dragPoint(x, y, depth) {
+  S.ren.unproject(x, y, _ray);
+  const e = S.ren.eye, m = S.ren.mView;
+  const fx = -m[2], fy = -m[6], fz = -m[10];        // camera forward in world space
+  const denom = _ray[0] * fx + _ray[1] * fy + _ray[2] * fz;
+  const t = denom > 1e-4 ? depth / denom : depth;
+  return [e[0] + _ray[0] * t, e[1] + _ray[1] * t, e[2] + _ray[2] * t];
+}
+
+glc.addEventListener('pointerdown', (e) => {
+  if (!S.doll) return;
+  glc.setPointerCapture(e.pointerId);
+  const p = localPt(e);
+  ptrs.set(e.pointerId, p);
+  S.lastInteract = performance.now();
+
+  if (ptrs.size === 2) {
+    const a = Array.from(ptrs.values());
+    pinchStart = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+    pinchDist = S.cam.dist;
+    S.doll.grab = -1; orbiting = false;
+    return;
+  }
+  const j = pickJoint(p.x, p.y);
+  if (j >= 0) {
+    S.doll.grab = j;
+    const m = S.ren.mView, e0 = S.ren.eye;
+    const dx = S.doll.pos[j * 3] - e0[0], dy = S.doll.pos[j * 3 + 1] - e0[1], dz = S.doll.pos[j * 3 + 2] - e0[2];
+    S.grabDepth = -(m[2] * dx + m[6] * dy + m[10] * dz);
+    S.doll.grabP = [S.doll.pos[j * 3], S.doll.pos[j * 3 + 1], S.doll.pos[j * 3 + 2]];
+    grabLast = S.doll.grabP.slice(); grabLastT = performance.now(); grabVel = [0, 0, 0];
+  } else {
+    orbiting = true;
+  }
+  e.preventDefault();
+});
+
+glc.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId) || !S.doll) return;
+  const prev = ptrs.get(e.pointerId);
+  const p = localPt(e);
+  ptrs.set(e.pointerId, p);
+  S.lastInteract = performance.now();
+
+  if (ptrs.size === 2) {
+    const a = Array.from(ptrs.values());
+    const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+    if (pinchStart > 8) {
+      S.cam.dist = clamp(pinchDist * (pinchStart / Math.max(d, 8)), 1.2, 11);
+      S.userZoomed = true;
+    }
+    return;
+  }
+  if (S.doll.grab >= 0) {
+    const w = dragPoint(p.x, p.y, S.grabDepth);
+    const now = performance.now(), dt = Math.max(0.008, (now - grabLastT) / 1000);
+    if (grabLast) {
+      for (let i = 0; i < 3; i++) grabVel[i] = lerp(grabVel[i], (w[i] - grabLast[i]) / dt, 0.45);
+    }
+    grabLast = w.slice(); grabLastT = now;
+    w[1] = Math.max(w[1], RADIUS[S.doll.grab]);
+    S.doll.grabP = w;
+  } else if (orbiting) {
+    S.cam.yaw -= (p.x - prev.x) * 0.0085;
+    S.cam.pitch = clamp(S.cam.pitch + (p.y - prev.y) * 0.006, -0.35, 1.25);
+  }
+  e.preventDefault();
+});
+
+function endPointer(e) {
+  ptrs.delete(e.pointerId);
+  S.lastInteract = performance.now();
+  if (!S.doll) return;
+  if (S.doll.grab >= 0 && ptrs.size === 0) {
+    const j = S.doll.grab;
+    S.doll.grab = -1;
+    const cap = 9;
+    const v = grabVel.map(x => clamp(x, -cap, cap));
+    S.doll.impulse(j, v[0], v[1], v[2], 1 / 60);
+  }
+  if (ptrs.size === 0) { orbiting = false; pinchStart = 0; }
+}
+glc.addEventListener('pointerup', endPointer);
+glc.addEventListener('pointercancel', endPointer);
+glc.addEventListener('contextmenu', (e) => e.preventDefault());
+glc.addEventListener('wheel', (e) => {
+  if (!S.doll) return;
+  e.preventDefault();
+  S.cam.dist = clamp(S.cam.dist * (1 + Math.sign(e.deltaY) * 0.10), 1.2, 11);
+  S.userZoomed = true;
+  S.lastInteract = performance.now();
+}, { passive: false });
+
+/* ------------------------------ controls ----------------------------- */
+$$('#poseRow button').forEach(b => {
+  b.onclick = () => {
+    $$('#poseRow button').forEach(x => x.classList.remove('act'));
+    b.classList.add('act');
+    S.doll.setMode(b.dataset.pose);
+    S.lastInteract = performance.now();
+  };
+});
+function setPoseUI(mode) {
+  $$('#poseRow button').forEach(x => x.classList.toggle('act', x.dataset.pose === mode));
+}
+
+$('#actLaunch').onclick = () => {
+  S.doll.setMode('limp'); setPoseUI('limp');
+  S.doll.impulseAll(0, 7.2, 0, 1 / 60, 5.0);
+  S.lastInteract = performance.now();
+};
+$('#actPunch').onclick = () => {
+  S.doll.setMode('limp'); setPoseUI('limp');
+  const m = S.ren.mView;
+  const fx = -m[2], fz = -m[10];
+  const l = Math.hypot(fx, fz) || 1;
+  S.doll.impulse(J.chest, fx / l * 6.5, 2.6, fz / l * 6.5, 1 / 60);
+  S.doll.impulse(J.pelvis, fx / l * 3.0, 0.8, fz / l * 3.0, 1 / 60);
+  S.lastInteract = performance.now();
+};
+$('#actGrav').onclick = () => {
+  const moon = S.doll.gravity < -5;
+  S.doll.gravity = moon ? -1.62 : -9.81;
+  $('#actGrav').innerHTML = moon ? '<span class="em">🌙</span>MOON' : '<span class="em">🌍</span>EARTH';
+  S.lastInteract = performance.now();
+};
+$('#actReset').onclick = () => {
+  S.doll.reset(); resetCamera(); setPoseUI(S.doll.mode);
+  S.lastInteract = performance.now();
+};
+$('#btnHome').onclick = () => { stopLoop(); showScreen('capScreen'); refreshResume(); };
+$('#btnShot').onclick = () => {
+  try {
+    S.ren.setCamera(S.cam); S.ren.render();
+    const url = glc.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url; a.download = 'polyme.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Saved a screenshot.<br>On iPhone: long-press the image to save.');
+  } catch (err) { toast("Couldn't save a screenshot here."); }
+};
+
+/* ------------------------------- FX panel ---------------------------- */
+$('#btnFx').onclick = () => $('#fxPanel').classList.add('on');
+$('#fxClose').onclick = () => $('#fxPanel').classList.remove('on');
+
+function syncSeg(sel, key, val) {
+  $$(sel + ' button').forEach(b => b.classList.toggle('act', b.dataset[key] === val));
+}
+function wireSeg(sel, key, fn) {
+  $$(sel + ' button').forEach(b => {
+    b.onclick = () => { syncSeg(sel, key, b.dataset[key]); fn(b.dataset[key]); };
+  });
+}
+wireSeg('#segRes', 'res', v => { S.ren.lowH = +v; S.ren.resize(); });
+wireSeg('#segBits', 'bits', v => { S.ren.levels = v === '4' ? 7 : v === '5' ? 31 : 255; });
+wireSeg('#segFog', 'fog', v => { S.ren.fogOn = v === '1'; });
+wireSeg('#segTex', 'tex', v => { S.texMode = +v; applyTexture(); });
+wireSeg('#segSpin', 'spin', v => { S.spin = +v; });
+
+function wireRange(id, valId, fn) {
+  const el = $(id);
+  const upd = () => { $(valId).textContent = el.value; fn(+el.value / 100); };
+  el.oninput = upd; upd();
+}
+// deferred until the renderer exists
+function wireFxRanges() {
+  wireRange('#fxSnap', '#fxSnapV', v => { if (S.ren) S.ren.snap = v; });
+  wireRange('#fxWarp', '#fxWarpV', v => { if (S.ren) S.ren.warp = v; });
+}
+
+/* ----------------------------- persistence --------------------------- */
+function saveCharacter() {
+  try {
+    const data = {
+      props: S.props, pal: S.pal, texMode: S.texMode,
+      photo: S.atlasPhoto === S.atlasFlat ? null : S.atlasPhoto.toDataURL('image/png'),
+      flat: S.atlasFlat.toDataURL('image/png')
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) { /* private mode / quota — not important */ }
+}
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function refreshResume() {
+  $('#btnResume').classList.toggle('hidden', !loadSaved());
+}
+function imgFromURL(url) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = rej; im.src = url;
+  });
+}
+$('#btnResume').onclick = async () => {
+  const d = loadSaved();
+  if (!d) return;
+  showBusy('Loading your character…');
+  try {
+    await nextFrame();
+    S.props = d.props; S.pal = d.pal;
+    S.atlasFlat = await imgFromURL(d.flat);
+    S.atlasPhoto = d.photo ? await imgFromURL(d.photo) : S.atlasFlat;
+    S.texMode = d.photo ? (d.texMode === 0 ? 0 : 1) : 0;
+    syncSeg('#segTex', 'tex', String(S.texMode));
+
+    S.doll = new Ragdoll(S.props);
+    S.parts = buildParts(S.props);
+    S.mesh = packParts(S.parts);
+    if (!S.ren) S.ren = new Renderer($('#gl'));
+    S.ren.setCharMesh(S.mesh);
+    applyTexture();
+    showScreen('playScreen');
+    hideBusy();
+    resetCamera(); S.ren.resize(); startLoop();
+  } catch (e) {
+    hideBusy();
+    toast('That saved character could not be loaded.');
+  }
+};
+
+/* ------------------------------- lifecycle --------------------------- */
+let resizeTimer = 0;
+function onResize() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (S.ren && $('#playScreen').classList.contains('on')) {
+      S.ren.resize();
+      if (!S.userZoomed) S.cam.dist = fitDist();   // reframe on rotate
+    }
+    if (S.img && $('#alignScreen').classList.contains('on')) alignFit();
+  }, 80);
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(onResize, 250));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopLoop();
+  else if ($('#playScreen').classList.contains('on')) startLoop();
+});
+// iOS: stop the page itself from rubber-banding behind the canvas
+document.addEventListener('touchmove', (e) => {
+  if ($('#playScreen').classList.contains('on') && !$('#fxPanel').classList.contains('on')) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+$('#gl').addEventListener('webglcontextlost', (e) => {
+  e.preventDefault(); stopLoop();
+  toast('Graphics context lost — reload the page.');
+});
+
+wireFxRanges();
+refreshResume();
+</script>
+</body>
+</html>
