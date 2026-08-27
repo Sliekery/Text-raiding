@@ -13,8 +13,8 @@ can bookmark and add to your home screen.
 
 1. On a computer, go to your repo on GitHub: **Settings → Pages**.
 2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
-3. Set **Branch** to `claude/text-raid-game-o1qbew` (or `main` once merged) and
-   folder **`/ (root)`**, then **Save**.
+3. Set **Branch** to `claude/ps1-lowpoly-character-generator-z0s8lu` (that branch
+   has both the game and PolyMe) and folder **`/ (root)`**, then **Save**.
 4. Wait ~1 minute, refresh the Pages settings — it shows your live URL.
 5. Open that URL in **Safari on your iPhone**.
 6. Tap the **Share** button → **Add to Home Screen**. Now it launches full-screen
@@ -49,7 +49,18 @@ use Option A or C instead.)
 ## Bonus: PolyMe
 
 The same repo has **[`polyme/`](polyme/)** — take a selfie, get a low-poly PS1
-character you can ragdoll. Once Pages is set up (Option A), it lives at
+character you can ragdoll.
+
+**Instant, no setup** (the repo is public, so this works right now):
+
+```
+https://raw.githack.com/Sliekery/Text-raiding/claude/ps1-lowpoly-character-generator-z0s8lu/polyme/index.html
+```
+
+Note: use **githack**, not `raw.githubusercontent.com` — GitHub serves raw files
+as `text/plain`, so Safari shows you the source code instead of running the app.
+
+**Permanent link:** once Pages is set up (Option A above), it lives at
 `https://sliekery.github.io/text-raiding/polyme/`. Add that to your home screen
 too. It also runs fully offline from the file, same as the game.
 
