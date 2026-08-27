@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="App Maker">
+<meta name="theme-color" content="#0d0f15">
+<title>🧱 App Maker</title>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#161a24; --panel2:#1d2331; --line:#2a3142;
+    --txt:#d7dcea; --dim:#8a92a6; --gold:#ffcc55; --red:#ff5d5d; --green:#5dd98a;
+    --blue:#6db3ff; --mag:#c98bff; --cyan:#62e6e0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt); font-size:15px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  #ui{max-width:720px; margin:0 auto; padding:env(safe-area-inset-top) 12px
+    calc(env(safe-area-inset-bottom) + 24px); min-height:100vh;}
+  #ui.runview{max-width:none; padding:0;}
+  h1,h2,h3{margin:.3em 0;}
+  .title{text-align:center; padding:16px 0 2px;}
+  .title .big{font-size:28px; font-weight:800; letter-spacing:.5px;
+    background:linear-gradient(90deg,var(--mag),var(--cyan)); -webkit-background-clip:text;
+    background-clip:text; color:transparent;}
+  .title .sub{color:var(--dim); font-size:13px; margin-top:2px;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px; margin:10px 0;}
+  .row{display:flex; align-items:center; gap:8px;}
+  .row.wrap{flex-wrap:wrap;}
+  .between{justify-content:space-between;}
+  .grow{flex:1; min-width:0;}
+  .ell{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .dim{color:var(--dim);} .small{font-size:12px;} .center{text-align:center;}
+  .mt{margin-top:10px;} .mb{margin-bottom:10px;}
+  button{font:inherit; color:var(--txt); background:var(--panel2); border:1px solid var(--line);
+    border-radius:10px; padding:11px 12px; cursor:pointer; transition:transform .05s, background .1s;}
+  button:active{transform:scale(.98); background:#283248;}
+  button:disabled{opacity:.4;}
+  button.wide{width:100%; text-align:left;}
+  button.wide.center{text-align:center;}
+  button.primary{background:linear-gradient(90deg,#3a2a5a,#264a5a); border-color:#3a4a66;
+    text-align:center; font-weight:700; width:100%;}
+  button.danger{color:var(--red); border-color:#5a2a2a;}
+  button.mini{padding:7px 9px; font-size:13px;}
+  button.icon{padding:8px 10px; line-height:1;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap;}
+  .chip{padding:7px 11px; border-radius:20px; font-size:13px;}
+  .chip.on{background:linear-gradient(90deg,#3a2a5a,#264a5a); border-color:#3a4a66; font-weight:700;}
+  .tabs{display:flex; gap:6px; margin:10px 0;}
+  .tabs button{flex:1; text-align:center;}
+  label.f{display:block; margin:12px 0 0;}
+  label.f .l{font-size:12px; color:var(--dim); margin-bottom:4px; display:block;}
+  label.f .hint{font-size:11.5px; color:var(--dim); margin-top:4px; display:block; line-height:1.35;}
+  input[type=text],input[type=number],textarea,select{font:inherit; font-size:16px; width:100%;
+    padding:10px; background:#0a0c12; color:var(--txt); border:1px solid var(--line);
+    border-radius:10px;}
+  textarea{min-height:88px; resize:vertical;}
+  .sw{display:flex; align-items:center; gap:10px;}
+  .sw input{width:20px; height:20px;}
+  .item{display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--line);
+    border-radius:10px; background:var(--panel2); margin:6px 0;}
+  .item .ic{width:24px; text-align:center; flex:none;}
+  .item .tx{flex:1; min-width:0;}
+  .item .tx .t{font-size:13.5px; font-weight:600;}
+  .item .tx .d{font-size:11.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap;}
+  .card{display:flex; align-items:center; gap:10px; padding:12px; border:1px solid var(--line);
+    border-radius:12px; background:var(--panel2); margin:8px 0; cursor:pointer;}
+  .card .em{font-size:26px;}
+  .empty{color:var(--dim); font-size:13px; text-align:center; padding:18px 8px; line-height:1.5;}
+  .sheetwrap{position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex;
+    align-items:flex-end; justify-content:center; z-index:50;}
+  .sheet{background:var(--panel); border:1px solid var(--line); border-radius:16px 16px 0 0;
+    width:100%; max-width:720px; max-height:92vh; overflow-y:auto;
+    padding:8px 14px calc(env(safe-area-inset-bottom) + 20px);}
+  .sheet .bar{position:sticky; top:0; background:var(--panel); padding:10px 0 8px;
+    display:flex; justify-content:space-between; align-items:center; z-index:2;}
+  .sheet .bar .h{font-weight:700;}
+  .grab{width:38px; height:4px; background:var(--line); border-radius:3px; margin:6px auto 0;}
+  .toastbox{position:fixed; left:0; right:0; bottom:26px; display:flex; justify-content:center;
+    pointer-events:none; z-index:99;}
+  .toastbox div{background:#000c; border:1px solid var(--line); color:#fff; padding:9px 14px;
+    border-radius:20px; font-size:13.5px;}
+  .runbar{position:fixed; right:14px; bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:40;
+    display:flex; gap:8px;}
+  .runbar button{box-shadow:0 6px 18px #0008;}
+  a{color:var(--cyan);}
+  code{background:#0a0c12; border:1px solid var(--line); border-radius:5px; padding:1px 5px;
+    font-size:12.5px;}
+</style>
+</head>
+<body>
+<div id="ui"></div>
+<div id="sheets"></div>
+<div class="toastbox" id="toasts"></div>
+
+<script>
+"use strict";
+
+/* ================================================================== *
+ *  APP MAKER — a no-code app engine.
+ *
+ *  Two halves live in this file:
+ *    1. THE RUNTIME (rt*)  — turns an app description into a working app.
+ *       Every function here is also serialised into exported apps, so it
+ *       must not reference anything from the editor half.
+ *    2. THE EDITOR         — the visual builder that produces that
+ *       description. No typing of code, no AI: everything is pickers,
+ *       forms and buttons.
+ * ================================================================== */
+
+/* ======================================================= RUNTIME CSS === */
+const RT_CSS = `
+.app{--bg:#0f1218; --card:#1a1f2b; --line:#2b3244; --txt:#e6e9f2; --dim:#8e97ad;
+  --acc:#6db3ff; --acc2:#c98bff; --danger:#ff5d5d; --ok:#5dd98a;
+  background:var(--bg); color:var(--txt); min-height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:16px;}
+.app.t-paper{--bg:#f5f3ee; --card:#fff; --line:#e3ded2; --txt:#22262e; --dim:#6b7180;
+  --acc:#1f5ae0; --acc2:#6a45c9; --danger:#c22f2f; --ok:#1a8449;}
+.app.t-mint{--bg:#0c1714; --card:#12211d; --line:#1f3a32; --txt:#dff5ec; --dim:#7fa79b;
+  --acc:#4fd1a5; --acc2:#8ce0c2; --danger:#ff6b6b; --ok:#4fd1a5;}
+.app.t-sunset{--bg:#1a1016; --card:#241621; --line:#3d2333; --txt:#ffeef6; --dim:#b78fa4;
+  --acc:#ff8f6b; --acc2:#ff6bad; --danger:#ff5d5d; --ok:#ffc46b;}
+.app.t-mono{--bg:#000; --card:#0d0d0d; --line:#2a2a2a; --txt:#e8e8e8; --dim:#8a8a8a;
+  --acc:#e8e8e8; --acc2:#bdbdbd; --danger:#ff5d5d; --ok:#5dd98a;
+  font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;}
+.app *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+.rt-page{max-width:560px; margin:0 auto; padding:env(safe-area-inset-top) 16px
+  calc(env(safe-area-inset-bottom) + 28px);}
+.rt-top{display:flex; align-items:center; gap:10px; padding:14px 0 6px; min-height:34px;}
+.rt-top .rt-name{font-weight:700; font-size:15px;}
+.rt-top .rt-back{background:none; border:none; color:var(--acc); font:inherit; font-size:15px;
+  padding:4px 6px 4px 0; cursor:pointer;}
+.rt-h{margin:16px 0 6px; line-height:1.25;}
+h2.rt-h{font-size:26px; font-weight:800;}
+h3.rt-h{font-size:19px; font-weight:700;}
+.rt-t{margin:8px 0; line-height:1.5; white-space:pre-wrap;}
+.rt-t.dim{color:var(--dim); font-size:14.5px;}
+.rt-center{text-align:center;}
+.rt-img{width:100%; border-radius:14px; display:block; margin:10px 0; border:1px solid var(--line);}
+.rt-cap{color:var(--dim); font-size:12.5px; text-align:center; margin:-4px 0 10px;}
+.rt-lab{display:block; font-size:12.5px; color:var(--dim); margin:14px 0 5px;}
+.rt-in{font:inherit; font-size:16px; width:100%; padding:12px; border-radius:12px;
+  background:var(--card); color:var(--txt); border:1px solid var(--line);}
+.rt-in:focus{outline:2px solid var(--acc); outline-offset:-2px;}
+textarea.rt-in{min-height:96px; resize:vertical;}
+.rt-btn{font:inherit; font-size:16px; font-weight:600; width:100%; padding:14px;
+  border-radius:12px; margin:8px 0; cursor:pointer; border:1px solid var(--line);
+  background:var(--card); color:var(--txt); transition:transform .05s, filter .1s;}
+.rt-btn:active{transform:scale(.985);}
+.rt-btn.primary{background:var(--acc); border-color:var(--acc); color:#06121f; font-weight:700;}
+.app.t-mono .rt-btn.primary{color:#000;}
+.app.t-paper .rt-btn.primary{color:#fff;}
+.rt-btn.danger{background:none; color:var(--danger); border-color:var(--danger);}
+.rt-step{display:flex; align-items:center; gap:12px; background:var(--card);
+  border:1px solid var(--line); border-radius:12px; padding:8px 10px; margin:6px 0;}
+.rt-step button{font:inherit; font-size:22px; width:46px; height:44px; line-height:1;
+  border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--txt);
+  cursor:pointer;}
+.rt-step .v{flex:1; text-align:center; font-size:22px; font-weight:700;}
+.rt-sw{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:12px 14px; margin:6px 0; cursor:pointer;}
+.rt-sw .knob{width:50px; height:30px; border-radius:16px; background:var(--line);
+  position:relative; flex:none; transition:background .15s;}
+.rt-sw .knob i{position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+  background:#fff; transition:left .15s;}
+.rt-sw.on .knob{background:var(--ok);}
+.rt-sw.on .knob i{left:23px;}
+.rt-opts{display:flex; flex-direction:column; gap:6px; margin:6px 0;}
+.rt-opt{text-align:left; padding:13px 14px; border-radius:12px; border:1px solid var(--line);
+  background:var(--card); color:var(--txt); font:inherit; font-size:15.5px; cursor:pointer;}
+.rt-opt.on{border-color:var(--acc); box-shadow:inset 0 0 0 1px var(--acc);}
+.rt-li{display:flex; align-items:center; gap:10px; background:var(--card);
+  border:1px solid var(--line); border-radius:12px; padding:12px; margin:6px 0;}
+.rt-li .tick{width:24px; height:24px; border-radius:7px; border:1.5px solid var(--line);
+  flex:none; display:flex; align-items:center; justify-content:center; font-size:14px;
+  cursor:pointer; color:transparent;}
+.rt-li.done .tick{background:var(--ok); border-color:var(--ok); color:#06121f;}
+.rt-li.done .tx{text-decoration:line-through; color:var(--dim);}
+.rt-li .tx{flex:1; min-width:0; word-break:break-word; line-height:1.4;}
+.rt-li .del{background:none; border:none; color:var(--dim); font:inherit; font-size:19px;
+  cursor:pointer; padding:0 2px;}
+.rt-stat{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:18px; text-align:center; margin:8px 0;}
+.rt-stat .v{font-size:42px; font-weight:800; line-height:1.1; color:var(--acc);}
+.rt-stat .l{font-size:12.5px; color:var(--dim); margin-top:4px; letter-spacing:.4px;}
+.rt-prog{margin:10px 0;}
+.rt-prog .track{height:12px; border-radius:8px; background:var(--card);
+  border:1px solid var(--line); overflow:hidden;}
+.rt-prog .fill{height:100%; background:var(--acc); transition:width .25s;}
+.rt-prog .l{display:flex; justify-content:space-between; font-size:12.5px; color:var(--dim);
+  margin-bottom:5px;}
+.rt-hr{border:none; border-top:1px solid var(--line); margin:18px 0;}
+.rt-empty{color:var(--dim); font-size:14px; text-align:center; padding:16px 8px; line-height:1.5;}
+.rt-toast{position:fixed; left:0; right:0; bottom:30px; display:flex; justify-content:center;
+  pointer-events:none; z-index:9;}
+.rt-toast div{background:#000d; color:#fff; border-radius:20px; padding:10px 16px;
+  font-size:14px; max-width:80%; text-align:center;}
+`;
+
+/* =========================================================== RUNTIME === */
+/* Everything below, up to the END RUNTIME marker, is copied verbatim into
+   exported apps. Keep it self-contained. */
+
+function rtEl(tag, cls, txt){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(txt != null) e.textContent = txt;
+  return e;
+}
+
+function rtKey(app){ return "appmaker.data." + app.id; }
+
+function rtField(app, key){
+  var fs = app.fields || [];
+  for(var i=0;i<fs.length;i++){ if(fs[i].key === key) return fs[i]; }
+  return null;
+}
+
+function rtNum(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function rtBlank(f){
+  if(f.type === "number") return rtNum(f.initial);
+  if(f.type === "toggle") return !!f.initial;
+  if(f.type === "list"){
+    return String(f.initial || "").split("\n").filter(function(s){ return s.trim(); })
+      .map(function(s){ return {t:s.trim(), done:false}; });
+  }
+  return f.initial == null ? "" : String(f.initial);
+}
+
+function rtInit(app, fresh){
+  var st = {};
+  if(!fresh){
+    try{ st = JSON.parse(localStorage.getItem(rtKey(app)) || "{}") || {}; }catch(e){ st = {}; }
+  }
+  (app.fields || []).forEach(function(f){
+    var v = st[f.key];
+    var ok = f.type === "list"   ? Array.isArray(v)
+           : f.type === "number" ? typeof v === "number"
+           : f.type === "toggle" ? typeof v === "boolean"
+           :                       typeof v === "string";
+    if(!ok) st[f.key] = rtBlank(f);
+  });
+  return st;
+}
+
+function rtSave(ctx){
+  try{ localStorage.setItem(rtKey(ctx.app), JSON.stringify(ctx.st)); }catch(e){}
+}
+
+function rtSet(ctx, key, raw){
+  var f = rtField(ctx.app, key);
+  if(!f) return;
+  if(f.type === "number")      ctx.st[key] = rtNum(raw);
+  else if(f.type === "toggle") ctx.st[key] = (raw === true || raw === "true" ||
+                                              raw === "yes" || raw === "on" || raw === 1);
+  else if(f.type === "list")   ctx.st[key] = Array.isArray(raw) ? raw : [];
+  else                         ctx.st[key] = raw == null ? "" : String(raw);
+}
+
+/* Turns "Hello {name}, {todo.left} to go" into real text. This is the only
+   "expression language" the engine has, and it is deliberately tiny. */
+function rtInterp(s, app, st){
+  return String(s == null ? "" : s).replace(/\{([A-Za-z0-9_]+)(?:\.([a-z]+))?\}/g,
+    function(m, key, part){
+      var f = rtField(app, key);
+      if(!f) return m;
+      var v = st[key];
+      if(f.type === "list"){
+        var arr = Array.isArray(v) ? v : [];
+        var done = arr.filter(function(i){ return i.done; }).length;
+        if(part === "count") return String(arr.length);
+        if(part === "done")  return String(done);
+        if(part === "left")  return String(arr.length - done);
+        return arr.map(function(i){ return i.t; }).join(", ");
+      }
+      if(f.type === "toggle") return v ? "yes" : "no";
+      return v == null ? "" : String(v);
+    });
+}
+
+function rtCond(when, app, st){
+  if(!when || !when.field) return true;
+  var f = rtField(app, when.field);
+  if(!f) return true;
+  var v = st[when.field];
+  var size = f.type === "list" ? (Array.isArray(v) ? v.length : 0)
+           : f.type === "toggle" ? (v ? 1 : 0)
+           : String(v == null ? "" : v).length;
+  var want = rtInterp(when.value, app, st);
+  switch(when.op){
+    case "is not":        return String(v) !== want;
+    case "is more than":  return rtNum(v) > rtNum(want);
+    case "is less than":  return rtNum(v) < rtNum(want);
+    case "is empty":      return size === 0;
+    case "is not empty":  return size > 0;
+    case "is on":         return !!v;
+    case "is off":        return !v;
+    default:              return String(v) === want;   /* "is" */
+  }
+}
+
+function rtToast(ctx, msg){
+  var box = ctx.host.querySelector(".rt-toast");
+  if(!box){ box = rtEl("div", "rt-toast"); ctx.host.appendChild(box); }
+  box.innerHTML = "";
+  box.appendChild(rtEl("div", null, msg));
+  clearTimeout(ctx.toastT);
+  ctx.toastT = setTimeout(function(){ box.innerHTML = ""; }, 2200);
+}
+
+function rtDo(actions, ctx){
+  var app = ctx.app, redraw = false;
+  (actions || []).forEach(function(a){
+    if(!a || !a.type) return;
+    var st = ctx.st, v;
+    switch(a.type){
+      case "goto":
+        if(a.screen && a.screen !== ctx.cur){ ctx.stack.push(ctx.cur); ctx.cur = a.screen; }
+        redraw = true; break;
+      case "back":
+        if(ctx.stack.length){ ctx.cur = ctx.stack.pop(); redraw = true; }
+        break;
+      case "set":
+        rtSet(ctx, a.field, rtInterp(a.value, app, st)); redraw = true; break;
+      case "change":
+        st[a.field] = rtNum(st[a.field]) + rtNum(a.by === "" || a.by == null ? 1 : a.by);
+        redraw = true; break;
+      case "toggle":
+        st[a.field] = !st[a.field]; redraw = true; break;
+      case "add":
+        v = rtInterp(a.value, app, st).trim();
+        if(v){
+          if(!Array.isArray(st[a.field])) st[a.field] = [];
+          st[a.field].push({t:v, done:false});
+        }
+        redraw = true; break;
+      case "clear":
+        var f = rtField(app, a.field);
+        if(f) st[a.field] = rtBlank({type:f.type, initial:""});
+        redraw = true; break;
+      case "message":
+        rtToast(ctx, rtInterp(a.text, app, st)); break;
+      case "link":
+        if(a.url) window.open(a.url, "_blank"); break;
+      case "reset":
+        ctx.st = rtInit(app, true); ctx.stack = [];
+        ctx.cur = (app.screens[0] || {}).id; redraw = true; break;
+    }
+  });
+  rtSave(ctx);
+  if(redraw) rtRender(ctx);
+}
+
+function rtBlock(b, ctx){
+  var app = ctx.app, st = ctx.st, w, i;
+  if(b.when && b.when.field && !rtCond(b.when, app, st)) return null;
+
+  if(b.type === "heading"){
+    w = rtEl(b.size === "Medium" ? "h3" : "h2", "rt-h", rtInterp(b.text, app, st));
+    if(b.align === "Center") w.classList.add("rt-center");
+    return w;
+  }
+  if(b.type === "text"){
+    w = rtEl("p", "rt-t" + (b.muted ? " dim" : ""), rtInterp(b.text, app, st));
+    if(b.align === "Center") w.classList.add("rt-center");
+    return w;
+  }
+  if(b.type === "image"){
+    w = rtEl("div");
+    if(b.src){
+      var img = rtEl("img", "rt-img");
+      img.src = b.src; img.alt = b.alt || "";
+      img.onerror = function(){ img.style.display = "none"; };
+      w.appendChild(img);
+    }
+    if(b.alt) w.appendChild(rtEl("div", "rt-cap", b.alt));
+    return w;
+  }
+  if(b.type === "input"){
+    w = rtEl("div");
+    if(b.label) w.appendChild(rtEl("label", "rt-lab", rtInterp(b.label, app, st)));
+    var inp = rtEl(b.multi ? "textarea" : "input", "rt-in");
+    if(!b.multi) inp.type = "text";
+    inp.placeholder = b.ph || "";
+    inp.value = st[b.field] == null ? "" : String(st[b.field]);
+    inp.addEventListener("input", function(){
+      rtSet(ctx, b.field, inp.value);   /* no redraw: it would steal focus */
+      rtSave(ctx);
+    });
+    w.appendChild(inp);
+    return w;
+  }
+  if(b.type === "number"){
+    w = rtEl("div");
+    if(b.label) w.appendChild(rtEl("label", "rt-lab", rtInterp(b.label, app, st)));
+    var row = rtEl("div", "rt-step");
+    var step = rtNum(b.step === "" || b.step == null ? 1 : b.step) || 1;
+    var bump = function(d){
+      return function(){
+        var n = rtNum(st[b.field]) + d;
+        if(b.min !== "" && b.min != null) n = Math.max(rtNum(b.min), n);
+        if(b.max !== "" && b.max != null) n = Math.min(rtNum(b.max), n);
+        st[b.field] = n; rtSave(ctx); rtRender(ctx);
+      };
+    };
+    var minus = rtEl("button", null, "−"); minus.onclick = bump(-step);
+    var plus  = rtEl("button", null, "+"); plus.onclick  = bump(step);
+    row.appendChild(minus);
+    row.appendChild(rtEl("div", "v", String(rtNum(st[b.field]))));
+    row.appendChild(plus);
+    w.appendChild(row);
+    return w;
+  }
+  if(b.type === "toggle"){
+    var on = !!st[b.field];
+    w = rtEl("div", "rt-sw" + (on ? " on" : ""));
+    w.appendChild(rtEl("div", "grow", rtInterp(b.label || b.field, app, st)));
+    var knob = rtEl("div", "knob"); knob.appendChild(rtEl("i"));
+    w.appendChild(knob);
+    w.onclick = function(){ st[b.field] = !st[b.field]; rtSave(ctx); rtRender(ctx); };
+    return w;
+  }
+  if(b.type === "choice"){
+    w = rtEl("div");
+    if(b.label) w.appendChild(rtEl("label", "rt-lab", rtInterp(b.label, app, st)));
+    var box = rtEl("div", "rt-opts");
+    (b.opts || []).forEach(function(o){
+      var btn = rtEl("button", "rt-opt" + (String(st[b.field]) === o ? " on" : ""), o);
+      btn.onclick = function(){
+        rtSet(ctx, b.field, o); rtSave(ctx);
+        if(b.actions && b.actions.length) rtDo(b.actions, ctx); else rtRender(ctx);
+      };
+      box.appendChild(btn);
+    });
+    w.appendChild(box);
+    return w;
+  }
+  if(b.type === "list"){
+    w = rtEl("div");
+    var arr = Array.isArray(st[b.field]) ? st[b.field] : [];
+    if(!arr.length){
+      w.appendChild(rtEl("div", "rt-empty", b.empty || "Nothing here yet."));
+      return w;
+    }
+    arr.forEach(function(it, idx){
+      var li = rtEl("div", "rt-li" + (it.done ? " done" : ""));
+      if(b.check !== false){
+        var tick = rtEl("div", "tick", "✓");
+        tick.onclick = function(){ it.done = !it.done; rtSave(ctx); rtRender(ctx); };
+        li.appendChild(tick);
+      }
+      li.appendChild(rtEl("div", "tx", it.t));
+      if(b.del !== false){
+        var x = rtEl("button", "del", "×");
+        x.onclick = function(){ arr.splice(idx, 1); rtSave(ctx); rtRender(ctx); };
+        li.appendChild(x);
+      }
+      w.appendChild(li);
+    });
+    return w;
+  }
+  if(b.type === "stat"){
+    w = rtEl("div", "rt-stat");
+    w.appendChild(rtEl("div", "v", rtInterp("{" + b.field + "}", app, st) || "—"));
+    if(b.label) w.appendChild(rtEl("div", "l", rtInterp(b.label, app, st)));
+    return w;
+  }
+  if(b.type === "progress"){
+    var max = rtNum(b.max) || 1, now = rtNum(st[b.field]);
+    var pct = Math.max(0, Math.min(100, (now / max) * 100));
+    w = rtEl("div", "rt-prog");
+    var lab = rtEl("div", "l");
+    lab.appendChild(rtEl("span", null, rtInterp(b.label || "", app, st)));
+    lab.appendChild(rtEl("span", null, Math.round(now) + " / " + max));
+    var track = rtEl("div", "track"), fill = rtEl("div", "fill");
+    fill.style.width = pct + "%";
+    track.appendChild(fill);
+    w.appendChild(lab); w.appendChild(track);
+    return w;
+  }
+  if(b.type === "button"){
+    w = rtEl("button", "rt-btn " + String(b.style || "Primary").toLowerCase(),
+             rtInterp(b.label || "Button", app, st));
+    w.onclick = function(){ rtDo(b.actions || [], ctx); };
+    return w;
+  }
+  if(b.type === "divider") return rtEl("hr", "rt-hr");
+  if(b.type === "spacer"){
+    w = rtEl("div");
+    w.style.height = (rtNum(b.h) || 16) + "px";
+    return w;
+  }
+  return null;
+}
+
+function rtScreen(app, id){
+  var ss = app.screens || [];
+  for(var i=0;i<ss.length;i++){ if(ss[i].id === id) return ss[i]; }
+  return ss[0] || {id:"", name:"", blocks:[]};
+}
+
+function rtRender(ctx){
+  var app = ctx.app;
+  var scr = rtScreen(app, ctx.cur);
+  ctx.cur = scr.id;
+  ctx.host.innerHTML = "";
+  var page = rtEl("div", "rt-page");
+
+  var top = rtEl("div", "rt-top");
+  if(ctx.stack.length){
+    var back = rtEl("button", "rt-back", "‹ Back");
+    back.onclick = function(){ ctx.cur = ctx.stack.pop(); rtRender(ctx); };
+    top.appendChild(back);
+  }
+  top.appendChild(rtEl("div", "rt-name",
+    (app.icon ? app.icon + " " : "") + (scr.name || app.name || "")));
+  page.appendChild(top);
+
+  (scr.blocks || []).forEach(function(b){
+    var node = rtBlock(b, ctx);
+    if(node) page.appendChild(node);
+  });
+  if(!(scr.blocks || []).length){
+    page.appendChild(rtEl("div", "rt-empty", "This screen is empty."));
+  }
+  ctx.host.appendChild(page);
+}
+
+function rtStart(app, host){
+  var ctx = {app:app, host:host, st:rtInit(app, false), stack:[],
+             cur:(app.screens[0] || {}).id};
+  host.className = "app t-" + (app.theme || "midnight");
+  rtRender(ctx);
+  return ctx;
+}
+/* ======================================================= END RUNTIME === */
+
+const RUNTIME_FNS = [rtEl, rtKey, rtField, rtNum, rtBlank, rtInit, rtSave, rtSet, rtInterp,
+                     rtCond, rtToast, rtDo, rtBlock, rtScreen, rtRender, rtStart];
+
+/* ============================================================ MODEL ==== */
+
+const K_APPS = "appmaker.apps.v1";
+/* key, name, page background — the third is what an exported page paints
+   behind the app, so over-scrolling never shows the wrong colour. */
+const THEMES = [["midnight","Midnight","#0f1218"], ["paper","Paper","#f5f3ee"],
+                ["mint","Mint","#0c1714"], ["sunset","Sunset","#1a1016"],
+                ["mono","Mono","#000000"]];
+const FIELD_TYPES = [["text","Text"],["number","Number"],["toggle","Yes / no"],["list","List"]];
+const OPS = ["is","is not","is more than","is less than","is empty","is not empty",
+             "is on","is off"];
+
+function uid(){ return "x" + Math.random().toString(36).slice(2, 9); }
+function loadApps(){ try{ return JSON.parse(localStorage.getItem(K_APPS)) || []; }catch(e){ return []; } }
+function storeApps(){ localStorage.setItem(K_APPS, JSON.stringify(apps)); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function keyify(label, taken){
+  var base = String(label || "field").toLowerCase().replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "").slice(0, 20) || "field";
+  if(/^[0-9]/.test(base)) base = "f_" + base;
+  var k = base, n = 2;
+  while(taken.indexOf(k) >= 0){ k = base + "_" + (n++); }
+  return k;
+}
+
+/* Which blocks exist, and what the editor asks about each of them.
+   t: text | area | num | bool | select | lines | field | screen | actions   */
+const BLOCKS = {
+  heading:  {i:"🔠", n:"Heading", d:"A big title",
+    f:[{k:"text", t:"text", l:"Text", def:"Heading"},
+       {k:"size", t:"select", l:"Size", o:["Large","Medium"], def:"Large"},
+       {k:"align", t:"select", l:"Align", o:["Left","Center"], def:"Left"}],
+    s:function(b){ return b.text; }},
+  text:     {i:"📝", n:"Text", d:"A paragraph",
+    f:[{k:"text", t:"area", l:"Text", def:"Some words.",
+        hint:"Insert a saved value by writing its name in braces, e.g. {score}."},
+       {k:"align", t:"select", l:"Align", o:["Left","Center"], def:"Left"},
+       {k:"muted", t:"bool", l:"Smaller and dimmed"}],
+    s:function(b){ return b.text; }},
+  image:    {i:"🖼", n:"Image", d:"A picture from a web address",
+    f:[{k:"src", t:"text", l:"Image address (https://…)"},
+       {k:"alt", t:"text", l:"Caption"}],
+    s:function(b){ return b.alt || b.src || "no image yet"; }},
+  input:    {i:"⌨️", n:"Text box", d:"Someone types something in",
+    f:[{k:"field", t:"field", l:"Save what they type into", ft:["text"]},
+       {k:"label", t:"text", l:"Label above the box"},
+       {k:"ph", t:"text", l:"Faint hint inside the box"},
+       {k:"multi", t:"bool", l:"Allow several lines"}],
+    s:function(b){ return b.label || b.field; }},
+  number:   {i:"🔢", n:"Number picker", d:"Plus and minus buttons",
+    f:[{k:"field", t:"field", l:"Number to change", ft:["number"]},
+       {k:"label", t:"text", l:"Label"},
+       {k:"step", t:"num", l:"Step size", def:1},
+       {k:"min", t:"num", l:"Lowest allowed"},
+       {k:"max", t:"num", l:"Highest allowed"}],
+    s:function(b){ return b.label || b.field; }},
+  toggle:   {i:"🔘", n:"Switch", d:"An on / off switch",
+    f:[{k:"field", t:"field", l:"Yes / no value", ft:["toggle"]},
+       {k:"label", t:"text", l:"Label"}],
+    s:function(b){ return b.label || b.field; }},
+  choice:   {i:"🎚", n:"Choices", d:"Pick one of several options",
+    f:[{k:"field", t:"field", l:"Save the choice into", ft:["text"]},
+       {k:"label", t:"text", l:"Question"},
+       {k:"opts", t:"lines", l:"Options, one per line", def:"Yes\nNo"},
+       {k:"actions", t:"actions", l:"After choosing"}],
+    s:function(b){ return b.label || (b.opts || []).join(" / "); }},
+  list:     {i:"✅", n:"List", d:"Shows the items in a list",
+    f:[{k:"field", t:"field", l:"Which list", ft:["list"]},
+       {k:"empty", t:"text", l:"Message when empty", def:"Nothing here yet."},
+       {k:"check", t:"bool", l:"Items can be ticked off", def:true},
+       {k:"del", t:"bool", l:"Items can be deleted", def:true}],
+    s:function(b){ return b.field; }},
+  stat:     {i:"📊", n:"Big number", d:"Shows one value, large",
+    f:[{k:"field", t:"field", l:"Value to show"},
+       {k:"label", t:"text", l:"Label underneath"}],
+    s:function(b){ return b.label || b.field; }},
+  progress: {i:"▰", n:"Progress bar", d:"How far towards a goal",
+    f:[{k:"field", t:"field", l:"Current amount", ft:["number"]},
+       {k:"max", t:"num", l:"Goal", def:10},
+       {k:"label", t:"text", l:"Label"}],
+    s:function(b){ return (b.label || b.field) + " → " + (b.max || 0); }},
+  button:   {i:"🔵", n:"Button", d:"Does things when tapped",
+    f:[{k:"label", t:"text", l:"Button text", def:"Tap me"},
+       {k:"style", t:"select", l:"Look", o:["Primary","Plain","Danger"], def:"Primary"},
+       {k:"actions", t:"actions", l:"When tapped"}],
+    s:function(b){ return b.label; }},
+  divider:  {i:"➖", n:"Divider", d:"A dividing line", f:[], s:function(){ return ""; }},
+  spacer:   {i:"␣", n:"Space", d:"Empty gap",
+    f:[{k:"h", t:"num", l:"Height in pixels", def:16}],
+    s:function(b){ return (b.h || 16) + "px"; }},
+};
+
+const ACTIONS = {
+  goto:    {n:"Go to a screen", f:[{k:"screen", t:"screen", l:"Screen"}],
+    s:function(a){ return "Go to " + screenName(a.screen); }},
+  back:    {n:"Go back", f:[], s:function(){ return "Go back"; }},
+  set:     {n:"Set a value", f:[{k:"field", t:"field", l:"Value"},
+                                {k:"value", t:"text", l:"Set it to",
+                                 hint:"Braces copy another value, e.g. {name}."}],
+    s:function(a){ return "Set " + a.field + " to “" + (a.value || "") + "”"; }},
+  change:  {n:"Add to a number", f:[{k:"field", t:"field", l:"Number", ft:["number"]},
+                                    {k:"by", t:"num", l:"Add (use -1 to subtract)", def:1}],
+    s:function(a){ return "Add " + (a.by == null ? 1 : a.by) + " to " + a.field; }},
+  toggle:  {n:"Flip a switch", f:[{k:"field", t:"field", l:"Yes / no value", ft:["toggle"]}],
+    s:function(a){ return "Flip " + a.field; }},
+  add:     {n:"Add an item to a list", f:[{k:"field", t:"field", l:"List", ft:["list"]},
+                                          {k:"value", t:"text", l:"Item text",
+                                           hint:"Usually {something} — the text box's value."}],
+    s:function(a){ return "Add “" + (a.value || "") + "” to " + a.field; }},
+  clear:   {n:"Empty a value", f:[{k:"field", t:"field", l:"Value"}],
+    s:function(a){ return "Empty " + a.field; }},
+  message: {n:"Show a message", f:[{k:"text", t:"text", l:"Message", def:"Done!"}],
+    s:function(a){ return "Say “" + (a.text || "") + "”"; }},
+  link:    {n:"Open a web link", f:[{k:"url", t:"text", l:"Address (https://…)"}],
+    s:function(a){ return "Open " + (a.url || ""); }},
+  reset:   {n:"Reset everything", f:[], s:function(){ return "Reset all saved data"; }},
+};
+
+/* ======================================================== TEMPLATES ==== */
+
+function blankApp(name, icon){
+  return {id:uid(), name:name || "My app", icon:icon || "✨", theme:"midnight",
+          fields:[], screens:[{id:uid(), name:"Home", blocks:[]}]};
+}
+
+const TEMPLATES = [
+  {name:"Blank", icon:"⬜", d:"Start from nothing", make:function(){ return blankApp(); }},
+
+  {name:"To-do list", icon:"✅", d:"Add things, tick them off", make:function(){
+    var a = blankApp("To-do", "✅"), s = a.screens[0];
+    a.fields = [{key:"newitem", label:"New item", type:"text", initial:""},
+                {key:"todo", label:"To-do", type:"list", initial:""}];
+    s.name = "To-do";
+    s.blocks = [
+      {id:uid(), type:"heading", text:"To-do", size:"Large"},
+      {id:uid(), type:"text", text:"{todo.left} left of {todo.count}", muted:true},
+      {id:uid(), type:"input", field:"newitem", ph:"What needs doing?"},
+      {id:uid(), type:"button", label:"Add", style:"Primary", actions:[
+        {type:"add", field:"todo", value:"{newitem}"},
+        {type:"clear", field:"newitem"}]},
+      {id:uid(), type:"list", field:"todo", empty:"All clear. Nice.", check:true, del:true},
+    ];
+    return a;
+  }},
+
+  {name:"Tally counter", icon:"🔢", d:"Count anything", make:function(){
+    var a = blankApp("Counter", "🔢"), s = a.screens[0];
+    a.theme = "mono";
+    a.fields = [{key:"count", label:"Count", type:"number", initial:0}];
+    s.name = "Counter";
+    s.blocks = [
+      {id:uid(), type:"stat", field:"count", label:"TOTAL"},
+      {id:uid(), type:"button", label:"+1", style:"Primary",
+       actions:[{type:"change", field:"count", by:1}]},
+      {id:uid(), type:"button", label:"−1", style:"Plain",
+       actions:[{type:"change", field:"count", by:-1}]},
+      {id:uid(), type:"button", label:"Reset", style:"Danger",
+       actions:[{type:"clear", field:"count"}, {type:"message", text:"Back to zero"}]},
+    ];
+    return a;
+  }},
+
+  {name:"Habit tracker", icon:"🌱", d:"A daily goal with a progress bar", make:function(){
+    var a = blankApp("Habit", "🌱"), s = a.screens[0];
+    a.theme = "mint";
+    a.fields = [{key:"habit", label:"Habit", type:"text", initial:"Drink water"},
+                {key:"done", label:"Done today", type:"number", initial:0}];
+    s.name = "Today";
+    s.blocks = [
+      {id:uid(), type:"heading", text:"{habit}", size:"Large", align:"Center"},
+      {id:uid(), type:"stat", field:"done", label:"TODAY"},
+      {id:uid(), type:"progress", field:"done", max:8, label:"Daily goal"},
+      {id:uid(), type:"button", label:"Log one", style:"Primary",
+       actions:[{type:"change", field:"done", by:1}]},
+      {id:uid(), type:"text", text:"Goal reached — well done!", align:"Center",
+       when:{field:"done", op:"is more than", value:"7"}},
+      {id:uid(), type:"divider"},
+      {id:uid(), type:"input", field:"habit", label:"What are you tracking?"},
+      {id:uid(), type:"button", label:"New day", style:"Danger",
+       actions:[{type:"clear", field:"done"}, {type:"message", text:"Fresh start"}]},
+    ];
+    return a;
+  }},
+
+  {name:"Quiz", icon:"❓", d:"Questions, answers and a score", make:function(){
+    var a = blankApp("Quiz", "❓");
+    a.theme = "sunset";
+    a.fields = [{key:"score", label:"Score", type:"number", initial:0}];
+    var start = a.screens[0], q1 = {id:uid(), name:"Question 1", blocks:[]},
+        q2 = {id:uid(), name:"Question 2", blocks:[]},
+        end = {id:uid(), name:"Result", blocks:[]};
+    a.screens = [start, q1, q2, end];
+    start.name = "Start";
+    start.blocks = [
+      {id:uid(), type:"heading", text:"Quick quiz", size:"Large", align:"Center"},
+      {id:uid(), type:"text", text:"Two questions. No pressure.", align:"Center", muted:true},
+      {id:uid(), type:"button", label:"Start", style:"Primary", actions:[
+        {type:"clear", field:"score"}, {type:"goto", screen:q1.id}]},
+    ];
+    q1.blocks = [
+      {id:uid(), type:"heading", text:"How many bosses are in The Sunken Throne?", size:"Medium"},
+      {id:uid(), type:"button", label:"4", style:"Primary", actions:[
+        {type:"change", field:"score", by:1}, {type:"message", text:"Correct!"},
+        {type:"goto", screen:q2.id}]},
+      {id:uid(), type:"button", label:"7", style:"Plain", actions:[
+        {type:"message", text:"Not quite"}, {type:"goto", screen:q2.id}]},
+    ];
+    q2.blocks = [
+      {id:uid(), type:"heading", text:"How many players are in a raid?", size:"Medium"},
+      {id:uid(), type:"button", label:"10", style:"Primary", actions:[
+        {type:"change", field:"score", by:1}, {type:"message", text:"Correct!"},
+        {type:"goto", screen:end.id}]},
+      {id:uid(), type:"button", label:"25", style:"Plain", actions:[
+        {type:"message", text:"Not quite"}, {type:"goto", screen:end.id}]},
+    ];
+    end.blocks = [
+      {id:uid(), type:"stat", field:"score", label:"OUT OF 2"},
+      {id:uid(), type:"text", text:"Perfect score!", align:"Center",
+       when:{field:"score", op:"is", value:"2"}},
+      {id:uid(), type:"button", label:"Play again", style:"Primary", actions:[
+        {type:"clear", field:"score"}, {type:"goto", screen:start.id}]},
+    ];
+    return a;
+  }},
+
+  {name:"Notes", icon:"🗒", d:"Jot things down, keep them", make:function(){
+    var a = blankApp("Notes", "🗒"), s = a.screens[0];
+    a.theme = "paper";
+    a.fields = [{key:"note", label:"Note", type:"text", initial:""},
+                {key:"saved", label:"Saved notes", type:"list", initial:""}];
+    s.name = "Notes";
+    s.blocks = [
+      {id:uid(), type:"heading", text:"Notes", size:"Large"},
+      {id:uid(), type:"input", field:"note", ph:"Write anything…", multi:true},
+      {id:uid(), type:"button", label:"Save note", style:"Primary", actions:[
+        {type:"add", field:"saved", value:"{note}"},
+        {type:"clear", field:"note"},
+        {type:"message", text:"Saved"}]},
+      {id:uid(), type:"divider"},
+      {id:uid(), type:"list", field:"saved", empty:"No notes yet.", check:false, del:true},
+    ];
+    return a;
+  }},
+
+  {name:"Form", icon:"📋", d:"Collect answers, show a summary", make:function(){
+    var a = blankApp("Sign-up", "📋"), s = a.screens[0];
+    var done = {id:uid(), name:"Thanks", blocks:[]};
+    a.screens = [s, done];
+    a.fields = [{key:"name", label:"Name", type:"text", initial:""},
+                {key:"email", label:"Email", type:"text", initial:""},
+                {key:"size", label:"Size", type:"text", initial:""},
+                {key:"news", label:"Newsletter", type:"toggle", initial:false}];
+    s.name = "Sign up";
+    s.blocks = [
+      {id:uid(), type:"heading", text:"Sign up", size:"Large"},
+      {id:uid(), type:"input", field:"name", label:"Your name", ph:"Jane"},
+      {id:uid(), type:"input", field:"email", label:"Email", ph:"jane@example.com"},
+      {id:uid(), type:"choice", field:"size", label:"T-shirt size",
+       opts:["Small","Medium","Large"]},
+      {id:uid(), type:"toggle", field:"news", label:"Send me the newsletter"},
+      {id:uid(), type:"button", label:"Submit", style:"Primary",
+       when:{field:"name", op:"is not empty", value:""},
+       actions:[{type:"goto", screen:done.id}]},
+      {id:uid(), type:"text", text:"Enter your name to continue.", muted:true,
+       when:{field:"name", op:"is empty", value:""}},
+    ];
+    done.blocks = [
+      {id:uid(), type:"heading", text:"Thanks, {name}!", size:"Large", align:"Center"},
+      {id:uid(), type:"text", text:"Email: {email}\nSize: {size}\nNewsletter: {news}",
+       align:"Center", muted:true},
+      {id:uid(), type:"button", label:"Start over", style:"Plain", actions:[
+        {type:"reset", field:""}]},
+    ];
+    return a;
+  }},
+];
+
+/* ======================================================= EDITOR CORE === */
+
+let apps = loadApps();
+let view = "home";        /* home | edit | run */
+let cur = null;           /* the app being edited */
+let tab = "design";       /* design | data | settings */
+let curScreen = null;
+
+const UI = document.getElementById("ui");
+const SHEETS = document.getElementById("sheets");
+
+function E(tag, cls, txt){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(txt != null) e.textContent = txt;
+  return e;
+}
+function B(txt, cls, fn){ var b = E("button", cls, txt); b.onclick = fn; return b; }
+function add(parent){
+  for(var i = 1; i < arguments.length; i++){ if(arguments[i]) parent.appendChild(arguments[i]); }
+  return parent;
+}
+function toast(msg){
+  var box = document.getElementById("toasts");
+  box.innerHTML = "";
+  box.appendChild(E("div", null, msg));
+  clearTimeout(toast.t);
+  toast.t = setTimeout(function(){ box.innerHTML = ""; }, 2200);
+}
+function commit(){ storeApps(); render(); }
+
+function screenName(id){
+  if(!cur) return "?";
+  for(var i = 0; i < cur.screens.length; i++){
+    if(cur.screens[i].id === id) return cur.screens[i].name;
+  }
+  return "(first screen)";
+}
+function fieldLabel(key){
+  if(!cur) return key;
+  for(var i = 0; i < cur.fields.length; i++){
+    if(cur.fields[i].key === key) return cur.fields[i].label;
+  }
+  return key;
+}
+function screenObj(){
+  if(!cur) return null;
+  for(var i = 0; i < cur.screens.length; i++){
+    if(cur.screens[i].id === curScreen) return cur.screens[i];
+  }
+  curScreen = cur.screens[0].id;
+  return cur.screens[0];
+}
+
+/* =========================================================== SHEETS ==== */
+
+function openSheet(title, build, onClosed){
+  var wrap = E("div", "sheetwrap");
+  var sheet = E("div", "sheet");
+  var shut = false;
+  var close = function(){
+    if(shut) return;
+    shut = true;
+    wrap.remove();
+    if(onClosed) onClosed();
+  };
+  wrap.onclick = function(e){ if(e.target === wrap) close(); };
+  add(sheet, E("div", "grab"));
+  var bar = E("div", "bar");
+  add(bar, E("div", "h", title), B("Close", "mini", close));
+  add(sheet, bar);
+  var body = E("div");
+  add(sheet, body);
+  build(body, close);
+  add(wrap, sheet);
+  SHEETS.appendChild(wrap);
+  return close;
+}
+
+function confirmSheet(title, msg, danger, onYes){
+  openSheet(title, function(body, close){
+    add(body, E("p", "dim", msg));
+    add(body, B(danger, "primary", function(){ close(); onYes(); }));
+    add(body, B("Cancel", "wide center mt", close));
+  });
+}
+
+/* One editable line in a form, driven by the schema entries above. */
+function control(f, work, onLive){
+  var wrap = E("label", "f");
+  if(f.l) add(wrap, E("span", "l", f.l));
+  var v = work[f.k];
+  var setv = function(x){ work[f.k] = x; if(onLive) onLive(); };
+
+  if(f.t === "bool"){
+    var sw = E("div", "sw");
+    var cb = E("input"); cb.type = "checkbox"; cb.checked = !!v;
+    cb.onchange = function(){ setv(cb.checked); };
+    add(sw, cb, E("span", null, f.l || ""));
+    wrap.innerHTML = "";
+    add(wrap, sw);
+    if(f.hint) add(wrap, E("span", "hint", f.hint));
+    return wrap;
+  }
+  if(f.t === "select" || f.t === "screen" || f.t === "field"){
+    var sel = E("select");
+    var opts = [];
+    if(f.t === "select"){
+      opts = (f.o || []).map(function(o){ return [o, o]; });
+    } else if(f.t === "screen"){
+      opts = cur.screens.map(function(s){ return [s.id, s.name]; });
+    } else {
+      var list = cur.fields.filter(function(x){
+        return !f.ft || f.ft.indexOf(x.type) >= 0;
+      });
+      opts = list.map(function(x){ return [x.key, x.label + "  (" + x.type + ")"]; });
+      opts.push(["__new__", "+ Make a new one…"]);
+    }
+    opts.forEach(function(o){
+      var op = E("option", null, o[1]);
+      op.value = o[0];
+      if(String(v) === o[0]) op.selected = true;
+      sel.appendChild(op);
+    });
+    if(v == null && opts.length && f.t !== "field") setv(opts[0][0]);
+    if(v == null && f.t === "field" && opts.length > 1) setv(opts[0][0]);
+    sel.onchange = function(){
+      if(sel.value === "__new__"){
+        newFieldSheet(f.ft && f.ft.length === 1 ? f.ft[0] : "text", function(key){
+          setv(key);
+          var op = E("option", null, fieldLabel(key) + "  (" + key + ")");
+          op.value = key;
+          sel.insertBefore(op, sel.lastChild);
+          sel.value = key;
+        }, function(){ sel.value = v == null ? "" : v; });
+        return;
+      }
+      setv(sel.value);
+    };
+    add(wrap, sel);
+    if(f.hint) add(wrap, E("span", "hint", f.hint));
+    return wrap;
+  }
+  if(f.t === "actions"){
+    /* A group of buttons, so it must not sit inside a <label>: the browser
+       would tie the label to the first button in it. */
+    wrap = E("div", "f");
+    if(f.l) add(wrap, E("span", "l", f.l));
+    var host = E("div");
+    var draw = function(){
+      host.innerHTML = "";
+      var arr = work[f.k] || (work[f.k] = []);
+      if(!arr.length) add(host, E("div", "empty", "Nothing happens yet."));
+      arr.forEach(function(a, i){
+        var row = E("div", "item");
+        var def = ACTIONS[a.type] || {n:a.type, s:function(){ return ""; }};
+        var tx = E("div", "tx");
+        add(tx, E("div", "t", def.n), E("div", "d", def.s(a)));
+        add(row, E("div", "ic", String(i + 1)), tx);
+        add(row, B("↑", "icon mini", function(){
+          if(i > 0){ arr.splice(i - 1, 0, arr.splice(i, 1)[0]); draw(); }
+        }));
+        add(row, B("↓", "icon mini", function(){
+          if(i < arr.length - 1){ arr.splice(i + 1, 0, arr.splice(i, 1)[0]); draw(); }
+        }));
+        add(row, B("✎", "icon mini", function(){ editAction(a, draw); }));
+        add(row, B("🗑", "icon mini", function(){ arr.splice(i, 1); draw(); }));
+        add(host, row);
+      });
+      add(host, B("+ Add something to do", "wide center mt", function(){
+        pickAction(function(type){
+          var a = {type:type};
+          (ACTIONS[type].f || []).forEach(function(ff){
+            if(ff.def !== undefined) a[ff.k] = ff.def;
+          });
+          arr.push(a);
+          if((ACTIONS[type].f || []).length) editAction(a, draw); else draw();
+        });
+      }));
+    };
+    draw();
+    add(wrap, host);
+    return wrap;
+  }
+  if(f.t === "lines"){
+    var ta = E("textarea");
+    ta.value = Array.isArray(v) ? v.join("\n") : (v || "");
+    ta.oninput = function(){
+      setv(ta.value.split("\n").map(function(s){ return s.trim(); })
+        .filter(function(s){ return s; }));
+    };
+    add(wrap, ta);
+    if(f.hint) add(wrap, E("span", "hint", f.hint));
+    return wrap;
+  }
+  if(f.t === "area"){
+    var ta2 = E("textarea");
+    ta2.value = v == null ? "" : v;
+    ta2.oninput = function(){ setv(ta2.value); };
+    add(wrap, ta2);
+    if(f.hint) add(wrap, E("span", "hint", f.hint));
+    return wrap;
+  }
+  var inp = E("input");
+  inp.type = f.t === "num" ? "number" : "text";
+  inp.value = v == null ? "" : v;
+  inp.oninput = function(){
+    setv(f.t === "num" ? (inp.value === "" ? "" : parseFloat(inp.value)) : inp.value);
+  };
+  add(wrap, inp);
+  if(f.hint) add(wrap, E("span", "hint", f.hint));
+  return wrap;
+}
+
+function formSheet(title, schema, value, onSave, extraBuild){
+  openSheet(title, function(body, close){
+    var work = clone(value || {});
+    schema.forEach(function(f){ add(body, control(f, work)); });
+    if(extraBuild) extraBuild(body, work);
+    add(body, E("div", null, " "));
+    add(body, B("Save", "primary", function(){ close(); onSave(work); }));
+  });
+}
+
+/* The "only show this if…" editor attached to every block. */
+function whenBuild(body, work){
+  if(!cur.fields.length) return;
+  add(body, E("hr", null));
+  add(body, E("div", "small dim", "Only show this when…"));
+  var w = work.when || (work.when = {field:"", op:"is", value:""});
+  var sel = E("select");
+  var none = E("option", null, "Always show"); none.value = "";
+  sel.appendChild(none);
+  cur.fields.forEach(function(f){
+    var op = E("option", null, f.label);
+    op.value = f.key;
+    if(w.field === f.key) op.selected = true;
+    sel.appendChild(op);
+  });
+  var rest = E("div");
+  var drawRest = function(){
+    rest.innerHTML = "";
+    if(!w.field) return;
+    add(rest, control({k:"op", t:"select", l:"Condition", o:OPS}, w));
+    if(["is","is not","is more than","is less than"].indexOf(w.op || "is") >= 0){
+      add(rest, control({k:"value", t:"text", l:"Compared with"}, w));
+    }
+  };
+  sel.onchange = function(){ w.field = sel.value; if(!w.op) w.op = "is"; drawRest(); };
+  var lab = E("label", "f");
+  add(lab, E("span", "l", "Depends on"), sel);
+  add(body, lab, rest);
+  drawRest();
+}
+
+function editBlock(b, after){
+  var def = BLOCKS[b.type];
+  formSheet(def.n, def.f, b, function(work){
+    Object.keys(work).forEach(function(k){ b[k] = work[k]; });
+    b.when = work.when;
+    if(after) after(); else commit();
+  }, whenBuild);
+}
+
+function editAction(a, after){
+  var def = ACTIONS[a.type];
+  if(!def.f.length){ after(); return; }
+  formSheet(def.n, def.f, a, function(work){
+    Object.keys(work).forEach(function(k){ a[k] = work[k]; });
+    after();
+  });
+}
+
+function pickAction(onPick){
+  openSheet("What should happen?", function(body, close){
+    Object.keys(ACTIONS).forEach(function(t){
+      add(body, B(ACTIONS[t].n, "wide mt", function(){ close(); onPick(t); }));
+    });
+  });
+}
+
+function typeName(key){
+  var row = FIELD_TYPES.filter(function(x){ return x[0] === key; })[0];
+  return (row || FIELD_TYPES[0])[1];
+}
+function typeKey(name){
+  var row = FIELD_TYPES.filter(function(x){ return x[1] === name; })[0];
+  return (row || FIELD_TYPES[0])[0];
+}
+
+function newFieldSheet(type, onMade, onCancel){
+  var made = null;
+  var work = {label:"", kind:typeName(type || "text"), initial:""};
+  openSheet("New saved value", function(body, close){
+    add(body, control({k:"label", t:"text", l:"Name it",
+      hint:"Plain words are fine — “Player name”, “Score”."}, work));
+    add(body, control({k:"kind", t:"select", l:"Kind",
+      o:FIELD_TYPES.map(function(x){ return x[1]; })}, work));
+    add(body, control({k:"initial", t:"area", l:"Starting value (optional)",
+      hint:"For a list, put one item per line."}, work));
+    add(body, B("Add it", "primary", function(){
+      if(!String(work.label).trim()){ toast("Give it a name first"); return; }
+      var key = keyify(work.label, cur.fields.map(function(f){ return f.key; }));
+      cur.fields.push({key:key, label:work.label.trim(), type:typeKey(work.kind),
+                       initial:work.initial});
+      storeApps();
+      made = key;
+      close();
+    }));
+  }, function(){
+    if(made) onMade(made); else if(onCancel) onCancel();
+  });
+}
+
+/* ============================================================ VIEWS ==== */
+
+function render(){
+  if(view === "run"){ renderRun(); return; }
+  UI.className = "";
+  UI.innerHTML = "";
+  if(view === "home") renderHome(); else renderEditor();
+}
+
+function renderHome(){
+  var t = E("div", "title");
+  add(t, E("div", "big", "🧱 App Maker"),
+         E("div", "sub", "Build a small app by tapping. No code. No AI."));
+  add(UI, t);
+
+  var p = E("div", "panel");
+  add(p, B("＋  New app", "primary", newAppSheet));
+  add(UI, p);
+
+  var list = E("div", "panel");
+  add(list, E("h3", null, "Your apps"));
+  if(!apps.length){
+    add(list, E("div", "empty",
+      "Nothing yet. Tap “New app”, pick a starting point, and change whatever you like."));
+  }
+  apps.forEach(function(a){
+    var card = E("div", "card");
+    add(card, E("div", "em", a.icon || "✨"));
+    var tx = E("div", "grow");
+    add(tx, E("div", null, a.name),
+            E("div", "small dim", a.screens.length + " screen" +
+              (a.screens.length === 1 ? "" : "s") + " · " +
+              a.fields.length + " saved value" + (a.fields.length === 1 ? "" : "s")));
+    add(card, tx);
+    add(card, B("▶", "icon mini", function(e){
+      e.stopPropagation(); cur = a; view = "run"; render();
+    }));
+    card.onclick = function(){
+      cur = a; curScreen = a.screens[0].id; tab = "design"; view = "edit"; render();
+    };
+    add(list, card);
+  });
+  add(UI, list);
+
+  var help = E("div", "panel");
+  add(help, B("？  How this works", "wide", helpSheet));
+  add(help, B("⇩  Bring in a backup file", "wide mt", importSheet));
+  add(UI, help);
+  add(UI, E("div", "empty small",
+    "Everything is stored in this browser only. Export an app to keep it or share it."));
+}
+
+function newAppSheet(){
+  openSheet("Start from…", function(body, close){
+    TEMPLATES.forEach(function(t){
+      var card = E("div", "card");
+      add(card, E("div", "em", t.icon));
+      var tx = E("div", "grow");
+      add(tx, E("div", null, t.name), E("div", "small dim", t.d));
+      add(card, tx);
+      card.onclick = function(){
+        close();
+        var a = t.make();
+        apps.push(a);
+        cur = a; curScreen = a.screens[0].id; tab = "design"; view = "edit";
+        commit();
+      };
+      add(body, card);
+    });
+  });
+}
+
+function helpSheet(){
+  openSheet("How this works", function(body){
+    var html = [
+      ["1. Screens", "An app is a stack of screens. Buttons move between them."],
+      ["2. Blocks", "Each screen is a list of blocks — headings, text, buttons, " +
+       "text boxes, lists, counters. Add them, drag them up and down, edit them."],
+      ["3. Saved values", "Anything the app should remember is a saved value: a piece " +
+       "of text, a number, a yes/no, or a list. They keep their contents when the app " +
+       "is closed and reopened."],
+      ["4. Braces", "Write a saved value's short name in braces to show it: " +
+       "{score}, {name}. For lists you also get {list.count}, {list.done} and {list.left}."],
+      ["5. When tapped", "A button runs a little sequence: go to a screen, add 1 to a " +
+       "number, add an item to a list, show a message. Pick them from a menu — " +
+       "nothing to type."],
+      ["6. Export", "“Save as a file” gives you a single web page holding the whole app. " +
+       "Open it on a phone and add it to the home screen; it works offline."],
+    ];
+    html.forEach(function(r){
+      add(body, E("h3", null, r[0]), E("p", "small dim", r[1]));
+    });
+  });
+}
+
+function importSheet(){
+  openSheet("Bring in a backup", function(body, close){
+    add(body, E("p", "small dim",
+      "Pick a .json backup file that App Maker exported earlier."));
+    var inp = E("input");
+    inp.type = "file"; inp.accept = ".json,application/json";
+    inp.onchange = function(){
+      var file = inp.files[0];
+      if(!file) return;
+      var r = new FileReader();
+      r.onload = function(){
+        try{
+          var a = JSON.parse(r.result);
+          if(!a || !a.screens) throw new Error("bad");
+          a.id = uid();
+          apps.push(a);
+          close(); commit(); toast("Added “" + a.name + "”");
+        }catch(e){ toast("That file isn't an app backup"); }
+      };
+      r.readAsText(file);
+    };
+    add(body, inp);
+  });
+}
+
+/* ---------------------------------------------------------- editor ---- */
+
+function renderEditor(){
+  var bar = E("div", "row between");
+  add(bar, B("‹ Apps", "mini", function(){ view = "home"; cur = null; render(); }));
+  add(bar, E("div", "grow center ell", (cur.icon || "") + " " + cur.name));
+  add(bar, B("▶ Try it", "mini", function(){ view = "run"; render(); }));
+  add(UI, E("div", "mt"), bar);
+
+  var tabs = E("div", "tabs");
+  [["design", "Screens"], ["data", "Values"], ["settings", "App"]].forEach(function(t){
+    add(tabs, B(t[1], "chip" + (tab === t[0] ? " on" : ""), function(){ tab = t[0]; render(); }));
+  });
+  add(UI, tabs);
+
+  if(tab === "design") renderDesign();
+  else if(tab === "data") renderData();
+  else renderSettings();
+}
+
+function renderDesign(){
+  var scr = screenObj();
+
+  var p = E("div", "panel tight");
+  var chips = E("div", "chips");
+  cur.screens.forEach(function(s){
+    add(chips, B(s.name, "chip" + (s.id === scr.id ? " on" : ""), function(){
+      if(s.id === scr.id) screenSheet(s); else { curScreen = s.id; render(); }
+    }));
+  });
+  add(chips, B("＋", "chip", function(){
+    var s = {id:uid(), name:"Screen " + (cur.screens.length + 1), blocks:[]};
+    cur.screens.push(s);
+    curScreen = s.id;
+    commit();
+  }));
+  add(p, chips);
+  add(p, E("div", "small dim mt", "Tap the open screen again to rename or delete it."));
+  add(UI, p);
+
+  var list = E("div", "panel");
+  if(!scr.blocks.length){
+    add(list, E("div", "empty", "This screen is empty.\nAdd your first block below."));
+  }
+  scr.blocks.forEach(function(b, i){
+    var def = BLOCKS[b.type] || {i:"?", n:b.type, s:function(){ return ""; }};
+    var row = E("div", "item");
+    var tx = E("div", "tx");
+    var sub = def.s(b) || "";
+    if(b.when && b.when.field){
+      var needsVal = ["is","is not","is more than","is less than"].indexOf(b.when.op) >= 0;
+      sub += (sub ? " · " : "") + "only if " + fieldLabel(b.when.field) + " " +
+             (b.when.op || "is") + (needsVal ? " " + (b.when.value || "") : "");
+    }
+    add(tx, E("div", "t", def.n), E("div", "d", sub));
+    add(row, E("div", "ic", def.i), tx);
+    add(row, B("↑", "icon mini", function(){
+      if(i > 0){ scr.blocks.splice(i - 1, 0, scr.blocks.splice(i, 1)[0]); commit(); }
+    }));
+    add(row, B("↓", "icon mini", function(){
+      if(i < scr.blocks.length - 1){
+        scr.blocks.splice(i + 1, 0, scr.blocks.splice(i, 1)[0]); commit();
+      }
+    }));
+    add(row, B("✎", "icon mini", function(){ editBlock(b); }));
+    add(row, B("🗑", "icon mini", function(){
+      confirmSheet("Delete block?", def.n + " will be removed from this screen.",
+        "Delete it", function(){ scr.blocks.splice(i, 1); commit(); });
+    }));
+    add(list, row);
+  });
+  add(list, B("＋  Add a block", "primary mt", function(){ addBlockSheet(scr); }));
+  add(UI, list);
+}
+
+function addBlockSheet(scr){
+  openSheet("Add a block", function(body, close){
+    Object.keys(BLOCKS).forEach(function(t){
+      var def = BLOCKS[t];
+      var card = E("div", "card");
+      add(card, E("div", "em", def.i));
+      var tx = E("div", "grow");
+      add(tx, E("div", null, def.n), E("div", "small dim", def.d || ""));
+      add(card, tx);
+      card.onclick = function(){
+        close();
+        var b = {id:uid(), type:t};
+        def.f.forEach(function(f){ if(f.def !== undefined) b[f.k] = f.def; });
+        if(def.f.some(function(f){ return f.t === "field"; }) && !cur.fields.length){
+          toast("Make a saved value for this block to use");
+        }
+        scr.blocks.push(b);
+        storeApps();
+        if(def.f.length) editBlock(b); else commit();
+      };
+      add(body, card);
+    });
+  });
+}
+
+function screenSheet(s){
+  openSheet("Screen", function(body, close){
+    var work = {name:s.name};
+    add(body, control({k:"name", t:"text", l:"Screen name"}, work));
+    add(body, B("Save", "primary", function(){
+      s.name = work.name || s.name; close(); commit();
+    }));
+    if(cur.screens.length > 1){
+      add(body, B("Delete this screen", "wide center mt danger", function(){
+        close();
+        confirmSheet("Delete screen?", "“" + s.name + "” and its blocks will be removed.",
+          "Delete it", function(){
+            cur.screens = cur.screens.filter(function(x){ return x !== s; });
+            curScreen = cur.screens[0].id;
+            commit();
+          });
+      }));
+    }
+  });
+}
+
+function renderData(){
+  var p = E("div", "panel");
+  add(p, E("h3", null, "Saved values"));
+  add(p, E("div", "small dim",
+    "The things your app remembers. Show one anywhere by writing its short name in braces."));
+  if(!cur.fields.length){
+    add(p, E("div", "empty", "None yet."));
+  }
+  cur.fields.forEach(function(f, i){
+    var row = E("div", "item");
+    var tx = E("div", "tx");
+    var kind = typeName(f.type);
+    add(tx, E("div", "t", f.label),
+            E("div", "d", kind + " · {" + f.key + "}" +
+              (f.initial ? " · starts as " + String(f.initial).replace(/\n/g, ", ") : "")));
+    add(row, E("div", "ic", f.type === "list" ? "📋" : f.type === "number" ? "🔢" :
+                            f.type === "toggle" ? "🔘" : "🔤"), tx);
+    add(row, B("✎", "icon mini", function(){
+      formSheet("Edit value",
+        [{k:"label", t:"text", l:"Name"},
+         {k:"initial", t:"area", l:"Starting value",
+          hint:"For a list, one item per line."}],
+        f, function(work){
+          f.label = work.label || f.label;
+          f.initial = work.initial;
+          commit();
+        });
+    }));
+    add(row, B("🗑", "icon mini", function(){
+      confirmSheet("Delete value?",
+        "Blocks using “" + f.label + "” will stop working until you point them elsewhere.",
+        "Delete it", function(){ cur.fields.splice(i, 1); commit(); });
+    }));
+    add(p, row);
+  });
+  add(p, B("＋  New saved value", "primary mt", function(){
+    newFieldSheet("text", function(){ commit(); });
+  }));
+  add(UI, p);
+
+  var live = E("div", "panel");
+  add(live, E("h3", null, "Right now"));
+  var st = rtInit(cur, false);
+  if(!cur.fields.length){
+    add(live, E("div", "empty", "Nothing stored yet."));
+  }
+  cur.fields.forEach(function(f){
+    var v = st[f.key];
+    var shown = Array.isArray(v)
+      ? (v.length ? v.map(function(i){ return (i.done ? "✓ " : "· ") + i.t; }).join(", ")
+                  : "(empty)")
+      : (v === "" || v == null ? "(empty)" : String(v));
+    var row = E("div", "row between mt");
+    add(row, E("div", "small", f.label), E("div", "small dim ell", shown));
+    add(live, row);
+  });
+  add(live, B("↺  Wipe this app's stored data", "wide center mt danger", function(){
+    confirmSheet("Wipe data?", "Everything the app has remembered goes back to its starting values.",
+      "Wipe it", function(){
+        localStorage.removeItem(rtKey(cur));
+        commit(); toast("Data wiped");
+      });
+  }));
+  add(UI, live);
+}
+
+function renderSettings(){
+  var p = E("div", "panel");
+  var themeRow = THEMES.filter(function(t){ return t[0] === cur.theme; })[0] || THEMES[0];
+  var work = {name:cur.name, icon:cur.icon, theme:themeRow[1]};
+  add(p, control({k:"name", t:"text", l:"App name"}, work));
+  add(p, control({k:"icon", t:"text", l:"Icon (any emoji)"}, work));
+  add(p, control({k:"theme", t:"select", l:"Look",
+                  o:THEMES.map(function(t){ return t[1]; })}, work));
+  add(p, B("Save", "primary mt", function(){
+    cur.name = work.name || cur.name;
+    cur.icon = work.icon || cur.icon;
+    cur.theme = (THEMES.filter(function(t){ return t[1] === work.theme; })[0] || THEMES[0])[0];
+    commit(); toast("Saved");
+  }));
+  add(UI, p);
+
+  var out = E("div", "panel");
+  add(out, E("h3", null, "Keep it / share it"));
+  add(out, B("⤓  Save as an app file (.html)", "wide mt", function(){
+    download(slug(cur.name) + ".html", exportHTML(cur), "text/html");
+    toast("Saved — open it in any browser");
+  }));
+  add(out, E("div", "small dim mt",
+    "One self-contained web page. Open it on a phone and use Share → Add to Home Screen."));
+  add(out, B("⤓  Save a backup (.json)", "wide mt", function(){
+    download(slug(cur.name) + ".json", JSON.stringify(cur, null, 2), "application/json");
+  }));
+  add(out, E("div", "small dim mt", "A backup can be brought back into App Maker later."));
+  add(UI, out);
+
+  var danger = E("div", "panel");
+  add(danger, B("⧉  Duplicate this app", "wide", function(){
+    var copy = clone(cur);
+    copy.id = uid();
+    copy.name = cur.name + " copy";
+    apps.push(copy);
+    commit(); toast("Duplicated");
+  }));
+  add(danger, B("🗑  Delete this app", "wide mt danger", function(){
+    confirmSheet("Delete app?", "“" + cur.name + "” and its stored data go for good.",
+      "Delete it", function(){
+        localStorage.removeItem(rtKey(cur));
+        apps = apps.filter(function(a){ return a !== cur; });
+        cur = null; view = "home";
+        commit();
+      });
+  }));
+  add(UI, danger);
+}
+
+function renderRun(){
+  UI.innerHTML = "";
+  UI.className = "runview";
+  var host = E("div");
+  host.id = "runhost";
+  host.style.minHeight = "100vh";
+  UI.appendChild(host);
+  rtStart(cur, host);
+
+  var bar = E("div", "runbar");
+  add(bar, B("✎ Edit", "mini", function(){
+    view = "edit";
+    if(!curScreen) curScreen = cur.screens[0].id;
+    render();
+  }));
+  add(bar, B("↺", "mini icon", function(){
+    localStorage.removeItem(rtKey(cur));
+    render();
+  }));
+  UI.appendChild(bar);
+}
+
+/* =========================================================== EXPORT ==== */
+
+function slug(s){
+  return String(s || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "app";
+}
+
+function download(name, text, mime){
+  var blob = new Blob([text], {type:mime + ";charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+
+/* Writes a standalone page carrying the runtime plus this app's description. */
+function exportHTML(app){
+  var src = RUNTIME_FNS.map(function(f){ return f.toString(); }).join("\n\n");
+  var payload = (src + "\nvar APP = " + JSON.stringify(app) + ";\n" +
+                 "rtStart(APP, document.getElementById('root'));")
+                .replace(/<\/script/gi, "<\\/script");
+  var esc = function(s){ return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                                         .replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+  var theme = THEMES.filter(function(t){ return t[0] === app.theme; })[0] || THEMES[0];
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+    '<meta charset="utf-8">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+    '<meta name="apple-mobile-web-app-capable" content="yes">\n' +
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n' +
+    '<meta name="apple-mobile-web-app-title" content="' + esc(app.name) + '">\n' +
+    '<meta name="theme-color" content="' + theme[2] + '">\n' +
+    '<title>' + esc((app.icon ? app.icon + " " : "") + app.name) + '</title>\n' +
+    '<style>\nhtml,body{margin:0;padding:0;min-height:100%;}\n' + RT_CSS +
+    '\nbody{background:' + theme[2] + ';}\n#root{min-height:100vh;}\n</style>\n' +
+    '</head>\n<body>\n<div id="root"></div>\n<script>\n"use strict";\n' +
+    payload + '\n</' + 'script>\n</body>\n</html>\n';
+}
+
+/* ============================================================= BOOT ==== */
+
+/* The runtime styles ship with exported apps; the preview needs them too. */
+(function(){
+  var s = document.createElement("style");
+  s.textContent = RT_CSS;
+  document.head.appendChild(s);
+})();
+
+render();
+</script>
+</body>
+</html>

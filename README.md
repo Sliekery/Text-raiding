@@ -83,6 +83,16 @@ shields, defensives and damage cooldowns, all on resource costs and cooldowns.
 3. **Ironclad Brusk** — brutal tank-buster damage; defensives matter.
 4. **Voidlord Malach** — two-phase finale and a real DPS + survival check.
 
+## Also in here: 🧱 App Maker
+
+**`builder.html`** is a separate, self-contained experiment in the same spirit as
+the mobile version above: a no-code app engine. Open it in a browser and build a
+small app — a to-do list, a counter, a habit tracker, a quiz — by tapping through
+screens, blocks and actions, with no programming and no AI involved. Apps you
+make can be saved out as a single web page that runs on its own.
+
+See [BUILDER.md](BUILDER.md).
+
 ## Project layout
 
 ```
@@ -92,6 +102,8 @@ textraid/
   core.py          combat engine: combatants, effects, damage/healing, the boss
   game.py          game flow: raid building, encounter loop, bot AI, gearing, menus
   ui.py            text rendering: colours, HP bars, banners, ASCII art
+index.html         the whole game as one self-contained web page
+builder.html       🧱 App Maker — the no-code app engine (see BUILDER.md)
 ```
 
 Content is data-driven: add a class, skill, or boss by editing `data.py`.
