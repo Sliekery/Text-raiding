@@ -36,9 +36,15 @@ you. Landscape is much better.
 | Aim, fire | Right thumb — aims from your chest toward your thumb and fires while held | Mouse to aim, hold click to fire |
 | Take a gun | Walk over it | Walk over it |
 
-Pistol, SMG and shotgun. Ammo doesn't reload — when a gun runs dry you drop to
-fists, so you fight over what the grunts leave behind. Three lives, endless
-waves, and the bodies stay where they fall.
+Pistol, SMG, shotgun, knife and throwing knives. Ammo doesn't reload — when a
+gun runs dry you drop to fists, so you fight over what the grunts leave behind.
+Three lives, endless waves, and the bodies stay where they fall.
+
+**Everything you do leaves a mark.** Bullets punch holes, knives leave slits,
+and a thrown knife *stays in* at the angle it went in at. Wounds are pinned to
+the limb that took them, so they ride the body through every stagger and
+tumble and are still there on the corpse. Thrown knives that miss stick into
+the scenery, and you can walk over and take them back.
 
 ⚙️ **FX** exposes the PS1 knobs: internal resolution, vertex jitter, texture
 warp, colour depth, fog, outlines, blood, and photo-vs-flat texture.
@@ -81,7 +87,16 @@ While alive, that pose is built around a **root** running ordinary platformer
 physics — velocity, gravity, ground and platform checks. Movement stays crisp
 and responsive while the body still flops, reels from hits and trips over
 cover. Shots are 2D raycasts against joint spheres, so headshots hurt more and
-crates are real cover; the hit applies an impulse at the joint it landed on.
+crates are real cover; the hit applies an impulse at the joint it landed on
+*and* briefly slackens the whole pose, so the body folds around the hit
+instead of absorbing it rigidly.
+
+**Wounds** are stored in the local space of the mesh part that took them —
+part index, position on that box, entry direction — and the renderer hands
+back each part's transform every frame to place them. That is why a hole
+stays on the shoulder that was shot rather than hanging in the air where the
+shot happened. Only the face toward the camera is drawn; the buried half of a
+blade is left to the depth test.
 
 **Renderer.** WebGL1. Bodies are batched by texture — everything wearing your
 photo in one draw, every grunt in another — and re-transformed on the CPU each
@@ -92,6 +107,8 @@ frame. The PS1 look is structural, not a filter:
 - UVs are interpolated **affinely**, not perspective-correct (the swim)
 - output is quantised to 15-bit with a 4×4 Bayer dither
 - vertex lighting only, hard linear fog, `NEAREST` everywhere
+- a 9th float per vertex carries a per-body hit flash, so a batched body can
+  light up when struck without needing a draw call of its own
 - an inverted-hull pass draws black silhouettes behind the bodies, because
   Madness is built out of heavy black linework and the shapes read as mush
   without it
@@ -107,3 +124,7 @@ frame. The PS1 look is structural, not a filter:
 - Grunt AI is deliberately simple: close, take cover behind what's in the way,
   shoot with a reaction delay. It climbs crates and steps off them, but it does
   not flank or coordinate.
+- Time dilation on impact fires on kills only. Per-bullet hit-stop sounds
+  punchy and is the opposite — hold an SMG on a target and every shot
+  re-triggers it, so the whole game crawls while you fire.
+- Wounds are capped at 30 per body and blades at 8, oldest dropped first.

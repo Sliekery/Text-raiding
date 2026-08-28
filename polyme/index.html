@@ -1401,46 +1401,56 @@ function buildParts(P) {
   // the gun sits on the forearm axis, poking out past the hand
   const gL = P.height * 0.21, gW = P.height * 0.028, gH = P.height * 0.052;
 
+  // records half-extents alongside the geometry: wounds and embedded blades
+  // need to know where each box's surface is
+  const mk = (w, h, d, faces, tT, tB, rest) =>
+    Object.assign({ g: boxGeom(w, h, d, faces, tT, tB), hx: w * 0.5, hy: h * 0.5, hz: d * 0.5 }, rest);
+
   return [
-    { g: boxGeom(P.headW, P.headH, P.headD, headF, 0.94, 0.86), bone: [J.head, J.neck], at: 'a', off: [0, P.headH * 0.02, 0] },
-    { g: boxGeom(P.shoulderW * 0.98, 1, P.torsoD, torsoF, 1.0, 0.90), bone: [J.neck, J.chest], at: 'mid', stretch: 1.06 },
-    { g: boxGeom(P.shoulderW * 0.88, 1, P.torsoD * 0.94, torsoF, 1.0, 0.98), bone: [J.chest, J.pelvis], at: 'mid', stretch: 1.10 },
+    mk(P.headW, P.headH, P.headD, headF, 0.94, 0.86, { bone: [J.head, J.neck], at: 'a', off: [0, P.headH * 0.02, 0] }),
+    mk(P.shoulderW * 0.98, 1, P.torsoD, torsoF, 1.0, 0.90, { bone: [J.neck, J.chest], at: 'mid', stretch: 1.06 }),
+    mk(P.shoulderW * 0.88, 1, P.torsoD * 0.94, torsoF, 1.0, 0.98, { bone: [J.chest, J.pelvis], at: 'mid', stretch: 1.10 }),
 
-    { g: boxGeom(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88), bone: [J.shL, J.elL], at: 'mid', stretch: 1.05 },
-    { g: boxGeom(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86), bone: [J.elL, J.haL], at: 'mid', stretch: 1.02 },
-    { g: boxGeom(ar * 1.9, ar * 2.2, ar * 1.5, handF), bone: [J.haL, J.elL], at: 'a', off: [0, -ar * 0.6, 0] },
+    mk(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88, { bone: [J.shL, J.elL], at: 'mid', stretch: 1.05 }),
+    mk(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86, { bone: [J.elL, J.haL], at: 'mid', stretch: 1.02 }),
+    mk(ar * 1.9, ar * 2.2, ar * 1.5, handF, 1, 1, { bone: [J.haL, J.elL], at: 'a', off: [0, -ar * 0.6, 0] }),
 
-    { g: boxGeom(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88), bone: [J.shR, J.elR], at: 'mid', stretch: 1.05 },
-    { g: boxGeom(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86), bone: [J.elR, J.haR], at: 'mid', stretch: 1.02 },
-    { g: boxGeom(ar * 1.9, ar * 2.2, ar * 1.5, handF), bone: [J.haR, J.elR], at: 'a', off: [0, -ar * 0.6, 0] },
+    mk(ar * 2.0, 1, ar * 2.0, armUF, 1.0, 0.88, { bone: [J.shR, J.elR], at: 'mid', stretch: 1.05 }),
+    mk(ar * 1.72, 1, ar * 1.72, armLF, 1.0, 0.86, { bone: [J.elR, J.haR], at: 'mid', stretch: 1.02 }),
+    mk(ar * 1.9, ar * 2.2, ar * 1.5, handF, 1, 1, { bone: [J.haR, J.elR], at: 'a', off: [0, -ar * 0.6, 0] }),
 
-    { g: boxGeom(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86), bone: [J.hipL, J.knL], at: 'mid', stretch: 1.06 },
-    { g: boxGeom(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84), bone: [J.knL, J.ftL], at: 'mid', stretch: 1.04 },
-    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftL, J.knL], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] },
+    mk(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86, { bone: [J.hipL, J.knL], at: 'mid', stretch: 1.06 }),
+    mk(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84, { bone: [J.knL, J.ftL], at: 'mid', stretch: 1.04 }),
+    mk(lr * 1.9, P.footH * 2.0, P.footLen, footF, 1, 1, { bone: [J.ftL, J.knL], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] }),
 
-    { g: boxGeom(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86), bone: [J.hipR, J.knR], at: 'mid', stretch: 1.06 },
-    { g: boxGeom(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84), bone: [J.knR, J.ftR], at: 'mid', stretch: 1.04 },
-    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftR, J.knR], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] },
+    mk(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86, { bone: [J.hipR, J.knR], at: 'mid', stretch: 1.06 }),
+    mk(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84, { bone: [J.knR, J.ftR], at: 'mid', stretch: 1.04 }),
+    mk(lr * 1.9, P.footH * 2.0, P.footLen, footF, 1, 1, { bone: [J.ftR, J.knR], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] }),
 
-    { g: boxGeom(gW, gL, gH, gunF), bone: [J.haL, J.elL], at: 'a', off: [0, -gL * 0.46, 0], hideable: true },
-    { g: boxGeom(gW, gL, gH, gunF), bone: [J.haR, J.elR], at: 'a', off: [0, -gL * 0.46, 0], hideable: true }
+    mk(gW, gL, gH, gunF, 1, 1, { bone: [J.haL, J.elL], at: 'a', off: [0, -gL * 0.46, 0], hideable: true }),
+    mk(gW, gL, gH, gunF, 1, 1, { bone: [J.haR, J.elR], at: 'a', off: [0, -gL * 0.46, 0], hideable: true })
   ];
 }
+
+// [px py pz  nx ny nz  u v  flash] — the 9th float is a per-body hit flash,
+// which is how a batched body can light up on its own without its own draw call
+const VSTRIDE = 9;
 
 function packParts(parts) {
   let nv = 0, ni = 0;
   parts.forEach(p => { nv += p.g.V.length / 3; ni += p.g.I.length; });
-  const verts = new Float32Array(nv * 8);
+  const verts = new Float32Array(nv * VSTRIDE);
   const idx = new Uint16Array(ni);
   let io = 0, base = 0;
   parts.forEach(p => {
     const n = p.g.V.length / 3;
     p.vStart = base; p.vCount = n;
     for (let i = 0; i < n; i++) {
-      const o = (base + i) * 8;
+      const o = (base + i) * VSTRIDE;
       verts[o] = p.g.V[i * 3]; verts[o + 1] = p.g.V[i * 3 + 1]; verts[o + 2] = p.g.V[i * 3 + 2];
       verts[o + 3] = p.g.N[i * 3]; verts[o + 4] = p.g.N[i * 3 + 1]; verts[o + 5] = p.g.N[i * 3 + 2];
       verts[o + 6] = p.g.UV[i * 2]; verts[o + 7] = p.g.UV[i * 2 + 1];
+      verts[o + 8] = 0;
     }
     for (let i = 0; i < p.g.I.length; i++) idx[io + i] = base + p.g.I[i];
     io += p.g.I.length; base += n;
@@ -1448,19 +1458,58 @@ function packParts(parts) {
   return { verts, idx, local: verts.slice(0), vCount: nv, iCount: ni };
 }
 
+/* Which mesh part each joint belongs to — a bullet hits a joint sphere, but a
+   wound has to be pinned to the box that will carry it around. */
+const JOINT_PART = new Int8Array([0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+const FRAME_STRIDE = 13;
+
+// world point -> a part's local space (basis is orthonormal, so transpose
+// inverts it; y is un-stretched so the wound stays put as the limb stretches)
+function worldToPartLocal(fr, pi, wx, wy, wz, out) {
+  const o = pi * FRAME_STRIDE;
+  const dx = wx - fr[o], dy = wy - fr[o + 1], dz = wz - fr[o + 2];
+  out[0] = dx * fr[o + 3] + dy * fr[o + 4] + dz * fr[o + 5];
+  out[1] = (dx * fr[o + 6] + dy * fr[o + 7] + dz * fr[o + 8]) / (fr[o + 12] || 1);
+  out[2] = dx * fr[o + 9] + dy * fr[o + 10] + dz * fr[o + 11];
+  return out;
+}
+function partLocalToWorld(fr, pi, lx, ly, lz, out) {
+  const o = pi * FRAME_STRIDE, y = ly * (fr[o + 12] || 1);
+  out[0] = fr[o] + fr[o + 3] * lx + fr[o + 6] * y + fr[o + 9] * lz;
+  out[1] = fr[o + 1] + fr[o + 4] * lx + fr[o + 7] * y + fr[o + 10] * lz;
+  out[2] = fr[o + 2] + fr[o + 5] * lx + fr[o + 8] * y + fr[o + 11] * lz;
+  return out;
+}
+// direction only (no translation), for an embedded blade's angle
+function partDirToWorld(fr, pi, lx, ly, lz, out) {
+  const o = pi * FRAME_STRIDE;
+  out[0] = fr[o + 3] * lx + fr[o + 6] * ly + fr[o + 9] * lz;
+  out[1] = fr[o + 4] * lx + fr[o + 7] * ly + fr[o + 10] * lz;
+  out[2] = fr[o + 5] * lx + fr[o + 8] * ly + fr[o + 11] * lz;
+  return out;
+}
+function worldDirToPart(fr, pi, wx, wy, wz, out) {
+  const o = pi * FRAME_STRIDE;
+  out[0] = wx * fr[o + 3] + wy * fr[o + 4] + wz * fr[o + 5];
+  out[1] = wx * fr[o + 6] + wy * fr[o + 7] + wz * fr[o + 8];
+  out[2] = wx * fr[o + 9] + wy * fr[o + 10] + wz * fr[o + 11];
+  return out;
+}
+
 // Rebuild world-space vertices from the current ragdoll pose, straight into
 // `out` at `outOffset` floats — so many bodies pack into one buffer.
-function poseMesh(mesh, parts, doll, out, outOffset, showGun) {
+function poseMesh(mesh, parts, doll, out, outOffset, showGun, flash, frames) {
   const p = doll.pos, loc = mesh.local;
   const O = outOffset || 0;
+  const fl = flash || 0;
   if (!out) out = mesh.verts;
 
   let rx = p[J.shR * 3] - p[J.shL * 3], ry = p[J.shR * 3 + 1] - p[J.shL * 3 + 1], rz = p[J.shR * 3 + 2] - p[J.shL * 3 + 2];
   let ux = p[J.neck * 3] - p[J.pelvis * 3], uy = p[J.neck * 3 + 1] - p[J.pelvis * 3 + 1], uz = p[J.neck * 3 + 2] - p[J.pelvis * 3 + 2];
   let fx = ry * uz - rz * uy, fy = rz * ux - rx * uz, fz = rx * uy - ry * ux;
-  let fl = Math.hypot(fx, fy, fz);
-  if (fl < 1e-5) { fx = 0; fy = 0; fz = 1; fl = 1; }
-  fx /= fl; fy /= fl; fz /= fl;
+  let flen = Math.hypot(fx, fy, fz);
+  if (flen < 1e-5) { fx = 0; fy = 0; fz = 1; flen = 1; }
+  fx /= flen; fy /= flen; fz /= flen;
 
   for (let k = 0; k < parts.length; k++) {
     const part = parts[k];
@@ -1469,10 +1518,10 @@ function poseMesh(mesh, parts, doll, out, outOffset, showGun) {
     // an unequipped gun collapses to a point rather than costing a draw call
     if (part.hideable && (k !== showGun)) {
       for (let i = 0; i < n; i++) {
-        const o = O + (v0 + i) * 8;
+        const li = (v0 + i) * VSTRIDE, o = O + li;
         out[o] = 0; out[o + 1] = -999; out[o + 2] = 0;
         out[o + 3] = 0; out[o + 4] = 1; out[o + 5] = 0;
-        out[o + 6] = loc[(v0 + i) * 8 + 6]; out[o + 7] = loc[(v0 + i) * 8 + 7];
+        out[o + 6] = loc[li + 6]; out[o + 7] = loc[li + 7]; out[o + 8] = 0;
       }
       continue;
     }
@@ -1503,8 +1552,18 @@ function poseMesh(mesh, parts, doll, out, outOffset, showGun) {
     }
     const sy = part.stretch ? len * part.stretch : 1;
 
+    // hand the frame back so wounds and embedded blades can ride this part
+    if (frames) {
+      const fo = k * FRAME_STRIDE;
+      frames[fo] = ox; frames[fo + 1] = oy; frames[fo + 2] = oz;
+      frames[fo + 3] = xx; frames[fo + 4] = xy; frames[fo + 5] = xz;
+      frames[fo + 6] = yx; frames[fo + 7] = yy; frames[fo + 8] = yz;
+      frames[fo + 9] = zx; frames[fo + 10] = zy; frames[fo + 11] = zz;
+      frames[fo + 12] = sy;
+    }
+
     for (let i = 0; i < n; i++) {
-      const li = (v0 + i) * 8, o = O + li;
+      const li = (v0 + i) * VSTRIDE, o = O + li;
       const lx = loc[li], ly = loc[li + 1] * sy, lz = loc[li + 2];
       out[o] = ox + xx * lx + yx * ly + zx * lz;
       out[o + 1] = oy + xy * lx + yy * ly + zy * lz;
@@ -1514,6 +1573,7 @@ function poseMesh(mesh, parts, doll, out, outOffset, showGun) {
       out[o + 4] = xy * nx + yy * ny + zy * nz;
       out[o + 5] = xz * nx + yz * ny + zz * nz;
       out[o + 6] = loc[li + 6]; out[o + 7] = loc[li + 7];
+      out[o + 8] = fl;
     }
   }
 }
@@ -1579,6 +1639,7 @@ const VS_MAIN = `
 attribute vec3 aPos;
 attribute vec3 aNrm;
 attribute vec2 aUV;
+attribute float aFlash;
 uniform mat4 uVP;
 uniform vec2 uRes;
 uniform float uSnap;
@@ -1592,7 +1653,9 @@ varying vec2 vUV;
 varying float vW;
 varying vec3 vCol;
 varying float vFogF;
+varying float vFlash;
 void main(){
+  vFlash = aFlash;
   vec3 n = normalize(aNrm);
   // inverted-hull outline: push out along the normal, draw front-culled
   vec4 clip = uVP * vec4(aPos + n * uInflate, 1.0);
@@ -1623,9 +1686,11 @@ varying vec2 vUV;
 varying float vW;
 varying vec3 vCol;
 varying float vFogF;
+varying float vFlash;
 void main(){
   vec4 t = texture2D(uTex, vUV / vW);
   vec3 c = t.rgb * vCol;
+  c = mix(c, vec3(1.0, 0.42, 0.36), clamp(vFlash, 0.0, 1.0));
   c = mix(c, uFogCol, vFogF);
   gl_FragColor = vec4(c, 1.0);
 }`;
@@ -1747,9 +1812,9 @@ function buildEnvGeometry() {
     quad([[X[0], Y[1], Z[1]], [X[1], Y[1], Z[1]], [X[1], Y[1], Z[0]], [X[0], Y[1], Z[0]]], [0, 1, 0], [su, sd]);
   });
 
-  const verts = new Float32Array(V.length / 3 * 8);
+  const verts = new Float32Array(V.length / 3 * VSTRIDE);
   for (let i = 0; i < V.length / 3; i++) {
-    const o = i * 8;
+    const o = i * VSTRIDE;
     verts[o] = V[i * 3]; verts[o + 1] = V[i * 3 + 1]; verts[o + 2] = V[i * 3 + 2];
     verts[o + 3] = N[i * 3]; verts[o + 4] = N[i * 3 + 1]; verts[o + 5] = N[i * 3 + 2];
     verts[o + 6] = UV[i * 2]; verts[o + 7] = UV[i * 2 + 1];
@@ -1846,7 +1911,7 @@ class Renderer {
 
   _setup() {
     const gl = this.gl;
-    this.main = this._program(VS_MAIN, FS_MAIN, ['aPos', 'aNrm', 'aUV']);
+    this.main = this._program(VS_MAIN, FS_MAIN, ['aPos', 'aNrm', 'aUV', 'aFlash']);
     this.flat = this._program(VS_FX, FS_FX, ['aPos', 'aCol']);
     this.post = this._program(VS_POST, FS_POST, ['aP']);
 
@@ -1880,7 +1945,7 @@ class Renderer {
   initBodyGroups(counts) {
     const gl = this.gl;
     this.groups = counts.map((maxBodies, gi) => {
-      const verts = new Float32Array(maxBodies * VERTS_PER_BODY * 8);
+      const verts = new Float32Array(maxBodies * VERTS_PER_BODY * VSTRIDE);
       const idx = new Uint16Array(maxBodies * IDX_PER_BODY);
       const vb = gl.createBuffer(), ib = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -1907,7 +1972,7 @@ class Renderer {
     if (!bodyCount) return;
     gl.bindBuffer(gl.ARRAY_BUFFER, G.vb);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0,
-      G.verts.subarray(0, bodyCount * VERTS_PER_BODY * 8));
+      G.verts.subarray(0, bodyCount * VERTS_PER_BODY * VSTRIDE));
   }
 
   _tex(src, repeat) {
@@ -1980,10 +2045,11 @@ class Renderer {
     const gl = this.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, vb);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
-    const S = 32;
+    const S = VSTRIDE * 4;
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, S, 0);
     gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, S, 12);
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, S, 24);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, S, 32);
   }
 
   render() {
@@ -2005,6 +2071,7 @@ class Renderer {
     gl.uniform2f(u.uFog, this.fogOn ? (this.fogNear || 20) : 900,
       this.fogOn ? (this.fogFar || 46) : 1000);
     gl.uniform1i(u.uTex, 0);
+    gl.vertexAttrib1f(3, 0.0);
     gl.uniform1f(u.uInflate, 0.0);
     gl.uniform1f(u.uDark, 1.0);
     gl.activeTexture(gl.TEXTURE0);
@@ -2056,7 +2123,7 @@ class Renderer {
       gl.bufferData(gl.ARRAY_BUFFER, this.fx.data.subarray(0, this.fx.n * 7), gl.DYNAMIC_DRAW);
       gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
-      gl.disableVertexAttribArray(2);
+      gl.disableVertexAttribArray(2); gl.disableVertexAttribArray(3);
       gl.drawArrays(gl.TRIANGLES, 0, this.fx.n);
       gl.enable(gl.CULL_FACE);
       gl.depthMask(true);
@@ -2070,7 +2137,7 @@ class Renderer {
     const q = this.post;
     gl.useProgram(q.p);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
-    gl.disableVertexAttribArray(1); gl.disableVertexAttribArray(2);
+    gl.disableVertexAttribArray(1); gl.disableVertexAttribArray(2); gl.disableVertexAttribArray(3);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.activeTexture(gl.TEXTURE0);
@@ -2126,9 +2193,10 @@ const WEAPONS = {
   fists: { name: 'FISTS', melee: true, dmg: 26, rate: 0.30, reach: 1.75, auto: true, mag: 0, kick: 0, pellets: 0, spread: 0 },
   pistol: { name: 'PISTOL', dmg: 34, rate: 0.24, mag: 13, spread: 0.020, auto: false, kick: 2.6, pellets: 1 },
   smg: { name: 'SMG', dmg: 18, rate: 0.070, mag: 36, spread: 0.058, auto: true, kick: 1.6, pellets: 1 },
-  shotgun: { name: 'SHOTGUN', dmg: 15, rate: 0.70, mag: 7, spread: 0.135, auto: false, kick: 5.2, pellets: 7 }
+  shotgun: { name: 'SHOTGUN', dmg: 15, rate: 0.70, mag: 7, spread: 0.135, auto: false, kick: 5.2, pellets: 7 },
+  knife: { name: 'KNIFE', melee: true, stab: true, dmg: 62, rate: 0.38, reach: 1.95, auto: false, mag: 0, kick: 0, pellets: 0, spread: 0 },
+  tknife: { name: 'KNIVES', thrown: true, dmg: 54, rate: 0.40, mag: 6, spread: 0.015, auto: false, kick: 0, pellets: 0 }
 };
-const GUN_KINDS = ['pistol', 'smg', 'shotgun'];
 
 const GRAV_ROOT = -30, RUN = 5.4, ACCEL = 46, JUMP_V = 10.6;
 const MAX_PLAYER_BODIES = 4, MAX_GRUNT_BODIES = 22;
@@ -2173,6 +2241,10 @@ class Fighter {
     this.ai = { fire: 0, jump: 0, strafe: 0 };
     this.invuln = 0;
     this.slot = 0;
+    this.flash = 0;                                  // per-body hit tint
+    this.wounds = [];                                // bullet holes / stab cuts
+    this.embeds = [];                                // blades still in them
+    this.frames = new Float32Array(17 * FRAME_STRIDE);
   }
 
   spawn(x, facing) {
@@ -2181,6 +2253,7 @@ class Fighter {
     this.hp = this.maxHp; this.alive = true; this.deadT = 0; this.cool = 0;
     this.counted = false;
     this.invuln = this.isPlayer ? 1.4 : 0;
+    this.flash = 0; this.wounds.length = 0; this.embeds.length = 0;
     this.doll.placeAt(x, 0, facing);
     this.doll.root = this.root;
     this.doll.poseKTarget = 1;
@@ -2248,8 +2321,13 @@ class Fighter {
   hurt(dmg, joint, dirX, dirY, force) {
     if (!this.alive || this.invuln > 0) return false;
     this.hp -= dmg;
-    this.hurtT = 0.12;
+    this.hurtT = 0.16;
+    this.flash = 1;
+    // the hit joint takes the impulse, and the whole pose buckles for a moment
+    // so the body visibly folds around it instead of absorbing it rigidly
     this.doll.impulse(joint, dirX * force, dirY * force + force * 0.22, 0, 1 / 60);
+    this.doll.impulse(J.chest, dirX * force * 0.30, force * 0.10, 0, 1 / 60);
+    this.doll.poseK *= 0.62;
     if (this.hp <= 0) { this.kill(dirX, dirY, force); return true; }
     return false;
   }
@@ -2266,22 +2344,23 @@ const W = {
   player: null,
   fighters: [],       // alive + corpses, both groups
   pickups: [],
+  projs: [],          // thrown knives in flight
   tracers: [],
   parts: [],          // blood / debris particles
   decals: [],
   flashes: [],
   kills: 0, lives: 3, wave: 1, waveKills: 0,
-  spawnT: 1.2, over: false, respawnT: 0,
+  spawnT: 1.2, over: false, respawnT: 0, hitStop: 0, hitStopCd: 0,
   cam: { x: 0, y: 1.4, dist: 5 },
   shake: 0,
   t: 0
 };
 
 function resetWorld() {
-  W.fighters.length = 0; W.pickups.length = 0; W.tracers.length = 0;
+  W.fighters.length = 0; W.pickups.length = 0; W.tracers.length = 0; W.projs.length = 0;
   W.parts.length = 0; W.decals.length = 0; W.flashes.length = 0;
   W.kills = 0; W.lives = 3; W.wave = 1; W.waveKills = 0;
-  W.spawnT = 1.0; W.over = false; W.respawnT = 0; W.shake = 0; W.t = 0;
+  W.spawnT = 1.0; W.over = false; W.respawnT = 0; W.shake = 0; W.t = 0; W.hitStop = 0; W.hitStopCd = 0;
 
   W.player = new Fighter(S.props, 0, true);
   W.player.spawn(0, 1);
@@ -2322,9 +2401,11 @@ function spawnGrunt() {
 
   // grunts get better toys as the waves climb
   const roll = Math.random() + W.wave * 0.07;
-  if (roll < 0.42) { g.weapon = 'fists'; g.ammo = 0; }
+  if (roll < 0.26) { g.weapon = 'fists'; g.ammo = 0; }
+  else if (roll < 0.44) { g.weapon = 'knife'; g.ammo = 0; }
   else if (roll < 0.86) { g.weapon = 'pistol'; g.ammo = 99; }
-  else if (roll < 1.20) { g.weapon = 'smg'; g.ammo = 99; }
+  else if (roll < 1.10) { g.weapon = 'smg'; g.ammo = 99; }
+  else if (roll < 1.30) { g.weapon = 'tknife'; g.ammo = 99; }
   else { g.weapon = 'shotgun'; g.ammo = 99; }
   W.fighters.push(g);
 }
@@ -2374,10 +2455,62 @@ function rayHit(ox, oy, dx, dy, maxD, ignore) {
 }
 
 /* ------------------------------ combat ------------------------------ */
+const _l3 = [0, 0, 0], _l4 = [0, 0, 0], _w3 = [0, 0, 0], _w4 = [0, 0, 0];
+
+// A wound is pinned to the mesh part that carries it, in that part's local
+// space, so it rides the limb through every ragdoll tumble instead of
+// hanging in the air where the shot happened.
+function addWound(f, joint, wx, wy, kind) {
+  if (!f.framesReady) return;
+  const pi = JOINT_PART[joint], part = f.parts[pi];
+  const L = worldToPartLocal(f.frames, pi, wx, wy, 0, _l3);
+  if (!isFinite(L[0]) || !isFinite(L[1])) return;
+  f.wounds.push({
+    p: pi,
+    x: clamp(L[0], -part.hx * 0.82, part.hx * 0.82),
+    y: clamp(L[1], -part.hy * 0.82, part.hy * 0.82),
+    z: part.hz + 0.005,
+    k: kind,
+    r: kind === 'stab' ? 0.032 : 0.020
+  });
+  if (f.wounds.length > 30) f.wounds.shift();
+}
+
+// A thrown blade keeps its entry point AND its direction in part space, so it
+// stays buried at the angle it went in at.
+function addEmbed(f, joint, wx, wy, dx, dy) {
+  if (!f.framesReady) return;
+  const pi = JOINT_PART[joint], part = f.parts[pi];
+  const L = worldToPartLocal(f.frames, pi, wx, wy, 0, _l3);
+  const D = worldDirToPart(f.frames, pi, dx, dy, 0, _l4);
+  const dl = Math.hypot(D[0], D[1]);
+  if (!isFinite(L[0]) || dl < 1e-4) return;
+  f.embeds.push({
+    p: pi,
+    x: clamp(L[0], -part.hx * 0.75, part.hx * 0.75),
+    y: clamp(L[1], -part.hy * 0.75, part.hy * 0.75),
+    z: part.hz * 0.5,
+    dx: D[0] / dl, dy: D[1] / dl,
+    len: 0.30
+  });
+  if (f.embeds.length > 8) f.embeds.shift();
+}
+
+// Flash and shake on every hit; time dilation only on a kill. Stopping time
+// per bullet sounds punchy and is the opposite: hold an SMG on a target and
+// every shot re-triggers it, so the whole game crawls while you fire.
+function hitFeedback(f, killed) {
+  f.flash = 1;
+  if (killed && W.hitStopCd <= 0) { W.hitStop = 0.085; W.hitStopCd = 0.35; }
+  if (f.isPlayer) W.shake = Math.min(0.65, W.shake + (killed ? 0.38 : 0.20));
+  else W.shake = Math.min(0.40, W.shake + (killed ? 0.14 : 0.035));
+}
+
 function fire(f) {
   const g = f.gun;
   if (g.melee) { melee(f); return; }
-  if (f.ammo <= 0) { f.weapon = 'fists'; f.ammo = 0; if (f.isPlayer) syncHud(); return; }
+  if (g.thrown) { throwBlade(f); return; }
+  if (f.ammo <= 0) { dropToFists(f); return; }
 
   // Grunts use the same guns you do, so they need heavy handicaps or two of
   // them delete you in a couple of seconds.
@@ -2396,23 +2529,86 @@ function fire(f) {
     W.tracers.push({ ax: m[0], ay: m[1], bx: ex, by: ey, t: 0.055 });
     if (h.f) {
       const died = h.f.hurt(g.dmg * dmgScale * HIT_MULT[h.j], h.j, dx, dy, g.kick);
+      addWound(h.f, h.j, ex, ey, 'hole');
       bloodBurst(ex, ey, dx, dy, died ? 16 : 6);
+      hitFeedback(h.f, died);
       if (died) onKill(h.f, f);
     } else {
       sparks(ex, ey, -dx, -dy);
     }
   }
   W.flashes.push({ x: m[0] + f.aim[0] * 0.12, y: m[1] + f.aim[1] * 0.12, t: 0.05 });
-  // recoil, so full-auto climbs
   f.doll.impulse(f.primaryIsL() ? J.haL : J.haR, -f.aim[0] * g.kick * 0.5, -f.aim[1] * g.kick * 0.5, 0, 1 / 60);
   if (f.isPlayer) { W.shake = Math.min(0.5, W.shake + g.kick * 0.018); syncHud(); }
+  if (f.ammo <= 0) dropToFists(f);
+}
+
+function dropToFists(f) {
+  f.weapon = 'fists'; f.ammo = 0;
+  if (f.isPlayer) syncHud();
+}
+
+function throwBlade(f) {
+  const g = f.gun;
+  if (f.ammo <= 0) { dropToFists(f); return; }
+  f.cool = g.rate * (f.isPlayer ? 1 : 2.2);
+  f.ammo--;
+  const m = muzzleOf(f.doll, f.props, f.primaryIsL());
+  const spread = g.spread * (f.isPlayer ? 1 : 3.0);
+  const a = Math.atan2(f.aim[1], f.aim[0]) + (Math.random() - 0.5) * spread * 2;
+  const sp = 26;
+  W.projs.push({
+    x: m[0], y: m[1], px: m[0], py: m[1],
+    vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + 1.2,
+    ang: a, owner: f, dmg: g.dmg * (f.isPlayer ? 1 : 0.34)
+  });
+  if (f.isPlayer) syncHud();
+  if (f.ammo <= 0) dropToFists(f);
+}
+
+function stepProjectiles(dt) {
+  for (let i = W.projs.length - 1; i >= 0; i--) {
+    const q = W.projs[i];
+    q.px = q.x; q.py = q.y;
+    q.vy += GRAV_ROOT * 0.42 * dt;
+    q.x += q.vx * dt; q.y += q.vy * dt;
+    q.ang = Math.atan2(q.vy, q.vx);
+
+    const dx = q.x - q.px, dy = q.y - q.py;
+    const len = Math.hypot(dx, dy);
+    if (len > 1e-5) {
+      const ux = dx / len, uy = dy / len;
+      const h = rayHit(q.px, q.py, ux, uy, len, q.owner);
+      if (h.t < len) {
+        const hx = q.px + ux * h.t, hy = q.py + uy * h.t;
+        if (h.f) {
+          const died = h.f.hurt(q.dmg * HIT_MULT[h.j], h.j, ux, uy, 7.0);
+          addWound(h.f, h.j, hx, hy, 'stab');
+          addEmbed(h.f, h.j, hx, hy, ux, uy);
+          bloodBurst(hx, hy, ux, uy, died ? 18 : 8);
+          hitFeedback(h.f, died);
+          if (died) onKill(h.f, q.owner);
+        } else {
+          // stuck in the scenery, and you can go and get it back
+          W.pickups.push({ x: hx, y: Math.max(0.18, hy), vy: 0, kind: 'tknife', ammo: 1, t: 0, stuck: true, ang: q.ang });
+          sparks(hx, hy, -ux, -uy);
+        }
+        W.projs.splice(i, 1);
+        continue;
+      }
+    }
+    if (q.y < -3 || Math.abs(q.x) > ARENA + 3) W.projs.splice(i, 1);
+  }
 }
 
 function melee(f) {
-  f.cool = WEAPONS.fists.rate;
+  const g = f.gun;
+  f.cool = g.rate * (f.isPlayer ? 1 : 1.6);
   f.meleeT = 0.18;
   const m = f.chest([0, 0]);
-  const reach = WEAPONS.fists.reach;
+  const reach = g.reach;
+  const dmgScale = f.isPlayer ? 1 : 0.45;
+
   for (let i = 0; i < W.fighters.length; i++) {
     const o = W.fighters[i];
     if (o === f || !o.alive) continue;
@@ -2420,16 +2616,30 @@ function melee(f) {
     const dx = c[0] - m[0], dy = c[1] - m[1];
     if (Math.hypot(dx, dy) > reach) continue;
     if (dx * f.aim[0] + dy * f.aim[1] < 0) continue;      // must be in front
-    const died = o.hurt(WEAPONS.fists.dmg * (f.isPlayer ? 1 : 0.45), J.chest, f.aim[0], f.aim[1], 7.5);
-    bloodBurst(c[0], c[1], f.aim[0], f.aim[1], died ? 14 : 3);
+
+    // land the blow on whichever joint is actually nearest the strike, so a
+    // stab wound appears where the knife went in
+    const tipX = m[0] + f.aim[0] * reach * 0.72, tipY = m[1] + f.aim[1] * reach * 0.72;
+    let bj = J.chest, bd = 1e9;
+    for (let j = 0; j < NJ; j++) {
+      const d = Math.hypot(o.doll.pos[j * 3] - tipX, o.doll.pos[j * 3 + 1] - tipY);
+      if (d < bd) { bd = d; bj = j; }
+    }
+    const hx = o.doll.pos[bj * 3], hy = o.doll.pos[bj * 3 + 1];
+    const mult = g.stab ? HIT_MULT[bj] : 1;
+    const died = o.hurt(g.dmg * dmgScale * mult, bj, f.aim[0], f.aim[1], g.stab ? 6.0 : 7.5);
+    if (g.stab) addWound(o, bj, hx, hy, 'stab');
+    bloodBurst(hx, hy, f.aim[0], f.aim[1], died ? 16 : (g.stab ? 7 : 3));
+    hitFeedback(o, died);
     if (died) onKill(o, f);
-    if (f.isPlayer) W.shake = Math.min(0.5, W.shake + 0.12);
     break;
   }
 }
 
 function onKill(victim, killer) {
-  if (victim.counted) return;
+  // only ever score a body that is actually dead — otherwise a blocked hit
+  // (respawn invulnerability, say) could still drain a life
+  if (victim.alive || victim.counted) return;
   victim.counted = true;
   victim.deadT = 0;
   if (victim.isPlayer) {
@@ -2443,7 +2653,8 @@ function onKill(victim, killer) {
   // drop the gun where they fell
   if (victim.weapon !== 'fists') {
     const c = victim.chest([0, 0]);
-    W.pickups.push({ x: c[0], y: Math.max(0.2, c[1]), vy: 1.5, kind: victim.weapon, t: 0 });
+    const left = victim.isPlayer ? victim.ammo : undefined;
+    W.pickups.push({ x: c[0], y: Math.max(0.2, c[1]), vy: 1.5, kind: victim.weapon, ammo: left, t: 0 });
   }
   syncHud();
 }
@@ -2514,15 +2725,17 @@ function stepAI(f, dt) {
   const l = dist || 1;
   f.aim[0] = dx / l; f.aim[1] = dy / l;
 
-  const melee = f.weapon === 'fists';
-  const want = melee ? 0.75 : 4.8 + (f.weapon === 'shotgun' ? -2.0 : 0);
+  const melee = f.gun.melee;
+  const want = melee ? 0.75
+    : f.weapon === 'shotgun' ? 2.8
+    : f.weapon === 'tknife' ? 4.2 : 4.8;
 
   if (!p.alive) { f.moveDir = 0; return; }
 
   if (melee) {
     // no dead zone for melee: the approach threshold has to overlap the swing
     // threshold or a grunt can settle in the gap between them and just stand
-    f.moveDir = dist > WEAPONS.fists.reach * 0.80 ? Math.sign(dx) : 0;
+    f.moveDir = dist > f.gun.reach * 0.80 ? Math.sign(dx) : 0;
   } else if (dist > want + 1.1) f.moveDir = Math.sign(dx);
   else if (dist < want - 1.2) f.moveDir = -Math.sign(dx);
   else f.moveDir = 0;
@@ -2534,7 +2747,7 @@ function stepAI(f, dt) {
   }
 
   f.cool -= dt;
-  const inRange = melee ? dist < WEAPONS.fists.reach * 0.92 : dist < 15;
+  const inRange = melee ? dist < f.gun.reach * 0.92 : dist < (f.weapon === 'tknife' ? 9 : 15);
   if (!inRange) { f.ai.fire = 0; return; }
 
   if (!melee) {
@@ -2556,6 +2769,9 @@ function tick(now) {
   S.last = now;
   if (!(dt > 0)) dt = 1 / 60;
   dt = Math.min(dt, 1 / 30);
+  // a beat of slow motion on impact — the cheapest way to make a hit land
+  W.hitStopCd = Math.max(0, W.hitStopCd - dt);
+  if (W.hitStop > 0) { W.hitStop -= dt; dt *= 0.22; }
   W.t += dt;
 
   const p = W.player;
@@ -2588,6 +2804,7 @@ function tick(now) {
     } else {
       f.deadT += dt;
     }
+    f.flash = Math.max(0, f.flash - dt * 5.0);
     f.doll.step(dt);
   }
 
@@ -2654,6 +2871,7 @@ function tick(now) {
     if (k.t > 26) W.pickups.splice(i, 1);
   }
 
+  stepProjectiles(dt);
   stepEffects(dt);
 
   /* ---- camera ---- */
@@ -2676,13 +2894,17 @@ function buildFrame(dt) {
 
   // bodies -> per-texture batches
   const counts = [0, 0];
+  for (let i = 0; i < W.fighters.length; i++) W.fighters[i].posed = false;
   for (let i = 0; i < W.fighters.length; i++) {
     const f = W.fighters[i];
     const G = ren.groups[f.group];
     if (counts[f.group] >= G.maxBodies) continue;
     const slot = counts[f.group]++;
-    const showGun = f.weapon === 'fists' ? -1 : (f.primaryIsL() ? GUN_L : GUN_R);
-    poseMesh(f.mesh, f.parts, f.doll, G.verts, slot * VERTS_PER_BODY * 8, showGun);
+    const armed = f.weapon !== 'fists' && !WEAPONS[f.weapon].thrown;
+    const showGun = armed ? (f.primaryIsL() ? GUN_L : GUN_R) : -1;
+    poseMesh(f.mesh, f.parts, f.doll, G.verts, slot * VERTS_PER_BODY * VSTRIDE,
+      showGun, f.flash, f.frames);
+    f.posed = true; f.framesReady = true;
   }
   ren.uploadGroup(0, counts[0]);
   ren.uploadGroup(1, counts[1]);
@@ -2693,6 +2915,53 @@ function buildFrame(dt) {
     const d = W.decals[i];
     dcol[3] = d.a;
     fx.decal(d.x, d.z, d.rx, d.rz, dcol);
+  }
+
+  // Wounds and buried blades ride their part's frame, so they stay put through
+  // every tumble. Both faces of the box are drawn and the depth test picks the
+  // one actually facing the camera.
+  const holeCol = [0.13, 0.015, 0.02, 0.96];
+  const stabCol = [0.24, 0.02, 0.03, 0.96];
+  const steel = [0.74, 0.76, 0.82, 1];
+  const grip = [0.13, 0.13, 0.16, 1];
+  for (let i = 0; i < W.fighters.length; i++) {
+    const f = W.fighters[i];
+    if (!f.posed) continue;
+    for (let n = 0; n < f.wounds.length; n++) {
+      const w = f.wounds[n];
+      const col = w.k === 'stab' ? stabCol : holeCol;
+      partLocalToWorld(f.frames, w.p, w.x, w.y, w.z, _w3);
+      fx.spot(_w3[0], _w3[1], _w3[2], w.r, col);
+      partLocalToWorld(f.frames, w.p, w.x, w.y, -w.z, _w4);
+      fx.spot(_w4[0], _w4[1], _w4[2], w.r, col);
+    }
+    for (let n = 0; n < f.embeds.length; n++) {
+      const e = f.embeds[n];
+      // Only the face toward the camera. The buried half is hidden by the
+      // depth test, but the part sticking out is not — draw both sides and
+      // every blade reads as two parallel slivers.
+      partLocalToWorld(f.frames, e.p, e.x, e.y, e.z, _w3);
+      partLocalToWorld(f.frames, e.p, e.x, e.y, -e.z, _w4);
+      const z = _w3[2] >= _w4[2] ? e.z : -e.z;
+
+      partLocalToWorld(f.frames, e.p, e.x - e.dx * e.len * 0.98, e.y - e.dy * e.len * 0.98, z, _w3);
+      partLocalToWorld(f.frames, e.p, e.x + e.dx * e.len * 0.12, e.y + e.dy * e.len * 0.12, z, _w4);
+      const bz = Math.max(_w3[2], _w4[2]) + 0.030;
+      // dark backing first so the blade keeps an outline at 224p
+      fx.seg(_w3[0], _w3[1], _w4[0], _w4[1], bz - 0.004, 0.030, [0.07, 0.07, 0.09, 1]);
+      partLocalToWorld(f.frames, e.p, e.x - e.dx * e.len * 0.52, e.y - e.dy * e.len * 0.52, z, _w4);
+      fx.seg(_w3[0], _w3[1], _w4[0], _w4[1], bz, 0.023, grip);
+      partLocalToWorld(f.frames, e.p, e.x + e.dx * e.len * 0.12, e.y + e.dy * e.len * 0.12, z, _w3);
+      fx.seg(_w4[0], _w4[1], _w3[0], _w3[1], bz, 0.014, steel);
+    }
+  }
+
+  // blades in flight
+  for (let i = 0; i < W.projs.length; i++) {
+    const q = W.projs[i];
+    const cx = Math.cos(q.ang) * 0.13, cy = Math.sin(q.ang) * 0.13;
+    fx.seg(q.x - cx * 1.9, q.y - cy * 1.9, q.x - cx * 0.7, q.y - cy * 0.7, 0.06, 0.022, grip);
+    fx.seg(q.x - cx * 0.7, q.y - cy * 0.7, q.x + cx, q.y + cy, 0.06, 0.014, steel);
   }
 
   // tracers + muzzle flashes
@@ -2719,10 +2988,17 @@ function buildFrame(dt) {
   for (let i = 0; i < W.pickups.length; i++) {
     const k = W.pickups[i];
     const bob = Math.sin(W.t * 4 + i) * 0.03;
-    fx.spot(k.x, k.y + bob, 0.10, 0.17, [0.14, 0.15, 0.18, 0.95]);
-    fx.spot(k.x, k.y + bob + 0.055, 0.11, 0.055, [0.85, 0.88, 0.95, 0.95]);
     const fade = k.t > 20 ? (Math.sin(k.t * 12) * 0.5 + 0.5) : 1;
-    fx.spot(k.x, k.y + bob - 0.20, 0.09, 0.05, [1, 0.82, 0.30, 0.55 * fade]);
+    if (k.kind === 'tknife') {
+      const a = k.stuck ? (k.ang || 0) : 0.35;
+      const cx = Math.cos(a) * 0.12, cy = Math.sin(a) * 0.12;
+      fx.seg(k.x - cx * 1.8, k.y + bob - cy * 1.8, k.x - cx * 0.6, k.y + bob - cy * 0.6, 0.10, 0.022, grip);
+      fx.seg(k.x - cx * 0.6, k.y + bob - cy * 0.6, k.x + cx, k.y + bob + cy, 0.10, 0.014, steel);
+    } else {
+      fx.spot(k.x, k.y + bob, 0.10, 0.17, [0.14, 0.15, 0.18, 0.95]);
+      fx.spot(k.x, k.y + bob + 0.055, 0.11, 0.055, [0.85, 0.88, 0.95, 0.95]);
+    }
+    fx.spot(k.x, k.y + bob - 0.22, 0.09, 0.05, [1, 0.82, 0.30, 0.55 * fade]);
   }
 
   // low-health vignette is DOM; in-world we only shake
@@ -2762,8 +3038,11 @@ function tryPickup(p) {
   for (let i = W.pickups.length - 1; i >= 0; i--) {
     const k = W.pickups[i];
     if (Math.abs(k.x - p.root.x) < 0.85 && Math.abs(k.y - (p.root.y + 0.5)) < 1.1) {
+      const give = (k.ammo === undefined || k.ammo === null) ? WEAPONS[k.kind].mag : k.ammo;
+      // walking over more of what you're already holding tops you up
+      p.ammo = (p.weapon === k.kind ? p.ammo : 0) + give;
+      if (WEAPONS[k.kind].mag) p.ammo = Math.min(p.ammo, WEAPONS[k.kind].mag * 2);
       p.weapon = k.kind;
-      p.ammo = WEAPONS[k.kind].mag;
       W.pickups.splice(i, 1);
       syncHud();
       return;
