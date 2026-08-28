@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PolyMe">
 <meta name="theme-color" content="#0d0f15">
-<title>PolyMe — PS1 Ragdoll Maker</title>
+<title>PolyMe — PS1 Madness</title>
 <style>
   :root{
     --bg:#0d0f15; --panel:#161a24; --panel2:#1d2331; --line:#2a3142;
@@ -91,48 +91,107 @@
   .chiprow button{width:auto; flex:1; text-align:center; font-size:13px; padding:10px 6px; min-height:42px;}
   .chiprow button.act{background:#2d3a52; border-color:#42557a; color:#fff;}
 
-  /* ---------- play screen ---------- */
-  #playScreen{background:#05070c;}
+  /* ---------- game screen ---------- */
+  #playScreen{background:#0b0b0d;}
   #gl{
     position:absolute; inset:0; width:100%; height:100%; display:block;
     touch-action:none; image-rendering:pixelated; image-rendering:crisp-edges;
   }
-  #hudTop{
+
+  /* Madness-style status strip: dark text on a light bar, top of the screen */
+  #statusBar{
     position:absolute; top:0; left:0; right:0; z-index:5;
-    display:flex; align-items:center; gap:8px;
-    padding:calc(var(--safeT) + 8px) 10px 8px;
-    background:linear-gradient(180deg,rgba(5,7,12,.85),rgba(5,7,12,0));
+    display:flex; align-items:center; gap:16px;
+    padding:calc(var(--safeT) + 6px) 12px 6px;
+    background:#c9c9c9; border-bottom:2px solid #1a1a1a;
+    font-weight:800; font-size:14px; color:#1a1a1a; letter-spacing:.5px;
     pointer-events:none;
   }
-  #hudTop button{pointer-events:auto;}
-  #hudTop .sp{flex:1;}
-  .iconbtn{
-    width:auto !important; min-height:40px; padding:8px 11px; font-size:14px;
-    background:rgba(29,35,49,.82); border:1px solid var(--line); border-radius:10px;
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  #statusBar .num{color:#c22; margin-left:4px;}
+  #statusBar .sp{flex:1;}
+  #statusBar button{pointer-events:auto;}
+  .sysbtn{
+    width:auto !important; min-height:32px; padding:4px 10px; font-size:13px;
+    background:#1a1a1a; color:#ddd; border:none; border-radius:5px; font-weight:700;
   }
-  #hudBottom{
-    position:absolute; left:0; right:0; bottom:0; z-index:5;
-    padding:10px 8px calc(var(--safeB) + 10px);
-    background:linear-gradient(0deg,rgba(5,7,12,.9),rgba(5,7,12,0));
-  }
-  #poseRow, #actRow{
-    display:flex; gap:6px; max-width:560px; margin:0 auto 6px;
-  }
-  #poseRow button, #actRow button{
-    flex:1; width:auto; text-align:center; padding:9px 2px; min-height:52px;
-    font-size:10.5px; line-height:1.25; border-radius:11px;
-    background:rgba(29,35,49,.85); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-  }
-  #poseRow button .em, #actRow button .em{display:block; font-size:19px; margin-bottom:2px;}
-  #poseRow button.act{background:#33405c; border-color:#4a5f8a; color:#fff;}
 
-  /* FX drawer */
+  #wave{
+    position:absolute; top:calc(var(--safeT) + 44px); left:0; right:0; z-index:5;
+    text-align:center; font-weight:800; font-size:12px; color:#8b8b93;
+    letter-spacing:2px; pointer-events:none; text-shadow:0 1px 2px #000;
+  }
+
+  /* health + weapon, bottom corners, clear of both thumbs */
+  #vitals{
+    position:absolute; left:10px; bottom:calc(var(--safeB) + 10px); z-index:5;
+    pointer-events:none; width:132px;
+  }
+  #hpWrap{height:12px; background:#1a1a1a; border:2px solid #1a1a1a; border-radius:3px; overflow:hidden;}
+  #hpFill{height:100%; width:100%; background:#c22; transition:width .12s;}
+  #gunLbl{
+    position:absolute; right:10px; bottom:calc(var(--safeB) + 10px); z-index:5;
+    pointer-events:none; text-align:right; font-weight:800; font-size:13px;
+    color:#e6e6ea; text-shadow:0 1px 3px #000; letter-spacing:1px;
+  }
+  #gunLbl .ammo{font-size:19px; color:#ffcf5a;}
+  #gunLbl .ammo.dry{color:#c22;}
+
+  /* touch zones — invisible, thumbs land wherever they like */
+  .tzone{position:absolute; top:0; bottom:0; z-index:3;}
+  #tzL{left:0; width:45%;}
+  #tzR{right:0; width:55%;}
+  #stick{
+    position:absolute; z-index:4; width:104px; height:104px; margin:-52px 0 0 -52px;
+    border:2px solid rgba(230,230,235,.30); border-radius:50%; display:none;
+    pointer-events:none;
+  }
+  #stick.on{display:block;}
+  #stickNub{
+    position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; left:50%; top:50%;
+    background:rgba(230,230,235,.30); border-radius:50%;
+  }
+  #reticle{
+    position:absolute; z-index:4; width:34px; height:34px; margin:-17px 0 0 -17px;
+    pointer-events:none; display:none;
+  }
+  #reticle.on{display:block;}
+  #reticle:before, #reticle:after{
+    content:''; position:absolute; background:#e6e6ea; box-shadow:0 0 2px #000;
+  }
+  #reticle:before{left:50%; top:0; bottom:0; width:2px; margin-left:-1px;}
+  #reticle:after{top:50%; left:0; right:0; height:2px; margin-top:-1px;}
+
+  /* hit flash + game over */
+  #dmgFlash{
+    position:absolute; inset:0; z-index:4; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 40%, rgba(190,20,20,.55) 100%);
+    opacity:0; transition:opacity .18s;
+  }
+  #over{
+    position:absolute; inset:0; z-index:8; display:none; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; background:rgba(8,8,10,.86);
+    text-align:center; padding:20px;
+  }
+  #over.on{display:flex;}
+  #over .big{font-size:30px; font-weight:800; color:#c22; letter-spacing:3px;}
+  #over .stat{font-size:15px; color:var(--txt);}
+  #over button{max-width:260px;}
+
+  #toast{
+    position:absolute; left:50%; top:16%; transform:translate(-50%,-50%);
+    z-index:7; background:rgba(13,15,21,.93); border:1px solid var(--line);
+    border-radius:12px; padding:12px 15px; max-width:300px; text-align:center;
+    font-size:12.5px; line-height:1.7; color:var(--txt); pointer-events:none;
+    opacity:0; transition:opacity .3s;
+  }
+  #toast.on{opacity:1;}
+  #toast .k{color:var(--cyan);}
+
   #fxPanel{
-    position:absolute; left:0; right:0; bottom:0; z-index:6;
+    position:absolute; left:0; right:0; bottom:0; z-index:9;
     background:var(--panel); border-top:1px solid var(--line);
     border-radius:14px 14px 0 0; padding:12px 14px calc(var(--safeB) + 14px);
-    transform:translateY(102%); transition:transform .22s ease; max-height:78%;
+    transform:translateY(102%); transition:transform .22s ease; max-height:82%;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   #fxPanel.on{transform:translateY(0);}
@@ -149,17 +208,12 @@
   .fxhead b{font-size:13px; letter-spacing:.5px;}
   .fxhead button{width:auto; padding:6px 12px; min-height:34px; font-size:13px;}
 
-  /* Landscape on a phone: two full-width rows eat a third of the screen, so
-     fold the eight controls into one compact row. */
   @media (orientation:landscape) and (max-height:540px){
-    #hudBottom{display:flex; gap:6px; max-width:940px; margin:0 auto;
-      padding:6px 8px calc(var(--safeB) + 6px);}
-    #poseRow, #actRow{flex:1; margin:0;}
-    #poseRow button, #actRow button{min-height:44px; font-size:9.5px; padding:5px 2px;}
-    #poseRow button .em, #actRow button .em{font-size:15px; margin-bottom:1px;}
     #fxPanel{max-height:92%;}
     #fxPanel .fxrow{margin:7px 0;}
+    #vitals{width:118px;}
   }
+
 
   /* toast */
   #toast{
@@ -194,7 +248,7 @@
     <div class="wrap">
       <div class="title">
         <div class="big">POLYME</div>
-        <div class="sub">Turn a photo of yourself into a low-poly<br>PlayStation-era character. Then throw them around.</div>
+        <div class="sub">Put yourself in a low-poly ragdoll shootout.<br>A photo in, a PlayStation-era gunfight out.</div>
       </div>
 
       <div class="panel stack">
@@ -205,7 +259,7 @@
         </button>
         <button id="btnSkip" class="ghost">
           <div class="btn-title">🎲 Skip — use a stock body</div>
-          <div class="btn-desc">Jump straight to the ragdoll playground</div>
+          <div class="btn-desc">Straight into the fight</div>
         </button>
         <button id="btnResume" class="ghost hidden">
           <div class="btn-title">↩️ Load my last character</div>
@@ -214,7 +268,14 @@
       </div>
 
       <div class="panel">
-        <div class="note"><b>For the best result</b>
+        <div class="note"><b>How to play</b> — left thumb moves and jumps,
+          right thumb aims and fires. Walk over a dropped gun to take it.
+          Grunts keep coming; you get three lives.
+          <b>Turn your phone sideways</b> for a much wider view.</div>
+      </div>
+
+      <div class="panel">
+        <div class="note"><b>For the best photo</b>
           <ul id="capTips">
             <li>Stand back so your <b>whole body</b> is in frame.</li>
             <li>Arms slightly out from your sides.</li>
@@ -259,27 +320,32 @@
 <div class="screen" id="playScreen">
   <canvas id="gl"></canvas>
 
-  <div id="hudTop">
-    <button class="iconbtn" id="btnHome">‹</button>
-    <div class="sp"></div>
-    <button class="iconbtn" id="btnShot">📷</button>
-    <button class="iconbtn" id="btnFx">⚙️</button>
+  <div id="statusBar">
+    <span>Kills: <span class="num" id="hudKills">0</span></span>
+    <span>Lives: <span class="num" id="hudLives">3</span></span>
+    <span class="sp"></span>
+    <button class="sysbtn" id="btnFx">FX</button>
+    <button class="sysbtn" id="btnHome">EXIT</button>
+  </div>
+  <div id="wave">WAVE 1</div>
+
+  <div class="tzone" id="tzL"></div>
+  <div class="tzone" id="tzR"></div>
+  <div id="stick"><div id="stickNub"></div></div>
+  <div id="reticle"></div>
+  <div id="dmgFlash"></div>
+
+  <div id="vitals"><div id="hpWrap"><div id="hpFill"></div></div></div>
+  <div id="gunLbl"><span id="gunName">FISTS</span><br><span class="ammo" id="gunAmmo">--</span></div>
+
+  <div id="over">
+    <div class="big" id="overTitle">YOU DIED</div>
+    <div class="stat" id="overStat"></div>
+    <button class="primary" id="overAgain">Again</button>
+    <button class="ghost" id="overHome">New character</button>
   </div>
 
-  <div id="hudBottom">
-    <div id="poseRow">
-      <button data-pose="stand" class="act"><span class="em">🧍</span>STAND</button>
-      <button data-pose="wave"><span class="em">👋</span>WAVE</button>
-      <button data-pose="dance"><span class="em">🕺</span>DANCE</button>
-      <button data-pose="limp"><span class="em">🥴</span>RAGDOLL</button>
-    </div>
-    <div id="actRow">
-      <button id="actLaunch"><span class="em">🚀</span>LAUNCH</button>
-      <button id="actPunch"><span class="em">👊</span>SHOVE</button>
-      <button id="actGrav"><span class="em">🌍</span>EARTH</button>
-      <button id="actReset"><span class="em">🔄</span>RESET</button>
-    </div>
-  </div>
+  <div id="toast"></div>
 
   <div id="fxPanel">
     <div class="fxhead"><b>PS1 FX</b><button id="fxClose">Done</button></div>
@@ -312,15 +378,22 @@
         <button data-tex="0">Flat</button>
       </div>
     </div>
-    <div class="fxrow"><label>Auto-spin</label>
-      <div class="seg" id="segSpin">
-        <button data-spin="1" class="act">On</button>
-        <button data-spin="0">Off</button>
+    <div class="fxrow"><label>Outlines</label>
+      <div class="seg" id="segLine">
+        <button data-line="1" class="act">On</button>
+        <button data-line="0">Off</button>
+      </div>
+    </div>
+    <div class="fxrow"><label>Blood</label>
+      <div class="seg" id="segGore">
+        <button data-gore="1" class="act">On</button>
+        <button data-gore="0">Off</button>
       </div>
     </div>
     <div class="note" style="margin-top:12px">
-      Drag <b>the character</b> to grab a limb · drag <b>the background</b> to orbit ·
-      pinch to zoom.
+      <b>Left thumb</b> move &amp; jump &nbsp;·&nbsp; <b>right thumb</b> aim &amp; fire<br>
+      Keyboard: <b>A/D</b> or <b>←/→</b>, <b>W</b>/<b>Space</b> jump, mouse to aim, click to fire,
+      <b>E</b> to pick up.
     </div>
   </div>
 
@@ -331,7 +404,7 @@
 <script>
 "use strict";
 /* =====================================================================
-   PolyMe — a photo of you -> a low-poly PS1 character you can ragdoll.
+   PolyMe — put yourself in a Madness-style ragdoll shooter.
    Everything runs on-device: no server, no ML, no dependencies.
 
    Pipeline:
@@ -371,6 +444,7 @@ function showScreen(id) {
 let toastTimer = 0;
 function toast(html, ms) {
   const t = $('#toast');
+  if (!t) return;
   t.innerHTML = html;
   t.classList.add('on');
   clearTimeout(toastTimer);
@@ -581,8 +655,21 @@ const R = {
   // the same arm
   armU: [80, 32, 16, 24], armL: [80, 56, 16, 24],
   legU: [96, 32, 16, 24], legL: [96, 56, 16, 24],
-  hand: [112, 32, 16, 16], foot: [112, 48, 16, 16]
+  hand: [112, 32, 16, 16], foot: [112, 48, 16, 16],
+  // gunmetal lives in the character atlas so the weapon costs no extra draw
+  gun: [0, 96, 16, 16], gunD: [16, 96, 16, 16]
 };
+
+// Every atlas carries the same weapon patch, so any body can hold any gun.
+function paintGun(ctx) {
+  fillRect(ctx, [58, 60, 68], R.gun);
+  ctx.fillStyle = 'rgb(78,81,92)';
+  ctx.fillRect(R.gun[0], R.gun[1], R.gun[2], 5);
+  ctx.fillStyle = 'rgb(30,31,36)';
+  ctx.fillRect(R.gun[0], R.gun[1] + 12, R.gun[2], 4);
+  fillRect(ctx, [38, 39, 45], R.gunD);
+  grain(ctx, R.gun, 18); grain(ctx, R.gunD, 14);
+}
 
 // Box-filtered downscale by repeated halving. A single drawImage from a 500px
 // region straight down to a few pixels only samples the region's *centre* on
@@ -722,6 +809,7 @@ function bakeAtlasFromPhoto(img, lm, pal) {
   fillRect(ctx, pal.skin, R.hand); grain(ctx, R.hand, 16);
   fillRect(ctx, pal.shoes, R.foot); grain(ctx, R.foot, 16);
 
+  paintGun(ctx);
   grain(ctx, R.headB, 12); grain(ctx, R.headT, 12);
   punchAtlas(ctx, 1.12, 1.10);
   return c;
@@ -757,6 +845,7 @@ function bakeAtlasFlat(pal) {
   fillRect(ctx, pal.skin, R.hand);
   fillRect(ctx, pal.shoes, R.foot);
 
+  paintGun(ctx);
   Object.keys(R).forEach(k => grain(ctx, R[k], 14));
   punchAtlas(ctx, 1.10, 1.06);
   return c;
@@ -780,32 +869,98 @@ function punchAtlas(ctx, sat, con) {
 }
 
 /* ------------------------- environment texture ------------------------ */
-// One 64x64 tile shared by the ground and the crates.
+// One 64x64 tile for the whole level. Madness interiors are flat light grey
+// with hard black edges, so the tile is deliberately near-featureless and the
+// vertex lighting is what separates floor from wall.
 function bakeEnvTexture() {
   const S = 64, c = makeCanvas(S, S), ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.fillStyle = '#3c4a68'; ctx.fillRect(0, 0, S, S);
-  ctx.fillStyle = '#485979';
-  for (let y = 0; y < S; y += 16) for (let x = 0; x < S; x += 16)
-    if (((x / 16) + (y / 16)) % 2 === 0) ctx.fillRect(x, y, 16, 16);
-  // grid lines + speckle
-  ctx.fillStyle = 'rgba(150,200,245,0.17)';
-  for (let i = 0; i < S; i += 16) { ctx.fillRect(0, i, S, 1); ctx.fillRect(i, 0, 1, S); }
+  ctx.fillStyle = '#adadb1'; ctx.fillRect(0, 0, S, S);
+  // faint panel seams
+  ctx.strokeStyle = 'rgba(40,40,44,0.30)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0.5, 0); ctx.lineTo(0.5, S);
+  ctx.moveTo(0, 0.5); ctx.lineTo(S, 0.5);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(40,40,44,0.06)';
+  ctx.fillRect(0, 0, S, 3); ctx.fillRect(0, 0, 3, S);
   const img = ctx.getImageData(0, 0, S, S), d = img.data;
   for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random() - 0.5) * 22;
+    const n = (Math.random() - 0.5) * 12;
     d[i] = clamp(d[i] + n, 0, 255); d[i + 1] = clamp(d[i + 1] + n, 0, 255); d[i + 2] = clamp(d[i + 2] + n, 0, 255);
   }
   ctx.putImageData(img, 0, 0);
   return c;
 }
 
+/* ----------------------------- grunt atlas ---------------------------- */
+// The faceless Madness grunt: pale round head with a black cross, dark body.
+// Same atlas layout as the player so it drops straight into the same mesh.
+function bakeAtlasGrunt(tint) {
+  const c = makeCanvas(ATLAS, ATLAS);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const t = tint || 1;
+  const body = shade([88, 88, 96], t);
+  const head = shade([226, 226, 228], t);
+  const dark = shade([44, 44, 50], t);
+
+  ctx.fillStyle = '#7a7a86'; ctx.fillRect(0, 0, ATLAS, ATLAS);
+  fillRect(ctx, head, R.headF);
+  fillRect(ctx, shade(head, 0.98), R.headS);
+  fillRect(ctx, shade(head, 0.88), R.headB);
+  fillRect(ctx, shade(head, 0.97), R.headT);
+
+  // The cross goes on the SIDE of the head as well as the front. The game is
+  // locked side-on, so the front face is never once visible — put the mark
+  // only there and every grunt is a blank grey blob.
+  ctx.fillStyle = 'rgba(24,24,28,0.92)';
+  const cross = (r, cx, cy, hh, hw, th) => {
+    ctx.fillRect(r[0] + cx - ((th / 2) | 0), r[1] + cy - hh, th, hh * 2);
+    ctx.fillRect(r[0] + cx - hw, r[1] + cy - ((th / 2) | 0), hw * 2, th);
+  };
+  cross(R.headF, 16, 16, 11, 9, 3);
+  cross(R.headS, 15, 16, 10, 8, 3);
+
+  fillRect(ctx, body, R.torsoF);
+  fillRect(ctx, shade(body, 0.82), R.torsoB);
+  fillRect(ctx, shade(body, 0.90), R.torsoS);
+  fillRect(ctx, shade(body, 0.96), R.arm);
+  fillRect(ctx, shade(body, 0.84), R.leg);
+  fillRect(ctx, dark, R.hand);
+  fillRect(ctx, shade(dark, 0.8), R.foot);
+
+  paintGun(ctx);
+  Object.keys(R).forEach(k => grain(ctx, R[k], 10));
+  return c;
+}
+
+/* ----------------------------- weapon tile ---------------------------- */
+// 16x16 gunmetal, used for every weapon box and for dropped pickups.
+function bakeGunTexture() {
+  const S = 16, c = makeCanvas(S, S), ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#33343a'; ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = '#4a4c55'; ctx.fillRect(0, 0, S, 5);
+  ctx.fillStyle = '#232429'; ctx.fillRect(0, S - 4, S, 4);
+  const img = ctx.getImageData(0, 0, S, S), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * 20;
+    d[i] = clamp(d[i] + n, 0, 255); d[i + 1] = clamp(d[i + 1] + n, 0, 255); d[i + 2] = clamp(d[i + 2] + n, 0, 255);
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
 /* =====================================================================
    SKELETON + VERLET RAGDOLL
    16 particles, distance constraints for bones, extra braces for the torso
    and soft min/max limits so elbows and knees don't fold inside out.
-   Poses are applied as a soft pull toward animated target positions, so
-   "stand" and "ragdoll" are the same code path with one gain between them
-   — which is what makes getting up from a heap look right.
+
+   Poses are applied as a soft pull toward animated target positions, so a
+   living fighter and a corpse are the same code path with one gain between
+   them. That is the whole trick behind the Madness look: bodies are always
+   physics, "alive" just means something is holding them up.
+
+   While alive, the pose is built around a `root` that runs ordinary
+   platformer physics (velocity, gravity, ground check). That keeps movement
+   crisp and responsive while the body itself still flops, reels and trips.
    ===================================================================== */
 
 const J = {
@@ -831,10 +986,18 @@ const RADIUS = new Float32Array([
   0.075, 0.058, 0.062,
   0.075, 0.058, 0.062
 ]);
+// where a bullet hurts most
+const HIT_MULT = new Float32Array([
+  2.6, 1.5, 1.0, 1.0,
+  0.8, 0.6, 0.5,
+  0.8, 0.6, 0.5,
+  0.9, 0.7, 0.5,
+  0.9, 0.7, 0.5
+]);
 
 function restPose(P) {
-  // world-ish local space: origin between the feet, +Y up, +Z is the way the
-  // character faces, +X is their (image) right.
+  // local space: origin between the feet, +Y up, +Z the way the character
+  // faces, +X their right.
   const p = new Float32Array(NJ * 3);
   const set = (j, x, y, z) => { p[j * 3] = x; p[j * 3 + 1] = y; p[j * 3 + 2] = z; };
   const hipY = P.legLen;
@@ -852,7 +1015,6 @@ function restPose(P) {
   set(J.head, 0, headY, 0);
   set(J.shL, -sw * 0.5, shY, 0);
   set(J.shR, sw * 0.5, shY, 0);
-  // arms hang in a slight A-pose
   set(J.elL, -sw * 0.5 - P.upperArm * 0.30, shY - P.upperArm * 0.92, 0.01);
   set(J.elR, sw * 0.5 + P.upperArm * 0.30, shY - P.upperArm * 0.92, 0.01);
   set(J.haL, -sw * 0.5 - P.upperArm * 0.30 - P.foreArm * 0.22, shY - P.upperArm * 0.92 - P.foreArm * 0.94, 0.03);
@@ -887,8 +1049,8 @@ function buildRig(P) {
     bone(J.hipL, J.chest, 0.6), bone(J.hipR, J.chest, 0.6),
     bone(J.head, J.chest, 0.35), bone(J.shL, J.hipL, 0.4), bone(J.shR, J.hipR, 0.4)
   ];
-  // joint limits as min/max separations (a cheap stand-in for cone limits, and
-  // it reads correctly at this fidelity)
+  // joint limits as min/max separations (a cheap stand-in for cone limits,
+  // and it reads correctly at this fidelity)
   const lim = (a, b, minF, maxF) => {
     const d = dist3(rest, a, b);
     return { a, b, min: d * minF, max: d * maxF };
@@ -902,14 +1064,20 @@ function buildRig(P) {
   return { rest, bones, limits, P };
 }
 
-/* ------------------------------ arena -------------------------------- */
+/* ------------------------------- level ------------------------------- */
+// A side-on room. Physics is confined to the z=0 plane, so these boxes are
+// cover and platforms read purely by their x/y extents.
 const CRATES = [
-  { c: [1.75, 0.40, -0.55], h: [0.40, 0.40, 0.40] },
-  { c: [-1.95, 0.28, 0.95], h: [0.62, 0.28, 0.62] },
-  { c: [-1.15, 0.75, -2.05], h: [0.32, 0.75, 0.32] },
-  { c: [2.35, 0.18, 1.75], h: [0.75, 0.18, 0.50] }
+  { c: [-14.0, 0.85, 0], h: [0.75, 0.85, 0.85] },
+  { c: [-7.4, 0.55, 0], h: [1.00, 0.55, 0.85] },
+  { c: [-2.6, 0.35, 0], h: [0.60, 0.35, 0.85] },
+  { c: [4.6, 0.50, 0], h: [1.25, 0.50, 0.85] },
+  { c: [5.9, 1.15, 0], h: [0.55, 0.28, 0.85] },
+  { c: [12.4, 0.70, 0], h: [1.40, 0.70, 0.85] },
+  { c: [17.2, 1.10, 0], h: [0.65, 1.10, 0.85] }
 ];
-const ARENA = 7.0;
+const ARENA = 19.5;      // walls
+const WALL_Z = -3.0;     // back wall
 
 /* ------------------------------ ragdoll ------------------------------ */
 class Ragdoll {
@@ -919,35 +1087,61 @@ class Ragdoll {
     this.pos = new Float32Array(NJ * 3);
     this.prev = new Float32Array(NJ * 3);
     this.tgt = new Float32Array(NJ * 3);
-    this.gravity = -9.81;
-    this.poseK = 1;          // 0 = limp, 1 = fully driven
+    this.gravity = -18.0;         // punchier than earth; Madness is not a documentary
+    this.poseK = 1;
     this.poseKTarget = 1;
-    this.mode = 'stand';
     this.grab = -1;
     this.grabP = [0, 0, 0];
-    this.yaw = 0;
+    this.yaw = Math.PI * 0.5;     // facing +X
     this.t = 0;
+
+    this.plane = true;            // confine everything to z = 0
+    this.root = null;             // {x, y} platformer root while alive
+    this.anim = 'idle';           // idle | walk | air
+    this.aim = null;              // [dx, dy] unit, world XY
+    this.primaryArm = 'L';
+    this.walkPhase = 0;
+    this.still = 0;               // seconds spent barely moving (corpses sleep)
+    this.asleep = false;
     this.reset();
   }
 
   reset() {
     const r = this.rig.rest;
     for (let i = 0; i < NJ * 3; i += 3) {
-      this.pos[i] = r[i];
-      this.pos[i + 1] = r[i + 1] + 0.02;
-      this.pos[i + 2] = r[i + 2];
+      this.pos[i] = r[i]; this.pos[i + 1] = r[i + 1] + 0.02; this.pos[i + 2] = r[i + 2];
     }
     this.prev.set(this.pos);
-    this.yaw = 0; this.t = 0; this.grab = -1;
-    this.setMode(this.mode === 'limp' ? 'stand' : this.mode);
+    this.t = 0; this.grab = -1; this.poseK = 1; this.poseKTarget = 1;
+    this.still = 0; this.asleep = false;
   }
 
-  setMode(m) {
-    this.mode = m;
-    this.poseKTarget = (m === 'limp') ? 0 : 1;
+  // Drop the whole body at a place, facing a direction — used on spawn.
+  placeAt(x, y, facing) {
+    const r = this.rig.rest;
+    const c = Math.cos(this.yaw = facing >= 0 ? Math.PI * 0.5 : -Math.PI * 0.5);
+    const s = Math.sin(this.yaw);
+    for (let j = 0; j < NJ; j++) {
+      const lx = r[j * 3], ly = r[j * 3 + 1], lz = r[j * 3 + 2];
+      this.pos[j * 3] = x + lx * c + lz * s;
+      this.pos[j * 3 + 1] = y + ly;
+      this.pos[j * 3 + 2] = 0;
+    }
+    this.prev.set(this.pos);
+    this.poseK = 1; this.poseKTarget = 1; this.still = 0; this.asleep = false;
+  }
+
+  die() { this.poseKTarget = 0; this.root = null; this.aim = null; }
+
+  centre(o) {
+    o[0] = (this.pos[J.pelvis * 3] + this.pos[J.chest * 3]) * 0.5;
+    o[1] = (this.pos[J.pelvis * 3 + 1] + this.pos[J.chest * 3 + 1]) * 0.5;
+    o[2] = 0;
+    return o;
   }
 
   impulse(j, vx, vy, vz, dt) {
+    this.asleep = false; this.still = 0;
     this.prev[j * 3] -= vx * dt;
     this.prev[j * 3 + 1] -= vy * dt;
     this.prev[j * 3 + 2] -= vz * dt;
@@ -959,100 +1153,92 @@ class Ragdoll {
     }
   }
 
-  /* --- where the body currently is / which way it faces --- */
-  facingYaw() {
-    const p = this.pos;
-    let rx = p[J.shR * 3] - p[J.shL * 3], rz = p[J.shR * 3 + 2] - p[J.shL * 3 + 2];
-    const l = Math.hypot(rx, rz);
-    if (l < 1e-4) return this.yaw;
-    rx /= l; rz /= l;
-    // forward = right rotated -90 about Y  =>  (fx, fz) = (rz, -rx)... with our
-    // handedness fwd = cross(right, up) = (rz*1 - 0, .., -rx)
-    return Math.atan2(rz, -rx);
-  }
-
-  /* --- build the animated target pose in world space --- */
-  buildTargets(dt) {
+  /* --- animated target pose, in world space --- */
+  buildTargets() {
     const P = this.P, rest = this.rig.rest, T = this.tgt, t = this.t;
+    const rx = this.root ? this.root.x : this.pos[J.pelvis * 3];
+    const ry = this.root ? this.root.y : 0;
 
-    // root follows the pelvis so the character stands up where they landed
-    const rx = this.pos[J.pelvis * 3], rz = this.pos[J.pelvis * 3 + 2];
-    const want = this.facingYaw();
-    let d = want - this.yaw;
-    while (d > Math.PI) d -= TAU;
-    while (d < -Math.PI) d += TAU;
-    this.yaw += d * Math.min(1, dt * 4);
-
-    // local animated pose
     const L = this._loc || (this._loc = new Float32Array(NJ * 3));
     L.set(rest);
     const add = (j, x, y, z) => { L[j * 3] += x; L[j * 3 + 1] += y; L[j * 3 + 2] += z; };
     const setJ = (j, x, y, z) => { L[j * 3] = x; L[j * 3 + 1] = y; L[j * 3 + 2] = z; };
-    let twist = 0;
 
-    if (this.mode === 'stand') {
-      const b = Math.sin(t * 1.5), s = Math.sin(t * 0.62);
-      add(J.chest, s * 0.012, b * 0.008, 0);
-      add(J.neck, s * 0.014, b * 0.010, 0);
-      add(J.head, s * 0.016, b * 0.010, b * 0.006);
-      add(J.pelvis, s * 0.018, -Math.abs(b) * 0.004, 0);
-      add(J.haL, s * 0.028, 0, Math.sin(t * 1.5 + 0.6) * 0.02);
-      add(J.haR, -s * 0.028, 0, Math.sin(t * 1.5 - 0.6) * 0.02);
-      add(J.elL, s * 0.014, 0, 0); add(J.elR, -s * 0.014, 0, 0);
-    } else if (this.mode === 'wave') {
-      const b = Math.sin(t * 1.4);
-      add(J.chest, 0, b * 0.008, 0); add(J.head, 0, b * 0.008, 0.01);
-      const sx = L[J.shR * 3], sy = L[J.shR * 3 + 1], sz = L[J.shR * 3 + 2];
-      setJ(J.elR, sx + P.upperArm * 0.78, sy + P.upperArm * 0.30, sz + 0.04);
-      const w = Math.sin(t * 8.5);
-      setJ(J.haR, sx + P.upperArm * 0.80 + w * P.foreArm * 0.42,
-        sy + P.upperArm * 0.30 + P.foreArm * 0.86, sz + 0.10);
-      add(J.haL, 0, 0, Math.sin(t * 1.4) * 0.02);
-    } else if (this.mode === 'dance') {
-      const a = t * 4.4, s = Math.sin(a), c = Math.cos(a), s2 = Math.sin(a * 0.5);
-      twist = s2 * 0.34;
-      add(J.pelvis, s * 0.085, -Math.abs(s) * 0.045, 0);
-      add(J.chest, -s * 0.045, -Math.abs(s) * 0.020, 0);
-      add(J.neck, -s * 0.055, 0, 0);
-      add(J.head, -s * 0.06, Math.abs(c) * 0.012, 0);
-      add(J.hipL, s * 0.085, -Math.abs(s) * 0.045, 0);
-      add(J.hipR, s * 0.085, -Math.abs(s) * 0.045, 0);
-      add(J.knL, s * 0.05, -Math.max(0, s) * 0.10, 0.03);
-      add(J.knR, s * 0.05, -Math.max(0, -s) * 0.10, 0.03);
-      // hands punch the air on alternating beats
-      const upL = Math.max(0, s), upR = Math.max(0, -s);
-      add(J.elL, -0.10 * upL, P.upperArm * 0.70 * upL, 0.04);
-      add(J.haL, -0.16 * upL, (P.upperArm + P.foreArm) * 0.92 * upL, 0.06);
-      add(J.elR, 0.10 * upR, P.upperArm * 0.70 * upR, 0.04);
-      add(J.haR, 0.16 * upR, (P.upperArm + P.foreArm) * 0.92 * upR, 0.06);
+    if (this.anim === 'walk') {
+      const ph = this.walkPhase, s = Math.sin(ph), c = Math.cos(ph);
+      add(J.knL, 0, Math.max(0, s) * P.legLen * 0.15, s * P.legLen * 0.28);
+      add(J.ftL, 0, Math.max(0, s) * P.legLen * 0.21, s * P.legLen * 0.40);
+      add(J.knR, 0, Math.max(0, -s) * P.legLen * 0.15, -s * P.legLen * 0.28);
+      add(J.ftR, 0, Math.max(0, -s) * P.legLen * 0.21, -s * P.legLen * 0.40);
+      const bob = -Math.abs(c) * 0.028;
+      add(J.pelvis, 0, bob, 0); add(J.chest, 0, bob, 0);
+      add(J.neck, 0, bob, 0); add(J.head, 0, bob, 0);
+      add(J.elL, 0, 0, -s * P.upperArm * 0.34); add(J.haL, 0, 0, -s * P.foreArm * 0.52);
+      add(J.elR, 0, 0, s * P.upperArm * 0.34); add(J.haR, 0, 0, s * P.foreArm * 0.52);
+    } else if (this.anim === 'air') {
+      add(J.knL, 0, P.legLen * 0.12, P.legLen * 0.16);
+      add(J.ftL, 0, P.legLen * 0.18, P.legLen * 0.24);
+      add(J.knR, 0, P.legLen * 0.04, -P.legLen * 0.08);
+      add(J.ftR, 0, P.legLen * 0.06, -P.legLen * 0.13);
+    } else {
+      const b = Math.sin(t * 1.9);
+      add(J.chest, 0, b * 0.008, 0); add(J.neck, 0, b * 0.010, 0); add(J.head, 0, b * 0.010, 0);
     }
 
-    // local -> world (yaw + twist about Y, then translate onto the pelvis)
-    const ry = this.yaw + twist, cy = Math.cos(ry), sy2 = Math.sin(ry);
+    // Aiming: the arms reach along the aim direction. Because the hand target
+    // sits on that line, the forearm bone ends up pointing down the barrel —
+    // which is exactly what the gun part is mounted to.
+    if (this.aim) {
+      const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
+      // world (ax, ay, 0) -> local: x = ax*cos, y = ay, z = ax*sin
+      const lx = this.aim[0] * cy, ly = this.aim[1], lz = this.aim[0] * sy;
+      const pri = this.primaryArm;
+      const arms = [
+        { s: J.shL, e: J.elL, h: J.haL, k: pri === 'L' ? 0.97 : 0.74 },
+        { s: J.shR, e: J.elR, h: J.haR, k: pri === 'R' ? 0.97 : 0.74 }
+      ];
+      for (let i = 0; i < 2; i++) {
+        const a = arms[i];
+        const sx = rest[a.s * 3], sy2 = rest[a.s * 3 + 1], sz = rest[a.s * 3 + 2];
+        const reach = (P.upperArm + P.foreArm) * a.k;
+        setJ(a.h, sx + lx * reach, sy2 + ly * reach, sz + lz * reach);
+        const er = P.upperArm * (a.k > 0.9 ? 0.94 : 0.76);
+        setJ(a.e, sx + lx * er, sy2 + ly * er - P.upperArm * 0.20, sz + lz * er);
+      }
+    }
+
+    const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
     for (let j = 0; j < NJ; j++) {
       const x = L[j * 3], y = L[j * 3 + 1], z = L[j * 3 + 2];
-      T[j * 3] = rx + x * cy + z * sy2;
-      T[j * 3 + 1] = y;
-      T[j * 3 + 2] = rz - x * sy2 + z * cy;
+      T[j * 3] = rx + x * cy + z * sy;
+      T[j * 3 + 1] = ry + y;
+      T[j * 3 + 2] = 0;
     }
   }
 
   step(dt) {
+    if (this.asleep) return;
     this.t += dt;
     const SUB = 2, h = dt / SUB;
-    this.poseK += (this.poseKTarget - this.poseK) * Math.min(1, dt * 3.2);
+    this.poseK += (this.poseKTarget - this.poseK) * Math.min(1, dt * 4.5);
     if (this.poseK < 0.002) this.poseK = 0;
-
     for (let s = 0; s < SUB; s++) this._sub(h);
+
+    // corpses that have stopped moving stop costing anything
+    if (this.poseK === 0) {
+      let v = 0;
+      for (let i = 0; i < NJ * 3; i++) v += Math.abs(this.pos[i] - this.prev[i]);
+      if (v < 0.004 * NJ) { this.still += dt; if (this.still > 0.8) this.asleep = true; }
+      else this.still = 0;
+    }
   }
 
   _sub(h) {
     const pos = this.pos, prev = this.prev, T = this.tgt;
     const damp = 0.995, g = this.gravity * h * h;
 
-    if (this.poseK > 0) this.buildTargets(h);
+    if (this.poseK > 0) this.buildTargets();
 
-    // integrate
     for (let j = 0; j < NJ; j++) {
       const i = j * 3;
       for (let k = 0; k < 3; k++) {
@@ -1064,7 +1250,6 @@ class Ragdoll {
       }
     }
 
-    // pose pull
     if (this.poseK > 0) {
       for (let j = 0; j < NJ; j++) {
         if (j === this.grab) continue;
@@ -1076,7 +1261,6 @@ class Ragdoll {
       }
     }
 
-    // constraints
     const bones = this.rig.bones, limits = this.rig.limits;
     for (let it = 0; it < 6; it++) {
       for (let b = 0; b < bones.length; b++) {
@@ -1091,6 +1275,10 @@ class Ragdoll {
     }
     this._collide();
     this._pin();
+
+    if (this.plane) {
+      for (let j = 0; j < NJ; j++) { pos[j * 3 + 2] = 0; prev[j * 3 + 2] = 0; }
+    }
   }
 
   _solve(a, b, min, max, k) {
@@ -1098,7 +1286,7 @@ class Ragdoll {
     let dx = p[ib] - p[ia], dy = p[ib + 1] - p[ia + 1], dz = p[ib + 2] - p[ia + 2];
     let d = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (d < 1e-6) { d = 1e-6; dx = 1e-6; }
-    let target = d < min ? min : (d > max ? max : d);
+    const target = d < min ? min : (d > max ? max : d);
     if (target === d) return;
     const diff = (d - target) / d * 0.5 * k;
     const ax = dx * diff, ay = dy * diff, az = dz * diff;
@@ -1106,9 +1294,6 @@ class Ragdoll {
     if (b !== this.grab) { p[ib] -= ax; p[ib + 1] -= ay; p[ib + 2] -= az; }
   }
 
-  // A grabbed joint is kinematic: pinned with zero velocity. Momentum still
-  // reaches the rest of the body through the constraint solver, and the throw
-  // velocity is applied explicitly on release.
   _pin() {
     if (this.grab < 0) return;
     const i = this.grab * 3;
@@ -1121,7 +1306,6 @@ class Ragdoll {
     for (let j = 0; j < NJ; j++) {
       const i = j * 3, r = RADIUS[j];
 
-      // ground
       if (p[i + 1] < r) {
         p[i + 1] = r;
         const fx = 0.72;
@@ -1130,7 +1314,6 @@ class Ragdoll {
         if (pv[i + 1] > p[i + 1]) pv[i + 1] = p[i + 1] + (pv[i + 1] - p[i + 1]) * 0.30;
       }
 
-      // crates (AABB push-out along the shallowest axis)
       for (let b = 0; b < CRATES.length; b++) {
         const B = CRATES[b], c = B.c, e = B.h;
         const dx = p[i] - c[0], dy = p[i + 1] - c[1], dz = p[i + 2] - c[2];
@@ -1150,20 +1333,17 @@ class Ragdoll {
         }
       }
 
-      // soft arena walls
       if (p[i] < -ARENA) { p[i] = -ARENA; pv[i] = p[i] + 0.02; }
       if (p[i] > ARENA) { p[i] = ARENA; pv[i] = p[i] - 0.02; }
-      if (p[i + 2] < -ARENA) { p[i + 2] = -ARENA; pv[i + 2] = p[i + 2] + 0.02; }
-      if (p[i + 2] > ARENA) { p[i + 2] = ARENA; pv[i + 2] = p[i + 2] - 0.02; }
     }
   }
 }
 
 /* =====================================================================
    LOW-POLY MESH
-   15 boxes = 180 triangles. Every face gets an explicit atlas rect, and
-   the whole thing is re-transformed on the CPU each frame into one buffer
-   (900 vertices — cheaper than 15 draw calls and far simpler than skinning).
+   17 boxes = 204 triangles (15 body + 2 guns, one per hand — the unused
+   one collapses to a point). Every face gets an explicit atlas rect, and
+   bodies are re-transformed on the CPU each frame into shared buffers.
    ===================================================================== */
 
 function uvOf(rect, u, v) {
@@ -1183,7 +1363,6 @@ function boxGeom(w, h, d, faces, taperTop, taperBot) {
   const quad = (a, b, c, e, nx, ny, nz, rect, flipU) => {
     const base = V.length / 3;
     const cs = [a, b, c, e];
-    // uv order matches BL, BR, TR, TL
     const uvs = flipU
       ? [[1, 1], [0, 1], [0, 0], [1, 0]]
       : [[0, 1], [1, 1], [1, 0], [0, 0]];
@@ -1204,8 +1383,8 @@ function boxGeom(w, h, d, faces, taperTop, taperBot) {
   return { V, N, UV, I };
 }
 
-// A part is a box bound to the skeleton. `bone` gives the local +Y axis
-// (from b toward a); `at` says where the box centre sits.
+const GUN_L = 15, GUN_R = 16;   // part indices
+
 function buildParts(P) {
   const AU = R.armU, AL = R.armL, LU = R.legU, LL = R.legL;
   const armUF = [AU, AU, AU, AU, R.hand, R.hand];
@@ -1216,10 +1395,13 @@ function buildParts(P) {
   const torsoF = [R.torsoF, R.torsoB, R.torsoS, R.torsoS, R.torsoS, R.torsoS];
   const handF = [R.hand, R.hand, R.hand, R.hand, R.hand, R.hand];
   const footF = [R.foot, R.foot, R.foot, R.foot, R.foot, R.foot];
+  const gunF = [R.gun, R.gun, R.gun, R.gun, R.gunD, R.gunD];
 
   const ar = P.armR, lr = P.legR;
+  // the gun sits on the forearm axis, poking out past the hand
+  const gL = P.height * 0.21, gW = P.height * 0.028, gH = P.height * 0.052;
+
   return [
-    // head: sits on the neck->head axis, nudged up so the chin clears the torso
     { g: boxGeom(P.headW, P.headH, P.headD, headF, 0.94, 0.86), bone: [J.head, J.neck], at: 'a', off: [0, P.headH * 0.02, 0] },
     { g: boxGeom(P.shoulderW * 0.98, 1, P.torsoD, torsoF, 1.0, 0.90), bone: [J.neck, J.chest], at: 'mid', stretch: 1.06 },
     { g: boxGeom(P.shoulderW * 0.88, 1, P.torsoD * 0.94, torsoF, 1.0, 0.98), bone: [J.chest, J.pelvis], at: 'mid', stretch: 1.10 },
@@ -1238,12 +1420,13 @@ function buildParts(P) {
 
     { g: boxGeom(lr * 2.0, 1, lr * 2.0, legUF, 1.0, 0.86), bone: [J.hipR, J.knR], at: 'mid', stretch: 1.06 },
     { g: boxGeom(lr * 1.7, 1, lr * 1.7, legLF, 1.0, 0.84), bone: [J.knR, J.ftR], at: 'mid', stretch: 1.04 },
-    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftR, J.knR], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] }
+    { g: boxGeom(lr * 1.9, P.footH * 2.0, P.footLen, footF), bone: [J.ftR, J.knR], at: 'a', off: [0, -P.footH * 0.2, P.footLen * 0.26] },
+
+    { g: boxGeom(gW, gL, gH, gunF), bone: [J.haL, J.elL], at: 'a', off: [0, -gL * 0.46, 0], hideable: true },
+    { g: boxGeom(gW, gL, gH, gunF), bone: [J.haR, J.elR], at: 'a', off: [0, -gL * 0.46, 0], hideable: true }
   ];
 }
 
-// Packs all parts into interleaved [px,py,pz, nx,ny,nz, u,v] and an index
-// buffer. Positions/normals are rewritten every frame by `poseMesh`.
 function packParts(parts) {
   let nv = 0, ni = 0;
   parts.forEach(p => { nv += p.g.V.length / 3; ni += p.g.I.length; });
@@ -1265,11 +1448,13 @@ function packParts(parts) {
   return { verts, idx, local: verts.slice(0), vCount: nv, iCount: ni };
 }
 
-// Rebuild world-space vertices from the current ragdoll pose.
-function poseMesh(mesh, parts, doll) {
-  const p = doll.pos, out = mesh.verts, loc = mesh.local;
+// Rebuild world-space vertices from the current ragdoll pose, straight into
+// `out` at `outOffset` floats — so many bodies pack into one buffer.
+function poseMesh(mesh, parts, doll, out, outOffset, showGun) {
+  const p = doll.pos, loc = mesh.local;
+  const O = outOffset || 0;
+  if (!out) out = mesh.verts;
 
-  // body frame used as the twist reference for every limb
   let rx = p[J.shR * 3] - p[J.shL * 3], ry = p[J.shR * 3 + 1] - p[J.shL * 3 + 1], rz = p[J.shR * 3 + 2] - p[J.shL * 3 + 2];
   let ux = p[J.neck * 3] - p[J.pelvis * 3], uy = p[J.neck * 3 + 1] - p[J.pelvis * 3 + 1], uz = p[J.neck * 3 + 2] - p[J.pelvis * 3 + 2];
   let fx = ry * uz - rz * uy, fy = rz * ux - rx * uz, fz = rx * uy - ry * ux;
@@ -1279,13 +1464,24 @@ function poseMesh(mesh, parts, doll) {
 
   for (let k = 0; k < parts.length; k++) {
     const part = parts[k];
+    const v0 = part.vStart, n = part.vCount;
+
+    // an unequipped gun collapses to a point rather than costing a draw call
+    if (part.hideable && (k !== showGun)) {
+      for (let i = 0; i < n; i++) {
+        const o = O + (v0 + i) * 8;
+        out[o] = 0; out[o + 1] = -999; out[o + 2] = 0;
+        out[o + 3] = 0; out[o + 4] = 1; out[o + 5] = 0;
+        out[o + 6] = loc[(v0 + i) * 8 + 6]; out[o + 7] = loc[(v0 + i) * 8 + 7];
+      }
+      continue;
+    }
+
     const a = part.bone[0] * 3, b = part.bone[1] * 3;
-    // local +Y points from b to a
     let yx = p[a] - p[b], yy = p[a + 1] - p[b + 1], yz = p[a + 2] - p[b + 2];
     let len = Math.hypot(yx, yy, yz);
     if (len < 1e-5) { yx = 0; yy = 1; yz = 0; len = 1e-5; } else { yx /= len; yy /= len; yz /= len; }
 
-    // X = up x fwd, Z = X x up  (right-handed, twist referenced to the torso)
     let xx = yy * fz - yz * fy, xy = yz * fx - yx * fz, xz = yx * fy - yy * fx;
     let xl = Math.hypot(xx, xy, xz);
     if (xl < 1e-4) {                     // limb parallel to body-forward: use up x worldZ
@@ -1296,34 +1492,41 @@ function poseMesh(mesh, parts, doll) {
     xx /= xl; xy /= xl; xz /= xl;
     const zx = xy * yz - xz * yy, zy = xz * yx - xx * yz, zz = xx * yy - xy * yx;
 
-    // origin
     let ox, oy, oz;
     if (part.at === 'a') { ox = p[a]; oy = p[a + 1]; oz = p[a + 2]; }
     else { ox = (p[a] + p[b]) * 0.5; oy = (p[a + 1] + p[b + 1]) * 0.5; oz = (p[a + 2] + p[b + 2]) * 0.5; }
     if (part.off) {
-      const o = part.off;
-      ox += xx * o[0] + yx * o[1] + zx * o[2];
-      oy += xy * o[0] + yy * o[1] + zy * o[2];
-      oz += xz * o[0] + yz * o[1] + zz * o[2];
+      const q = part.off;
+      ox += xx * q[0] + yx * q[1] + zx * q[2];
+      oy += xy * q[0] + yy * q[1] + zy * q[2];
+      oz += xz * q[0] + yz * q[1] + zz * q[2];
     }
-    // bone parts stretch to the live joint distance so gaps never open up
     const sy = part.stretch ? len * part.stretch : 1;
 
-    const v0 = part.vStart, n = part.vCount;
     for (let i = 0; i < n; i++) {
-      const o = (v0 + i) * 8;
-      const lx = loc[o], ly = loc[o + 1] * sy, lz = loc[o + 2];
+      const li = (v0 + i) * 8, o = O + li;
+      const lx = loc[li], ly = loc[li + 1] * sy, lz = loc[li + 2];
       out[o] = ox + xx * lx + yx * ly + zx * lz;
       out[o + 1] = oy + xy * lx + yy * ly + zy * lz;
       out[o + 2] = oz + xz * lx + yz * ly + zz * lz;
-      const nx = loc[o + 3], ny = loc[o + 4], nz = loc[o + 5];
+      const nx = loc[li + 3], ny = loc[li + 4], nz = loc[li + 5];
       out[o + 3] = xx * nx + yx * ny + zx * nz;
       out[o + 4] = xy * nx + yy * ny + zy * nz;
       out[o + 5] = xz * nx + yz * ny + zz * nz;
+      out[o + 6] = loc[li + 6]; out[o + 7] = loc[li + 7];
     }
   }
 }
 
+// Muzzle of the equipped gun, in world space.
+function muzzleOf(doll, P, armIsL) {
+  const h = armIsL ? J.haL : J.haR, e = armIsL ? J.elL : J.elR;
+  const p = doll.pos;
+  let dx = p[h * 3] - p[e * 3], dy = p[h * 3 + 1] - p[e * 3 + 1];
+  const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+  const reach = P.height * 0.20;
+  return [p[h * 3] + dx * reach, p[h * 3 + 1] + dy * reach, 0, dx, dy];
+}
 /* =====================================================================
    WEBGL1 RENDERER  —  the PS1 part
      * everything is drawn into a 224p framebuffer, then point-upscaled
@@ -1331,6 +1534,9 @@ function poseMesh(mesh, parts, doll) {
      * UVs are interpolated affinely, not perspective-correct  (the swim)
      * output is quantised to 15-bit with a 4x4 Bayer dither
      * vertex lighting only, hard fog, no filtering anywhere
+   Bodies are batched by texture: everything wearing your photo in one draw,
+   every grunt in another. Tracers, blood and decals ride a second, flat-
+   shaded program that shares the same snapping so nothing looks too clean.
    ===================================================================== */
 
 /* ------------------------------ mat4 --------------------------------- */
@@ -1380,18 +1586,21 @@ uniform float uWarp;
 uniform vec3 uLight;
 uniform vec3 uAmb;
 uniform vec2 uFog;
+uniform float uInflate;
+uniform float uDark;
 varying vec2 vUV;
 varying float vW;
 varying vec3 vCol;
 varying float vFogF;
 void main(){
-  vec4 clip = uVP * vec4(aPos, 1.0);
+  vec3 n = normalize(aNrm);
+  // inverted-hull outline: push out along the normal, draw front-culled
+  vec4 clip = uVP * vec4(aPos + n * uInflate, 1.0);
   float w = max(clip.w, 0.0001);
 
-  vec3 n = normalize(aNrm);
   float d = max(dot(n, uLight), 0.0);
   float up = max(-n.y, 0.0);
-  vCol = uAmb + vec3(d) * 0.92 + vec3(0.05, 0.055, 0.075) * up;
+  vCol = (uAmb + vec3(d) * 0.72 + vec3(0.05, 0.055, 0.06) * up) * uDark;
 
   vFogF = clamp((w - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
 
@@ -1402,7 +1611,6 @@ void main(){
   }
   gl_Position = clip;
 
-  // uWarp 0 = perspective-correct, 1 = affine (screen-linear) PS1 texturing
   vUV = mix(aUV, aUV * w, uWarp);
   vW  = mix(1.0, w, uWarp);
 }`;
@@ -1421,6 +1629,31 @@ void main(){
   c = mix(c, uFogCol, vFogF);
   gl_FragColor = vec4(c, 1.0);
 }`;
+
+// flat-shaded pass: tracers, muzzle flash, blood, decals, pickup markers
+const VS_FX = `
+attribute vec3 aPos;
+attribute vec4 aCol;
+uniform mat4 uVP;
+uniform vec2 uRes;
+uniform float uSnap;
+varying vec4 vCol;
+void main(){
+  vec4 clip = uVP * vec4(aPos, 1.0);
+  float w = max(clip.w, 0.0001);
+  if (uSnap > 0.0) {
+    vec2 g = uRes * 0.5;
+    vec2 sn = floor((clip.xy / w) * g + 0.5) / g;
+    clip.xy = mix(clip.xy, sn * w, uSnap);
+  }
+  gl_Position = clip;
+  vCol = aCol;
+}`;
+
+const FS_FX = `
+precision mediump float;
+varying vec4 vCol;
+void main(){ gl_FragColor = vCol; }`;
 
 const VS_POST = `
 attribute vec2 aP;
@@ -1445,48 +1678,75 @@ void main(){
 }`;
 
 /* ---------------------------- environment ---------------------------- */
+// A side-on room: floor, a tall back wall, and returns at each end. Every
+// surface is tessellated — a single huge quad puts corners behind the camera
+// and everything interpolated across it (fog, affine UVs, the vertex snap) is
+// then computed from clipped garbage.
 function buildEnvGeometry() {
   const V = [], N = [], UV = [], I = [];
-  const push = (x, y, z, nx, ny, nz, u, v) => {
-    V.push(x, y, z); N.push(nx, ny, nz); UV.push(u, v);
-  };
-  const quad = (p, n, uvScale) => {
-    const b = V.length / 3;
-    for (let i = 0; i < 4; i++) {
-      const uv = [[0, 1], [1, 1], [1, 0], [0, 0]][i];
-      push(p[i][0], p[i][1], p[i][2], n[0], n[1], n[2], uv[0] * uvScale[0], uv[1] * uvScale[1]);
-    }
-    I.push(b, b + 1, b + 2, b, b + 2, b + 3);
-  };
-  // Ground as a grid, not one huge quad. A single quad has corners behind the
-  // camera, and everything interpolated across it (fog, affine UVs, the vertex
-  // snap) is then computed from clipped garbage. Tessellating also gives the
-  // affine warp its per-tile PS1 character instead of one giant smear.
-  const G = 24, GN = 20, step = (G * 2) / GN, GK = 1.1;
-  for (let i = 0; i < GN; i++) {
-    for (let j = 0; j < GN; j++) {
-      const x0 = -G + i * step, x1 = x0 + step;
-      const z0 = -G + j * step, z1 = z0 + step;
-      const b = V.length / 3;
-      const c4 = [[x0, 0, z1], [x1, 0, z1], [x1, 0, z0], [x0, 0, z0]];
-      for (let k = 0; k < 4; k++) {
-        push(c4[k][0], 0, c4[k][2], 0, 1, 0, c4[k][0] / GK, c4[k][2] / GK);
+  const push = (x, y, z, nx, ny, nz, u, v) => { V.push(x, y, z); N.push(nx, ny, nz); UV.push(u, v); };
+  const K = 1.6;   // world units per texture tile
+
+  // Grid of quads spanning a rectangle in two axes. The corner order below
+  // produces a face normal of -(du x dv); when that opposes the surface's
+  // declared normal the winding has to flip, or back-face culling eats the
+  // whole surface.
+  const grid = (o, du, dv, nu, nv, nrm) => {
+    const cx = du[1] * dv[2] - du[2] * dv[1];
+    const cy = du[2] * dv[0] - du[0] * dv[2];
+    const cz = du[0] * dv[1] - du[1] * dv[0];
+    const flip = (-cx * nrm[0] - cy * nrm[1] - cz * nrm[2]) < 0;
+    for (let i = 0; i < nu; i++) {
+      for (let j = 0; j < nv; j++) {
+        const b = V.length / 3;
+        const cs = [[i, j + 1], [i + 1, j + 1], [i + 1, j], [i, j]];
+        for (let k = 0; k < 4; k++) {
+          const a = cs[k][0], c = cs[k][1];
+          const x = o[0] + du[0] * a + dv[0] * c;
+          const y = o[1] + du[1] * a + dv[1] * c;
+          const z = o[2] + du[2] * a + dv[2] * c;
+          // pick the two axes the surface actually spans, or the texture
+          // smears along whichever one is constant
+          const u = (nrm[0] !== 0 ? z : x) / K;
+          const v = (nrm[1] > 0.5 ? z : -y) / K;
+          push(x, y, z, nrm[0], nrm[1], nrm[2], u, v);
+        }
+        if (flip) I.push(b + 2, b + 1, b, b + 3, b + 2, b);
+        else I.push(b, b + 1, b + 2, b, b + 2, b + 3);
       }
-      I.push(b, b + 1, b + 2, b, b + 2, b + 3);
     }
-  }
+  };
+
+  // ZF runs the floor well past the play plane and under the camera: pulled
+  // back for portrait, the old 3.4 edge left the bottom of the screen as void.
+  const X0 = -22, X1 = 22, ZB = WALL_Z, ZF = 17.0, WH = 9.0;
+  const nx = 28, nz = 12, ny = 6;
+  const sx = (X1 - X0) / nx, sz = (ZF - ZB) / nz, sy = WH / ny;
+
+  grid([X0, 0, ZB], [sx, 0, 0], [0, 0, sz], nx, nz, [0, 1, 0]);          // floor
+  grid([X0, 0, ZB], [sx, 0, 0], [0, sy, 0], nx, ny, [0, 0, 1]);          // back wall
+  grid([X0, 0, ZB], [0, 0, sz], [0, sy, 0], 4, 4, [1, 0, 0]);            // left return
+  grid([X1, 0, ZB], [0, 0, sz], [0, sy, 0], 4, 4, [-1, 0, 0]);           // right return
+
   // crates
-  const K = 1.4;      // world units per texture tile
   CRATES.forEach(B => {
     const c = B.c, e = B.h;
     const X = [c[0] - e[0], c[0] + e[0]], Y = [c[1] - e[1], c[1] + e[1]], Z = [c[2] - e[2], c[2] + e[2]];
     const su = e[0] * 2 / K, sv = e[1] * 2 / K, sd = e[2] * 2 / K;
+    const quad = (p, n, uv) => {
+      const b = V.length / 3;
+      for (let i = 0; i < 4; i++) {
+        const t = [[0, 1], [1, 1], [1, 0], [0, 0]][i];
+        push(p[i][0], p[i][1], p[i][2], n[0], n[1], n[2], t[0] * uv[0], t[1] * uv[1]);
+      }
+      I.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    };
     quad([[X[0], Y[0], Z[1]], [X[1], Y[0], Z[1]], [X[1], Y[1], Z[1]], [X[0], Y[1], Z[1]]], [0, 0, 1], [su, sv]);
-    quad([[X[1], Y[0], Z[0]], [X[0], Y[0], Z[0]], [X[0], Y[1], Z[0]], [X[1], Y[1], Z[0]]], [0, 0, -1], [su, sv]);
     quad([[X[1], Y[0], Z[1]], [X[1], Y[0], Z[0]], [X[1], Y[1], Z[0]], [X[1], Y[1], Z[1]]], [1, 0, 0], [sd, sv]);
     quad([[X[0], Y[0], Z[0]], [X[0], Y[0], Z[1]], [X[0], Y[1], Z[1]], [X[0], Y[1], Z[0]]], [-1, 0, 0], [sd, sv]);
     quad([[X[0], Y[1], Z[1]], [X[1], Y[1], Z[1]], [X[1], Y[1], Z[0]], [X[0], Y[1], Z[0]]], [0, 1, 0], [su, sd]);
   });
+
   const verts = new Float32Array(V.length / 3 * 8);
   for (let i = 0; i < V.length / 3; i++) {
     const o = i * 8;
@@ -1497,8 +1757,49 @@ function buildEnvGeometry() {
   return { verts, idx: new Uint16Array(I) };
 }
 
+/* ----------------------------- effects ------------------------------- */
+// Flat coloured triangles in world space. The camera is locked side-on, so a
+// "billboard" is just a quad in the XY plane — no camera maths needed.
+class FxBatch {
+  constructor(max) {
+    this.max = max;
+    this.data = new Float32Array(max * 7);
+    this.n = 0;
+  }
+  reset() { this.n = 0; }
+  _v(x, y, z, c) {
+    if (this.n >= this.max) return;
+    const o = this.n++ * 7;
+    const d = this.data;
+    d[o] = x; d[o + 1] = y; d[o + 2] = z;
+    d[o + 3] = c[0]; d[o + 4] = c[1]; d[o + 5] = c[2]; d[o + 6] = c[3];
+  }
+  tri(a, b, c, col) { this._v(a[0], a[1], a[2], col); this._v(b[0], b[1], b[2], col); this._v(c[0], c[1], c[2], col); }
+  quad(a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); }
+
+  // axis-aligned square in the XY plane
+  spot(x, y, z, r, col) {
+    this.quad([x - r, y - r, z], [x + r, y - r, z], [x + r, y + r, z], [x - r, y + r, z], col);
+  }
+  // thick line segment in the XY plane
+  seg(ax, ay, bx, by, z, w, col) {
+    let dx = bx - ax, dy = by - ay;
+    const l = Math.hypot(dx, dy) || 1;
+    const px = -dy / l * w, py = dx / l * w;
+    this.quad([ax + px, ay + py, z], [bx + px, by + py, z],
+      [bx - px, by - py, z], [ax - px, ay - py, z], col);
+  }
+  // flat splat on the floor
+  decal(x, z, rx, rz, col) {
+    const y = 0.014;
+    this.quad([x - rx, y, z - rz], [x + rx, y, z - rz], [x + rx, y, z + rz], [x - rx, y, z + rz], col);
+  }
+}
+
 /* ----------------------------- renderer ------------------------------ */
-const FOG_COL = [0.055, 0.070, 0.115];
+const FOG_COL = [0.075, 0.075, 0.085];
+const VERTS_PER_BODY = 17 * 24;
+const IDX_PER_BODY = 17 * 36;
 
 class Renderer {
   constructor(canvas) {
@@ -1515,19 +1816,19 @@ class Renderer {
     this.snap = 0.7;
     this.warp = 1.0;
     this.fogOn = true;
+    this.outline = 0.028;
     this.vpW = 0; this.vpH = 0;
     this.mProj = new Float32Array(16);
     this.mView = new Float32Array(16);
     this.mVP = new Float32Array(16);
+    this.fx = new FxBatch(9000);
     this._setup();
   }
 
   _compile(type, src) {
     const gl = this.gl, s = gl.createShader(type);
     gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      throw new Error('shader: ' + gl.getShaderInfoLog(s));
-    }
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('shader: ' + gl.getShaderInfoLog(s));
     return s;
   }
   _program(vs, fs, attrs) {
@@ -1536,21 +1837,17 @@ class Renderer {
     gl.attachShader(p, this._compile(gl.FRAGMENT_SHADER, fs));
     attrs.forEach((a, i) => gl.bindAttribLocation(p, i, a));
     gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-      throw new Error('link: ' + gl.getProgramInfoLog(p));
-    }
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('link: ' + gl.getProgramInfoLog(p));
     const u = {};
     const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
-    for (let i = 0; i < n; i++) {
-      const info = gl.getActiveUniform(p, i);
-      u[info.name] = gl.getUniformLocation(p, info.name);
-    }
+    for (let i = 0; i < n; i++) u[gl.getActiveUniform(p, i).name] = gl.getUniformLocation(p, gl.getActiveUniform(p, i).name);
     return { p, u };
   }
 
   _setup() {
     const gl = this.gl;
     this.main = this._program(VS_MAIN, FS_MAIN, ['aPos', 'aNrm', 'aUV']);
+    this.flat = this._program(VS_FX, FS_FX, ['aPos', 'aCol']);
     this.post = this._program(VS_POST, FS_POST, ['aP']);
 
     this.quadBuf = gl.createBuffer();
@@ -1566,11 +1863,10 @@ class Renderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, env.idx, gl.STATIC_DRAW);
     this.envCount = env.idx.length;
 
-    this.charVB = gl.createBuffer();
-    this.charIB = gl.createBuffer();
-    this.charCount = 0;
+    this.fxVB = gl.createBuffer();
 
     this.texChar = this._tex(null, false);
+    this.texGrunt = this._tex(null, false);
     this.texEnv = this._tex(bakeEnvTexture(), true);
 
     gl.enable(gl.DEPTH_TEST);
@@ -1578,6 +1874,40 @@ class Renderer {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
     gl.clearColor(FOG_COL[0], FOG_COL[1], FOG_COL[2], 1);
+  }
+
+  // one batch per texture: [0] wears the player's photo, [1] is grunts
+  initBodyGroups(counts) {
+    const gl = this.gl;
+    this.groups = counts.map((maxBodies, gi) => {
+      const verts = new Float32Array(maxBodies * VERTS_PER_BODY * 8);
+      const idx = new Uint16Array(maxBodies * IDX_PER_BODY);
+      const vb = gl.createBuffer(), ib = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+      gl.bufferData(gl.ARRAY_BUFFER, verts.byteLength, gl.DYNAMIC_DRAW);
+      return { verts, idx, vb, ib, maxBodies, count: 0, tex: gi === 0 ? this.texChar : this.texGrunt, idxDirty: true };
+    });
+  }
+
+  // Bodies share topology, so one prototype index list shifted per slot is
+  // enough — it only changes when a body's part list is first packed.
+  setGroupIndices(gi, protoIdx) {
+    const gl = this.gl, G = this.groups[gi];
+    for (let b = 0; b < G.maxBodies; b++) {
+      const off = b * VERTS_PER_BODY;
+      for (let i = 0; i < IDX_PER_BODY; i++) G.idx[b * IDX_PER_BODY + i] = protoIdx[i] + off;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, G.ib);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, G.idx, gl.STATIC_DRAW);
+  }
+
+  uploadGroup(gi, bodyCount) {
+    const gl = this.gl, G = this.groups[gi];
+    G.count = bodyCount;
+    if (!bodyCount) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, G.vb);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0,
+      G.verts.subarray(0, bodyCount * VERTS_PER_BODY * 8));
   }
 
   _tex(src, repeat) {
@@ -1593,26 +1923,11 @@ class Renderer {
       new Uint8Array([160, 160, 170, 255]));
     return t;
   }
-
-  setCharTexture(canvas) {
+  setTexture(which, canvas) {
     const gl = this.gl;
-    gl.bindTexture(gl.TEXTURE_2D, this.texChar);
+    gl.bindTexture(gl.TEXTURE_2D, which === 0 ? this.texChar : this.texGrunt);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-  }
-
-  setCharMesh(mesh) {
-    const gl = this.gl;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.charVB);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.verts, gl.DYNAMIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.charIB);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.idx, gl.STATIC_DRAW);
-    this.charCount = mesh.idx.length;
-  }
-  updateCharMesh(mesh) {
-    const gl = this.gl;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.charVB);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.verts);
   }
 
   resize() {
@@ -1623,18 +1938,14 @@ class Renderer {
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
 
     // "224p" means 224 pixels across the *shorter* axis, so a phone held in
-    // portrait gets the same chunkiness as a landscape TV rather than a
-    // 100px-wide sliver.
+    // portrait gets the same chunkiness as a landscape TV.
     const aspect = w / h;
     let lw, lh;
     if (aspect >= 1) { lh = this.lowH; lw = Math.round(lh * aspect); }
     else { lw = this.lowH; lh = Math.round(lw / aspect); }
     lw = clamp(lw, 96, 900); lh = clamp(lh, 96, 900);
-    if (lw !== this.vpW || lh !== this.vpH) {
-      this.vpW = lw; this.vpH = lh;
-      this._makeFBO(lw, lh);
-    }
-    mPerspective(this.mProj, 52 * Math.PI / 180, aspect, 0.05, 60);
+    if (lw !== this.vpW || lh !== this.vpH) { this.vpW = lw; this.vpH = lh; this._makeFBO(lw, lh); }
+    mPerspective(this.mProj, 52 * Math.PI / 180, aspect, 0.05, 90);
   }
 
   _makeFBO(w, h) {
@@ -1657,13 +1968,11 @@ class Renderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  // locked side-on view: the camera sits on +Z and tracks the action in XY
   setCamera(cam) {
-    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-    const ex = cam.target[0] + Math.sin(cam.yaw) * cp * cam.dist;
-    const ey = cam.target[1] + sp * cam.dist;
-    const ez = cam.target[2] + Math.cos(cam.yaw) * cp * cam.dist;
+    const ex = cam.x, ey = cam.y + cam.dist * 0.07, ez = cam.dist;
     this.eye = [ex, ey, ez];
-    mLookAt(this.mView, ex, ey, ez, cam.target[0], cam.target[1], cam.target[2], 0, 1, 0);
+    mLookAt(this.mView, ex, ey, ez, cam.x, cam.y, 0, 0, 1, 0);
     mMul(this.mVP, this.mProj, this.mView);
   }
 
@@ -1682,6 +1991,7 @@ class Renderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
     gl.viewport(0, 0, this.vpW, this.vpH);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.disable(gl.BLEND);
 
     const m = this.main, u = m.u;
     gl.useProgram(m.p);
@@ -1689,21 +1999,68 @@ class Renderer {
     gl.uniform2f(u.uRes, this.vpW, this.vpH);
     gl.uniform1f(u.uSnap, this.snap);
     gl.uniform1f(u.uWarp, this.warp);
-    gl.uniform3f(u.uLight, 0.42, 0.80, 0.43);
-    gl.uniform3f(u.uAmb, 0.36, 0.38, 0.46);
+    gl.uniform3f(u.uLight, 0.30, 0.72, 0.62);
+    gl.uniform3f(u.uAmb, 0.52, 0.52, 0.55);
     gl.uniform3f(u.uFogCol, FOG_COL[0], FOG_COL[1], FOG_COL[2]);
-    gl.uniform2f(u.uFog, this.fogOn ? 4.0 : 900, this.fogOn ? 14.5 : 1000);
+    gl.uniform2f(u.uFog, this.fogOn ? (this.fogNear || 20) : 900,
+      this.fogOn ? (this.fogFar || 46) : 1000);
     gl.uniform1i(u.uTex, 0);
+    gl.uniform1f(u.uInflate, 0.0);
+    gl.uniform1f(u.uDark, 1.0);
     gl.activeTexture(gl.TEXTURE0);
 
     gl.bindTexture(gl.TEXTURE_2D, this.texEnv);
     this._bindGeom(this.envVB, this.envIB);
     gl.drawElements(gl.TRIANGLES, this.envCount, gl.UNSIGNED_SHORT, 0);
 
-    if (this.charCount) {
-      gl.bindTexture(gl.TEXTURE_2D, this.texChar);
-      this._bindGeom(this.charVB, this.charIB);
-      gl.drawElements(gl.TRIANGLES, this.charCount, gl.UNSIGNED_SHORT, 0);
+    if (this.groups) {
+      // pass 1: black silhouettes, expanded and front-culled. Madness is built
+      // out of heavy black linework and the shapes read as mush without it.
+      if (this.outline > 0) {
+        gl.uniform1f(u.uInflate, this.outline);
+        gl.uniform1f(u.uDark, 0.0);
+        gl.cullFace(gl.FRONT);
+        for (let i = 0; i < this.groups.length; i++) {
+          const G = this.groups[i];
+          if (!G.count) continue;
+          gl.bindTexture(gl.TEXTURE_2D, G.tex);
+          this._bindGeom(G.vb, G.ib);
+          gl.drawElements(gl.TRIANGLES, G.count * IDX_PER_BODY, gl.UNSIGNED_SHORT, 0);
+        }
+        gl.cullFace(gl.BACK);
+      }
+      // pass 2: the bodies themselves
+      gl.uniform1f(u.uInflate, 0.0);
+      gl.uniform1f(u.uDark, 1.0);
+      for (let i = 0; i < this.groups.length; i++) {
+        const G = this.groups[i];
+        if (!G.count) continue;
+        gl.bindTexture(gl.TEXTURE_2D, G.tex);
+        this._bindGeom(G.vb, G.ib);
+        gl.drawElements(gl.TRIANGLES, G.count * IDX_PER_BODY, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+
+    // effects: blended, depth-tested but not depth-writing
+    if (this.fx.n) {
+      const f = this.flat;
+      gl.useProgram(f.p);
+      gl.uniformMatrix4fv(f.u.uVP, false, this.mVP);
+      gl.uniform2f(f.u.uRes, this.vpW, this.vpH);
+      gl.uniform1f(f.u.uSnap, this.snap);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.disable(gl.CULL_FACE);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.fxVB);
+      gl.bufferData(gl.ARRAY_BUFFER, this.fx.data.subarray(0, this.fx.n * 7), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+      gl.disableVertexAttribArray(2);
+      gl.drawArrays(gl.TRIANGLES, 0, this.fx.n);
+      gl.enable(gl.CULL_FACE);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
     }
 
     // upscale + quantise
@@ -1725,7 +2082,7 @@ class Renderer {
     gl.enable(gl.DEPTH_TEST);
   }
 
-  // world -> canvas CSS pixels (for hit-testing limbs under a finger)
+  // world -> canvas CSS pixels
   project(x, y, z, out) {
     const m = this.mVP;
     const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
@@ -1738,37 +2095,49 @@ class Renderer {
     return true;
   }
 
-  // canvas CSS pixels -> a world ray from the eye
-  unproject(px, py, out) {
+  // canvas CSS pixels -> the point on the z=0 play plane under the cursor
+  screenToPlane(px, py, out) {
     const ndcX = px / this.canvas.clientWidth * 2 - 1;
     const ndcY = 1 - py / this.canvas.clientHeight * 2;
     const f = Math.tan(52 * Math.PI / 180 / 2);
     const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    // view-space direction, then rotate by the inverse view basis
     const vx = ndcX * f * aspect, vy = ndcY * f, vz = -1;
     const m = this.mView;
-    out[0] = m[0] * vx + m[1] * vy + m[2] * vz;
-    out[1] = m[4] * vx + m[5] * vy + m[6] * vz;
-    out[2] = m[8] * vx + m[9] * vy + m[10] * vz;
-    const l = Math.hypot(out[0], out[1], out[2]) || 1;
-    out[0] /= l; out[1] /= l; out[2] /= l;
+    const dx = m[0] * vx + m[1] * vy + m[2] * vz;
+    const dy = m[4] * vx + m[5] * vy + m[6] * vz;
+    const dz = m[8] * vx + m[9] * vy + m[10] * vz;
+    const e = this.eye;
+    const t = Math.abs(dz) < 1e-6 ? 0 : -e[2] / dz;
+    out[0] = e[0] + dx * t;
+    out[1] = e[1] + dy * t;
+    out[2] = 0;
     return out;
   }
 }
 
 /* =====================================================================
-   APP  —  screens, the landmark editor, and the playground loop
+   GAME  —  a Madness-style side-on ragdoll shooter
+   You are the photo. Everything else is a grunt.
    ===================================================================== */
 
-const SAVE_KEY = 'polyme.v1';
+const SAVE_KEY = 'polyme.v2';
+
+const WEAPONS = {
+  fists: { name: 'FISTS', melee: true, dmg: 26, rate: 0.30, reach: 1.75, auto: true, mag: 0, kick: 0, pellets: 0, spread: 0 },
+  pistol: { name: 'PISTOL', dmg: 34, rate: 0.24, mag: 13, spread: 0.020, auto: false, kick: 2.6, pellets: 1 },
+  smg: { name: 'SMG', dmg: 18, rate: 0.070, mag: 36, spread: 0.058, auto: true, kick: 1.6, pellets: 1 },
+  shotgun: { name: 'SHOTGUN', dmg: 15, rate: 0.70, mag: 7, spread: 0.135, auto: false, kick: 5.2, pellets: 7 }
+};
+const GUN_KINDS = ['pistol', 'smg', 'shotgun'];
+
+const GRAV_ROOT = -30, RUN = 5.4, ACCEL = 46, JUMP_V = 10.6;
+const MAX_PLAYER_BODIES = 4, MAX_GRUNT_BODIES = 22;
 
 const S = {
   img: null, lm: null, pal: null, props: null,
-  atlasPhoto: null, atlasFlat: null,
-  doll: null, parts: null, mesh: null, ren: null,
-  cam: { yaw: 0.0, pitch: 0.14, dist: 3.5, target: [0, 0.95, 0] },
-  running: false, last: 0, raf: 0,
-  texMode: 1, spin: 1, lastInteract: 0, seenHelp: false
+  atlasPhoto: null, atlasFlat: null, atlasGrunt: null,
+  ren: null, running: false, last: 0, raf: 0,
+  texMode: 1, gore: 1, seenHelp: false
 };
 
 const STOCK = [
@@ -1778,7 +2147,745 @@ const STOCK = [
   { skin: [186, 140, 106], hair: [90, 58, 140], shirt: [238, 210, 96], pants: [40, 44, 62], shoes: [56, 50, 46] }
 ];
 
-/* --------------------------- capture screen -------------------------- */
+/* ============================ fighters ============================== */
+class Fighter {
+  constructor(props, group, isPlayer) {
+    this.props = props;
+    this.group = group;
+    this.isPlayer = !!isPlayer;
+    this.doll = new Ragdoll(props);
+    this.parts = buildParts(props);
+    this.mesh = packParts(this.parts);
+    this.root = { x: 0, y: 0, vx: 0, vy: 0, onGround: false };
+    this.doll.root = this.root;
+    this.maxHp = isPlayer ? 130 : 44;
+    this.hp = this.maxHp;
+    this.alive = true;
+    this.facing = 1;
+    this.moveDir = 0;
+    this.aim = [1, 0];
+    this.weapon = 'fists';
+    this.ammo = 0;
+    this.cool = 0;
+    this.meleeT = 0;
+    this.hurtT = 0;
+    this.deadT = 0;
+    this.ai = { fire: 0, jump: 0, strafe: 0 };
+    this.invuln = 0;
+    this.slot = 0;
+  }
+
+  spawn(x, facing) {
+    this.root.x = x; this.root.y = 0; this.root.vx = 0; this.root.vy = 0;
+    this.facing = facing;
+    this.hp = this.maxHp; this.alive = true; this.deadT = 0; this.cool = 0;
+    this.counted = false;
+    this.invuln = this.isPlayer ? 1.4 : 0;
+    this.doll.placeAt(x, 0, facing);
+    this.doll.root = this.root;
+    this.doll.poseKTarget = 1;
+  }
+
+  get gun() { return WEAPONS[this.weapon]; }
+
+  // arm that holds the gun: the one nearest the camera, so it never hides
+  // behind the torso
+  primaryIsL() { return this.facing >= 0; }
+
+  chest(o) {
+    const p = this.doll.pos;
+    o[0] = p[J.chest * 3]; o[1] = p[J.chest * 3 + 1]; return o;
+  }
+
+  stepRoot(dt) {
+    const r = this.root, H = this.props.height, hw = 0.30;
+    const prevY = r.y;
+    r.vy += GRAV_ROOT * dt;
+
+    const want = this.moveDir * RUN;
+    const d = want - r.vx;
+    const step = ACCEL * dt;
+    r.vx += clamp(d, -step, step);
+    if (this.moveDir === 0) r.vx *= Math.pow(0.0016, dt);
+
+    r.x += r.vx * dt;
+    r.y += r.vy * dt;
+    r.x = clamp(r.x, -ARENA + 0.5, ARENA - 0.5);
+
+    r.onGround = false;
+    if (r.y <= 0) { r.y = 0; if (r.vy < 0) r.vy = 0; r.onGround = true; }
+
+    for (let i = 0; i < CRATES.length; i++) {
+      const B = CRATES[i], c = B.c, e = B.h;
+      const left = c[0] - e[0], right = c[0] + e[0];
+      const top = c[1] + e[1], bot = c[1] - e[1];
+      if (r.x + hw <= left || r.x - hw >= right) continue;
+      if (r.y >= top || r.y + H <= bot) continue;
+      // landing on the lid
+      if (r.vy <= 0 && prevY >= top - 0.06) { r.y = top; r.vy = 0; r.onGround = true; continue; }
+      // otherwise shove out the nearest side
+      const pushL = (r.x + hw) - left, pushR = right - (r.x - hw);
+      if (pushL < pushR) r.x = left - hw; else r.x = right + hw;
+      r.vx = 0;
+    }
+
+    // drive the ragdoll's animation from what the root is doing
+    const d2 = this.doll;
+    d2.yaw = this.facing >= 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+    if (!r.onGround) d2.anim = 'air';
+    else if (Math.abs(r.vx) > 0.45) {
+      d2.anim = 'walk';
+      d2.walkPhase += dt * (5.2 + Math.abs(r.vx) * 1.5) * (r.vx * this.facing >= 0 ? 1 : -1);
+    } else d2.anim = 'idle';
+    d2.primaryArm = this.primaryIsL() ? 'L' : 'R';
+    d2.aim = (this.meleeT > 0 || this.weapon !== 'fists') ? this.aim : null;
+  }
+
+  jump() {
+    if (this.root.onGround) { this.root.vy = JUMP_V; this.root.onGround = false; }
+  }
+
+  hurt(dmg, joint, dirX, dirY, force) {
+    if (!this.alive || this.invuln > 0) return false;
+    this.hp -= dmg;
+    this.hurtT = 0.12;
+    this.doll.impulse(joint, dirX * force, dirY * force + force * 0.22, 0, 1 / 60);
+    if (this.hp <= 0) { this.kill(dirX, dirY, force); return true; }
+    return false;
+  }
+
+  kill(dirX, dirY, force) {
+    this.alive = false;
+    this.doll.die();
+    this.doll.impulseAll(dirX * force * 0.35, force * 0.16, 0, 1 / 60, force * 0.25);
+  }
+}
+
+/* ============================== world =============================== */
+const W = {
+  player: null,
+  fighters: [],       // alive + corpses, both groups
+  pickups: [],
+  tracers: [],
+  parts: [],          // blood / debris particles
+  decals: [],
+  flashes: [],
+  kills: 0, lives: 3, wave: 1, waveKills: 0,
+  spawnT: 1.2, over: false, respawnT: 0,
+  cam: { x: 0, y: 1.4, dist: 5 },
+  shake: 0,
+  t: 0
+};
+
+function resetWorld() {
+  W.fighters.length = 0; W.pickups.length = 0; W.tracers.length = 0;
+  W.parts.length = 0; W.decals.length = 0; W.flashes.length = 0;
+  W.kills = 0; W.lives = 3; W.wave = 1; W.waveKills = 0;
+  W.spawnT = 1.0; W.over = false; W.respawnT = 0; W.shake = 0; W.t = 0;
+
+  W.player = new Fighter(S.props, 0, true);
+  W.player.spawn(0, 1);
+  W.player.weapon = 'pistol';
+  W.player.ammo = WEAPONS.pistol.mag;
+  W.fighters.push(W.player);
+
+  W.cam.x = 0; W.cam.y = 1.4;
+  $('#over').classList.remove('on');
+  syncHud();
+}
+
+function gruntProps() {
+  // grunts vary a little so a crowd doesn't look cloned
+  const p = Object.assign({}, S.props);
+  const k = 0.90 + Math.random() * 0.20;
+  ['height', 'headH', 'headW', 'headD', 'torsoLen', 'legLen', 'shoulderW', 'hipW',
+    'torsoD', 'upperArm', 'foreArm', 'armR', 'thigh', 'shin', 'legR',
+    'footLen', 'footH', 'handR'].forEach(key => { p[key] = S.props[key] * k; });
+  return p;
+}
+
+function spawnGrunt() {
+  const live = W.fighters.filter(f => f.group === 1);
+  if (live.length >= MAX_GRUNT_BODIES) {
+    // recycle the oldest corpse to make room
+    const i = W.fighters.findIndex(f => f.group === 1 && !f.alive);
+    if (i < 0) return;
+    W.fighters.splice(i, 1);
+  }
+  const g = new Fighter(gruntProps(), 1, false);
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const px = W.player.root.x;
+  let x = px + side * (9 + Math.random() * 5);
+  if (x < -ARENA + 1 || x > ARENA - 1) x = px - side * (9 + Math.random() * 5);
+  g.spawn(clamp(x, -ARENA + 1, ARENA - 1), x > px ? -1 : 1);
+  g.maxHp = g.hp = 40 + W.wave * 5;
+
+  // grunts get better toys as the waves climb
+  const roll = Math.random() + W.wave * 0.07;
+  if (roll < 0.42) { g.weapon = 'fists'; g.ammo = 0; }
+  else if (roll < 0.86) { g.weapon = 'pistol'; g.ammo = 99; }
+  else if (roll < 1.20) { g.weapon = 'smg'; g.ammo = 99; }
+  else { g.weapon = 'shotgun'; g.ammo = 99; }
+  W.fighters.push(g);
+}
+
+/* --------------------------- ray casting ---------------------------- */
+// 2D ray against joint spheres and crate boxes. Cover actually works.
+function rayHit(ox, oy, dx, dy, maxD, ignore) {
+  let bestT = maxD, hitF = null, hitJ = -1;
+
+  for (let i = 0; i < W.fighters.length; i++) {
+    const f = W.fighters[i];
+    if (f === ignore || !f.alive) continue;
+    const p = f.doll.pos;
+    for (let j = 0; j < NJ; j++) {
+      const cx = p[j * 3] - ox, cy = p[j * 3 + 1] - oy;
+      const proj = cx * dx + cy * dy;
+      if (proj < 0 || proj > bestT) continue;
+      const r = RADIUS[j] * 1.45;
+      const perp2 = cx * cx + cy * cy - proj * proj;
+      if (perp2 > r * r) continue;
+      const t = proj - Math.sqrt(Math.max(0, r * r - perp2));
+      if (t >= 0 && t < bestT) { bestT = t; hitF = f; hitJ = j; }
+    }
+  }
+
+  for (let i = 0; i < CRATES.length; i++) {
+    const B = CRATES[i], c = B.c, e = B.h;
+    let t0 = 0, t1 = bestT, ok = true;
+    for (let a = 0; a < 2; a++) {
+      const o = a ? oy : ox, d = a ? dy : dx;
+      const lo = (a ? c[1] - e[1] : c[0] - e[0]), hi = (a ? c[1] + e[1] : c[0] + e[0]);
+      if (Math.abs(d) < 1e-6) { if (o < lo || o > hi) { ok = false; break; } continue; }
+      let ta = (lo - o) / d, tb = (hi - o) / d;
+      if (ta > tb) { const s = ta; ta = tb; tb = s; }
+      if (ta > t0) t0 = ta;
+      if (tb < t1) t1 = tb;
+      if (t0 > t1) { ok = false; break; }
+    }
+    if (ok && t0 >= 0 && t0 < bestT) { bestT = t0; hitF = null; hitJ = -1; }
+  }
+
+  if (oy + dy * bestT < 0 && dy < 0) {          // floor
+    const tf = -oy / dy;
+    if (tf >= 0 && tf < bestT) { bestT = tf; hitF = null; hitJ = -1; }
+  }
+  return { t: bestT, f: hitF, j: hitJ };
+}
+
+/* ------------------------------ combat ------------------------------ */
+function fire(f) {
+  const g = f.gun;
+  if (g.melee) { melee(f); return; }
+  if (f.ammo <= 0) { f.weapon = 'fists'; f.ammo = 0; if (f.isPlayer) syncHud(); return; }
+
+  // Grunts use the same guns you do, so they need heavy handicaps or two of
+  // them delete you in a couple of seconds.
+  f.cool = g.rate * (f.isPlayer ? 1 : 2.0);
+  f.ammo--;
+  const m = muzzleOf(f.doll, f.props, f.primaryIsL());
+  const spread = g.spread * (f.isPlayer ? 1 : 2.6);
+  const dmgScale = f.isPlayer ? 1 : 0.30;
+  const pellets = g.pellets || 1;
+
+  for (let i = 0; i < pellets; i++) {
+    const a = Math.atan2(f.aim[1], f.aim[0]) + (Math.random() - 0.5) * spread * 2;
+    const dx = Math.cos(a), dy = Math.sin(a);
+    const h = rayHit(m[0], m[1], dx, dy, 34, f);
+    const ex = m[0] + dx * h.t, ey = m[1] + dy * h.t;
+    W.tracers.push({ ax: m[0], ay: m[1], bx: ex, by: ey, t: 0.055 });
+    if (h.f) {
+      const died = h.f.hurt(g.dmg * dmgScale * HIT_MULT[h.j], h.j, dx, dy, g.kick);
+      bloodBurst(ex, ey, dx, dy, died ? 16 : 6);
+      if (died) onKill(h.f, f);
+    } else {
+      sparks(ex, ey, -dx, -dy);
+    }
+  }
+  W.flashes.push({ x: m[0] + f.aim[0] * 0.12, y: m[1] + f.aim[1] * 0.12, t: 0.05 });
+  // recoil, so full-auto climbs
+  f.doll.impulse(f.primaryIsL() ? J.haL : J.haR, -f.aim[0] * g.kick * 0.5, -f.aim[1] * g.kick * 0.5, 0, 1 / 60);
+  if (f.isPlayer) { W.shake = Math.min(0.5, W.shake + g.kick * 0.018); syncHud(); }
+}
+
+function melee(f) {
+  f.cool = WEAPONS.fists.rate;
+  f.meleeT = 0.18;
+  const m = f.chest([0, 0]);
+  const reach = WEAPONS.fists.reach;
+  for (let i = 0; i < W.fighters.length; i++) {
+    const o = W.fighters[i];
+    if (o === f || !o.alive) continue;
+    const c = o.chest([0, 0]);
+    const dx = c[0] - m[0], dy = c[1] - m[1];
+    if (Math.hypot(dx, dy) > reach) continue;
+    if (dx * f.aim[0] + dy * f.aim[1] < 0) continue;      // must be in front
+    const died = o.hurt(WEAPONS.fists.dmg * (f.isPlayer ? 1 : 0.45), J.chest, f.aim[0], f.aim[1], 7.5);
+    bloodBurst(c[0], c[1], f.aim[0], f.aim[1], died ? 14 : 3);
+    if (died) onKill(o, f);
+    if (f.isPlayer) W.shake = Math.min(0.5, W.shake + 0.12);
+    break;
+  }
+}
+
+function onKill(victim, killer) {
+  if (victim.counted) return;
+  victim.counted = true;
+  victim.deadT = 0;
+  if (victim.isPlayer) {
+    W.lives--;
+    W.respawnT = 1.9;
+    W.shake = 0.55;
+  } else if (killer && killer.isPlayer) {
+    W.kills++; W.waveKills++;
+    if (W.waveKills >= 6 + W.wave) { W.wave++; W.waveKills = 0; flashWave(); }
+  }
+  // drop the gun where they fell
+  if (victim.weapon !== 'fists') {
+    const c = victim.chest([0, 0]);
+    W.pickups.push({ x: c[0], y: Math.max(0.2, c[1]), vy: 1.5, kind: victim.weapon, t: 0 });
+  }
+  syncHud();
+}
+
+/* ------------------------------ effects ----------------------------- */
+function bloodBurst(x, y, dx, dy, n) {
+  if (!S.gore) return;
+  for (let i = 0; i < n; i++) {
+    const a = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.9;
+    const sp = 1.4 + Math.random() * 5.5;
+    W.parts.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + 1.6,
+      life: 0.5 + Math.random() * 0.8, max: 1.3,
+      r: 0.024 + Math.random() * 0.045, blood: true
+    });
+  }
+}
+function sparks(x, y, dx, dy) {
+  for (let i = 0; i < 4; i++) {
+    const a = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.6;
+    const sp = 1.5 + Math.random() * 3;
+    W.parts.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + 1,
+      life: 0.12 + Math.random() * 0.14, max: 0.26,
+      r: 0.02 + Math.random() * 0.02, blood: false
+    });
+  }
+}
+
+function stepEffects(dt) {
+  for (let i = W.tracers.length - 1; i >= 0; i--) if ((W.tracers[i].t -= dt) <= 0) W.tracers.splice(i, 1);
+  for (let i = W.flashes.length - 1; i >= 0; i--) if ((W.flashes[i].t -= dt) <= 0) W.flashes.splice(i, 1);
+
+  for (let i = W.parts.length - 1; i >= 0; i--) {
+    const p = W.parts[i];
+    p.vy += GRAV_ROOT * 0.55 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.y <= 0.02) {
+      if (p.blood && S.gore) addDecal(p.x, p.r);
+      W.parts.splice(i, 1); continue;
+    }
+    if (p.life <= 0) { W.parts.splice(i, 1); }
+  }
+}
+
+function addDecal(x, r) {
+  W.decals.push({
+    x: x + (Math.random() - 0.5) * 0.16,
+    z: -1.4 + Math.random() * 3.0,
+    rx: r * (1.3 + Math.random() * 2.0), rz: r * (1.0 + Math.random() * 1.7),
+    a: 0.55 + Math.random() * 0.35
+  });
+  if (W.decals.length > 260) W.decals.splice(0, W.decals.length - 260);
+}
+
+/* ------------------------------- AI --------------------------------- */
+function stepAI(f, dt) {
+  const p = W.player;
+  const dx = p.root.x - f.root.x;
+  const dy = (p.root.y + p.props.height * 0.62) - (f.root.y + f.props.height * 0.62);
+  // Full distance, not just horizontal: a melee grunt stood on a crate is
+  // within |dx| of you but nowhere near able to reach, and would otherwise
+  // perch there forever instead of stepping off.
+  const dist = Math.hypot(dx, dy);
+  f.facing = dx >= 0 ? 1 : -1;
+
+  const l = dist || 1;
+  f.aim[0] = dx / l; f.aim[1] = dy / l;
+
+  const melee = f.weapon === 'fists';
+  const want = melee ? 0.75 : 4.8 + (f.weapon === 'shotgun' ? -2.0 : 0);
+
+  if (!p.alive) { f.moveDir = 0; return; }
+
+  if (melee) {
+    // no dead zone for melee: the approach threshold has to overlap the swing
+    // threshold or a grunt can settle in the gap between them and just stand
+    f.moveDir = dist > WEAPONS.fists.reach * 0.80 ? Math.sign(dx) : 0;
+  } else if (dist > want + 1.1) f.moveDir = Math.sign(dx);
+  else if (dist < want - 1.2) f.moveDir = -Math.sign(dx);
+  else f.moveDir = 0;
+
+  // hop when something is in the way
+  f.ai.jump -= dt;
+  if (f.moveDir !== 0 && Math.abs(f.root.vx) < 0.7 && f.root.onGround && f.ai.jump <= 0) {
+    f.jump(); f.ai.jump = 0.6;
+  }
+
+  f.cool -= dt;
+  const inRange = melee ? dist < WEAPONS.fists.reach * 0.92 : dist < 15;
+  if (!inRange) { f.ai.fire = 0; return; }
+
+  if (!melee) {
+    // don't shoot through your own friends or a crate
+    const m = muzzleOf(f.doll, f.props, f.primaryIsL());
+    const h = rayHit(m[0], m[1], f.aim[0], f.aim[1], 16, f);
+    if (h.f !== p) { f.ai.fire = 0; return; }
+  }
+  f.ai.fire += dt;
+  const react = melee ? 0.22 : Math.max(0.30, 0.78 - W.wave * 0.035);
+  if (f.ai.fire > react && f.cool <= 0) { fire(f); f.ai.fire = 0; }
+}
+
+/* ============================ main loop ============================= */
+function tick(now) {
+  if (!S.running) return;
+  S.raf = requestAnimationFrame(tick);
+  let dt = (now - S.last) / 1000;
+  S.last = now;
+  if (!(dt > 0)) dt = 1 / 60;
+  dt = Math.min(dt, 1 / 30);
+  W.t += dt;
+
+  const p = W.player;
+
+  /* ---- player intent ---- */
+  if (p.alive && !W.over) {
+    p.moveDir = IN.moveX;
+    if (IN.jump) { p.jump(); IN.jump = false; }
+    aimPlayer();
+    p.cool -= dt;
+    if (IN.fire && p.cool <= 0) {
+      const g = p.gun;
+      if (g.auto || !IN.fired) { fire(p); IN.fired = true; }
+    }
+    if (!IN.fire) IN.fired = false;
+    tryPickup(p);
+  } else {
+    p.moveDir = 0;
+  }
+
+  /* ---- everyone else ---- */
+  for (let i = 0; i < W.fighters.length; i++) {
+    const f = W.fighters[i];
+    if (f.alive) {
+      if (!f.isPlayer) stepAI(f, dt);
+      f.meleeT = Math.max(0, f.meleeT - dt);
+      f.hurtT = Math.max(0, f.hurtT - dt);
+      f.invuln = Math.max(0, f.invuln - dt);
+      f.stepRoot(dt);
+    } else {
+      f.deadT += dt;
+    }
+    f.doll.step(dt);
+  }
+
+  /* ---- corpses fade out of the roster once the pile gets deep ---- */
+  const grunts = W.fighters.filter(f => f.group === 1);
+  if (grunts.length > MAX_GRUNT_BODIES) {
+    for (let n = grunts.length - MAX_GRUNT_BODIES; n > 0; n--) {
+      const i = W.fighters.findIndex(f => f.group === 1 && !f.alive);
+      if (i < 0) break;
+      W.fighters.splice(i, 1);
+    }
+  }
+
+  /* ---- spawning ---- */
+  if (!W.over && p.alive) {
+    W.spawnT -= dt;
+    const aliveGrunts = W.fighters.filter(f => f.group === 1 && f.alive).length;
+    const cap = Math.min(3 + W.wave, 9);
+    if (W.spawnT <= 0 && aliveGrunts < cap) {
+      spawnGrunt();
+      W.spawnT = Math.max(0.55, 2.6 - W.wave * 0.16);
+    }
+  }
+
+  /* ---- respawn / game over ---- */
+  if (!p.alive && !W.over) {
+    W.respawnT -= dt;
+    if (W.respawnT <= 0) {
+      if (W.lives > 0) {
+        const corpse = new Fighter(S.props, 0, false);   // leave the body behind
+        corpse.doll = p.doll; corpse.parts = p.parts; corpse.mesh = p.mesh;
+        corpse.alive = false; corpse.weapon = 'fists';
+        W.fighters.push(corpse);
+        const keep = W.fighters.filter(f => f.group === 0);
+        while (keep.length > MAX_PLAYER_BODIES) {
+          const i = W.fighters.findIndex(f => f.group === 0 && !f.alive && f !== corpse);
+          if (i < 0) break;
+          W.fighters.splice(i, 1); keep.splice(0, 1);
+        }
+        const np = new Fighter(S.props, 0, true);
+        np.spawn(clamp(p.root.x, -ARENA + 2, ARENA - 2), 1);
+        np.weapon = 'pistol'; np.ammo = WEAPONS.pistol.mag;
+        const idx = W.fighters.indexOf(p);
+        if (idx >= 0) W.fighters.splice(idx, 1);
+        W.fighters.push(np);
+        W.player = np;
+        syncHud();
+      } else {
+        W.over = true;
+        $('#overTitle').textContent = 'GAME OVER';
+        $('#overStat').innerHTML = 'Kills: <b>' + W.kills + '</b> &nbsp; Wave: <b>' + W.wave + '</b>';
+        $('#over').classList.add('on');
+      }
+    }
+  }
+
+  /* ---- pickups ---- */
+  for (let i = W.pickups.length - 1; i >= 0; i--) {
+    const k = W.pickups[i];
+    k.t += dt;
+    k.vy += GRAV_ROOT * 0.5 * dt;
+    k.y += k.vy * dt;
+    if (k.y <= 0.16) { k.y = 0.16; k.vy = 0; }
+    if (k.t > 26) W.pickups.splice(i, 1);
+  }
+
+  stepEffects(dt);
+
+  /* ---- camera ---- */
+  const camK = Math.min(1, dt * 6);
+  const lead = clamp(p.aim[0] * 1.3 + p.root.vx * 0.16, -2.2, 2.2);
+  const tx = clamp(p.root.x + lead, -ARENA + W.cam.dist * 0.30, ARENA - W.cam.dist * 0.30);
+  const ty = clamp(p.root.y + p.props.height * 0.55, 1.05, 5.0);
+  W.cam.x += (tx - W.cam.x) * camK;
+  W.cam.y += (ty - W.cam.y) * camK;
+  W.shake = Math.max(0, W.shake - dt * 2.2);
+
+  buildFrame(dt);
+  syncHud();
+}
+
+/* --------------------------- frame assembly ------------------------- */
+function buildFrame(dt) {
+  const ren = S.ren, fx = ren.fx;
+  fx.reset();
+
+  // bodies -> per-texture batches
+  const counts = [0, 0];
+  for (let i = 0; i < W.fighters.length; i++) {
+    const f = W.fighters[i];
+    const G = ren.groups[f.group];
+    if (counts[f.group] >= G.maxBodies) continue;
+    const slot = counts[f.group]++;
+    const showGun = f.weapon === 'fists' ? -1 : (f.primaryIsL() ? GUN_L : GUN_R);
+    poseMesh(f.mesh, f.parts, f.doll, G.verts, slot * VERTS_PER_BODY * 8, showGun);
+  }
+  ren.uploadGroup(0, counts[0]);
+  ren.uploadGroup(1, counts[1]);
+
+  // blood on the floor
+  const dcol = [0.30, 0.025, 0.03, 1];
+  for (let i = 0; i < W.decals.length; i++) {
+    const d = W.decals[i];
+    dcol[3] = d.a;
+    fx.decal(d.x, d.z, d.rx, d.rz, dcol);
+  }
+
+  // tracers + muzzle flashes
+  for (let i = 0; i < W.tracers.length; i++) {
+    const t = W.tracers[i];
+    const a = clamp(t.t / 0.055, 0, 1);
+    fx.seg(t.ax, t.ay, t.bx, t.by, 0.05, 0.016, [1, 0.94, 0.66, a * 0.95]);
+  }
+  for (let i = 0; i < W.flashes.length; i++) {
+    const m = W.flashes[i];
+    const a = clamp(m.t / 0.05, 0, 1);
+    fx.spot(m.x, m.y, 0.08, 0.20 * a + 0.06, [1, 0.88, 0.45, a * 0.9]);
+  }
+
+  // particles
+  for (let i = 0; i < W.parts.length; i++) {
+    const p = W.parts[i];
+    const a = clamp(p.life / p.max, 0, 1);
+    const col = p.blood ? [0.62, 0.05, 0.06, 0.4 + a * 0.6] : [1, 0.85, 0.5, a];
+    fx.spot(p.x, p.y, 0.06, p.r, col);
+  }
+
+  // weapon pickups: a dark slab with a bright tick so they read on the floor
+  for (let i = 0; i < W.pickups.length; i++) {
+    const k = W.pickups[i];
+    const bob = Math.sin(W.t * 4 + i) * 0.03;
+    fx.spot(k.x, k.y + bob, 0.10, 0.17, [0.14, 0.15, 0.18, 0.95]);
+    fx.spot(k.x, k.y + bob + 0.055, 0.11, 0.055, [0.85, 0.88, 0.95, 0.95]);
+    const fade = k.t > 20 ? (Math.sin(k.t * 12) * 0.5 + 0.5) : 1;
+    fx.spot(k.x, k.y + bob - 0.20, 0.09, 0.05, [1, 0.82, 0.30, 0.55 * fade]);
+  }
+
+  // low-health vignette is DOM; in-world we only shake
+  const sh = W.shake;
+  const cam = {
+    x: W.cam.x + (Math.random() - 0.5) * sh * 0.5,
+    y: W.cam.y + (Math.random() - 0.5) * sh * 0.4,
+    dist: W.cam.dist
+  };
+  ren.fogNear = cam.dist + 16; ren.fogFar = cam.dist + 40;
+  ren.setCamera(cam);
+  ren.render();
+}
+
+/* ------------------------------ input ------------------------------- */
+const IN = { moveX: 0, jump: false, fire: false, fired: false, aimPx: null, keys: {} };
+const _pp = [0, 0, 0], _pl = [0, 0, 0];
+
+function aimPlayer() {
+  const p = W.player;
+  if (!IN.aimPx) {
+    p.aim[0] = p.facing; p.aim[1] = 0;
+    return;
+  }
+  // aim from the chest toward wherever the thumb/cursor is
+  S.ren.screenToPlane(IN.aimPx[0], IN.aimPx[1], _pl);
+  const c = p.chest([0, 0]);
+  let dx = _pl[0] - c[0], dy = _pl[1] - c[1];
+  const l = Math.hypot(dx, dy);
+  if (l < 1e-3) { dx = p.facing; dy = 0; }
+  else { dx /= l; dy /= l; }
+  p.aim[0] = dx; p.aim[1] = dy;
+  if (Math.abs(dx) > 0.15) p.facing = dx >= 0 ? 1 : -1;
+}
+
+function tryPickup(p) {
+  for (let i = W.pickups.length - 1; i >= 0; i--) {
+    const k = W.pickups[i];
+    if (Math.abs(k.x - p.root.x) < 0.85 && Math.abs(k.y - (p.root.y + 0.5)) < 1.1) {
+      p.weapon = k.kind;
+      p.ammo = WEAPONS[k.kind].mag;
+      W.pickups.splice(i, 1);
+      syncHud();
+      return;
+    }
+  }
+}
+
+/* touch: left thumb is a floating stick, right thumb aims and fires */
+const stickEl = $('#stick'), nubEl = $('#stickNub'), retEl = $('#reticle');
+let moveId = -1, aimId = -1, moveOrigin = [0, 0];
+
+function bindTouch() {
+  const zL = $('#tzL'), zR = $('#tzR');
+
+  zL.addEventListener('pointerdown', (e) => {
+    if (moveId >= 0) return;
+    moveId = e.pointerId; zL.setPointerCapture(e.pointerId);
+    moveOrigin = [e.clientX, e.clientY];
+    stickEl.style.left = e.clientX + 'px'; stickEl.style.top = e.clientY + 'px';
+    stickEl.classList.add('on');
+    e.preventDefault();
+  });
+  zL.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== moveId) return;
+    const dx = e.clientX - moveOrigin[0], dy = e.clientY - moveOrigin[1];
+    const R = 46;
+    const nx = clamp(dx / R, -1, 1), ny = clamp(dy / R, -1, 1);
+    IN.moveX = Math.abs(nx) < 0.22 ? 0 : nx;
+    if (ny < -0.55) IN.jump = true;
+    nubEl.style.left = (50 + clamp(dx, -R, R) / R * 40) + '%';
+    nubEl.style.top = (50 + clamp(dy, -R, R) / R * 40) + '%';
+    e.preventDefault();
+  });
+  const endMove = (e) => {
+    if (e.pointerId !== moveId) return;
+    moveId = -1; IN.moveX = 0;
+    stickEl.classList.remove('on');
+    nubEl.style.left = '50%'; nubEl.style.top = '50%';
+  };
+  zL.addEventListener('pointerup', endMove);
+  zL.addEventListener('pointercancel', endMove);
+
+  zR.addEventListener('pointerdown', (e) => {
+    if (aimId >= 0) return;
+    aimId = e.pointerId; zR.setPointerCapture(e.pointerId);
+    setAim(e.clientX, e.clientY);
+    IN.fire = true;
+    e.preventDefault();
+  });
+  zR.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== aimId) return;
+    setAim(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  const endAim = (e) => {
+    if (e.pointerId !== aimId) return;
+    aimId = -1; IN.fire = false; retEl.classList.remove('on');
+  };
+  zR.addEventListener('pointerup', endAim);
+  zR.addEventListener('pointercancel', endAim);
+}
+
+function setAim(cx, cy) {
+  const r = $('#gl').getBoundingClientRect();
+  IN.aimPx = [cx - r.left, cy - r.top];
+  retEl.style.left = cx + 'px'; retEl.style.top = cy + 'px';
+  retEl.classList.add('on');
+}
+
+/* keyboard + mouse */
+function bindDesktop() {
+  const glc = $('#gl');
+  glc.addEventListener('mousemove', (e) => {
+    const r = glc.getBoundingClientRect();
+    IN.aimPx = [e.clientX - r.left, e.clientY - r.top];
+    setAim(e.clientX, e.clientY);
+  });
+  glc.addEventListener('mousedown', (e) => { if (e.button === 0) { IN.fire = true; e.preventDefault(); } });
+  window.addEventListener('mouseup', () => { IN.fire = false; });
+  glc.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const upd = () => {
+    const k = IN.keys;
+    IN.moveX = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
+  };
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    IN.keys[k] = true;
+    if (k === 'w' || k === ' ' || k === 'arrowup') { IN.jump = true; e.preventDefault(); }
+    if (k === 'a' || k === 'd' || k === 'arrowleft' || k === 'arrowright') e.preventDefault();
+    upd();
+  });
+  window.addEventListener('keyup', (e) => { IN.keys[e.key.toLowerCase()] = false; upd(); });
+}
+
+/* ------------------------------- HUD -------------------------------- */
+let waveTimer = 0;
+function flashWave() {
+  const el = $('#wave');
+  el.style.color = '#ffcf5a';
+  el.style.fontSize = '17px';
+  clearTimeout(waveTimer);
+  waveTimer = setTimeout(() => { el.style.color = ''; el.style.fontSize = ''; }, 1100);
+}
+
+function syncHud() {
+  const p = W.player;
+  $('#hudKills').textContent = W.kills;
+  $('#hudLives').textContent = Math.max(0, W.lives);
+  const hp = clamp(p.hp / p.maxHp, 0, 1);
+  $('#hpFill').style.width = (hp * 100) + '%';
+  $('#hpFill').style.background = hp > 0.55 ? '#3aa655' : hp > 0.25 ? '#d0a12a' : '#c22';
+  $('#gunName').textContent = p.gun.name;
+  const am = $('#gunAmmo');
+  am.textContent = p.gun.melee ? '∞' : p.ammo;
+  am.classList.toggle('dry', !p.gun.melee && p.ammo <= 3);
+  $('#wave').textContent = 'WAVE ' + W.wave;
+  // only bite below ~45% health, and never wash the picture out
+  $('#dmgFlash').style.opacity = p.alive ? String(clamp((0.45 - hp) * 1.5, 0, 0.5)) : '0.62';
+}
+
+/* ========================= screens & startup ======================== */
 $('#btnCamera').onclick = () => $('#fileCamera').click();
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileCamera').onchange = (e) => onPhoto(e.target.files && e.target.files[0]);
@@ -1807,7 +2914,7 @@ async function onPhoto(file) {
   $('#fileCamera').value = ''; $('#fileUpload').value = '';
 }
 
-/* --------------------------- landmark editor ------------------------- */
+/* --------------------------- landmark editor ------------------------ */
 const AC = $('#alignCanvas');
 let acScale = 1, acDrag = null;
 
@@ -1838,7 +2945,6 @@ function alignDraw() {
   const P = (k) => [S.lm[k].x * acScale, S.lm[k].y * acScale];
   const line = (a, b) => { const p = P(a), q = P(b); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); };
 
-  // stick figure
   ctx.strokeStyle = 'rgba(98,230,224,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
   ctx.beginPath();
   line('headTop', 'chin'); line('shL', 'shR'); line('hipL', 'hipR');
@@ -1849,7 +2955,6 @@ function alignDraw() {
   ctx.moveTo(c3[0], c3[1]); ctx.lineTo(c4[0], c4[1]);
   ctx.stroke();
 
-  // handles
   const rad = Math.max(11, Math.min(17, w * 0.030));
   LM_KEYS.forEach(k => {
     const p = P(k);
@@ -1879,20 +2984,14 @@ AC.addEventListener('pointerdown', (e) => {
     const d = Math.hypot(S.lm[k].x * acScale - x, S.lm[k].y * acScale - y);
     if (d < bd) { bd = d; best = k; }
   });
-  if (best) {
-    acDrag = best;
-    AC.setPointerCapture(e.pointerId);
-    e.preventDefault();
-    alignDraw();
-  }
+  if (best) { acDrag = best; AC.setPointerCapture(e.pointerId); e.preventDefault(); alignDraw(); }
 });
 AC.addEventListener('pointermove', (e) => {
   if (!acDrag) return;
   const [x, y] = acPos(e);
   S.lm[acDrag].x = clamp(x / acScale, 0, S.img.width);
   S.lm[acDrag].y = clamp(y / acScale, 0, S.img.height);
-  e.preventDefault();
-  alignDraw();
+  e.preventDefault(); alignDraw();
 });
 const acEnd = () => { if (acDrag) { acDrag = null; alignDraw(); } };
 AC.addEventListener('pointerup', acEnd);
@@ -1902,8 +3001,8 @@ $('#alignBack').onclick = () => showScreen('capScreen');
 $('#alignReset').onclick = () => { S.lm = defaultLandmarks(S.img.width, S.img.height); alignDraw(); };
 $('#alignAuto').onclick = () => {
   const g = autoDetectLandmarks(S.img);
-  if (g) { S.lm = g; alignDraw(); toast("Guessed from the photo's outline."); }
-  else toast('Auto-detect needs a plainer background —<br>drag the dots instead.');
+  if (g) { S.lm = g; alignDraw(); }
+  else alert('Auto-detect needs a plainer background — drag the dots instead.');
 };
 $('#alignFlip').onclick = () => {
   S.img = flipCanvasX(S.img);
@@ -1915,59 +3014,65 @@ $('#alignFlip').onclick = () => {
 $('#alignGo').onclick = async () => {
   showBusy('Baking a 128×128 texture…');
   await nextFrame();
-  const pal = samplePalette(S.img, S.lm);
-  buildCharacter(proportionsFromLandmarks(S.lm), pal, S.img);
+  buildCharacter(proportionsFromLandmarks(S.lm), samplePalette(S.img, S.lm), S.img);
 };
 
-/* ---------------------------- build + play --------------------------- */
+/* --------------------------- build & start -------------------------- */
 function buildCharacter(props, pal, img) {
   try {
     S.props = props; S.pal = pal;
     S.atlasFlat = bakeAtlasFlat(pal);
     S.atlasPhoto = img ? bakeAtlasFromPhoto(img, S.lm, pal) : S.atlasFlat;
+    S.atlasGrunt = bakeAtlasGrunt(1);
     if (!img) { S.texMode = 0; syncSeg('#segTex', 'tex', '0'); }
 
-    S.doll = new Ragdoll(props);
-    S.parts = buildParts(props);
-    S.mesh = packParts(S.parts);
-
-    if (!S.ren) S.ren = new Renderer($('#gl'));
-    S.ren.setCharMesh(S.mesh);
+    if (!S.ren) {
+      S.ren = new Renderer($('#gl'));
+      S.ren.initBodyGroups([MAX_PLAYER_BODIES, MAX_GRUNT_BODIES]);
+      const proto = packParts(buildParts(props));
+      S.ren.setGroupIndices(0, proto.idx);
+      S.ren.setGroupIndices(1, proto.idx);
+      bindTouch(); bindDesktop();
+    }
     applyTexture();
+    S.ren.setTexture(1, S.atlasGrunt);
     saveCharacter();
 
     showScreen('playScreen');
     hideBusy();
-    resetCamera();
     S.ren.resize();
+    setCamDist();
+    resetWorld();
     startLoop();
-    if (!S.seenHelp) {
-      S.seenHelp = true;
-      toast('Drag <span class="k">the character</span> to grab a limb.<br>' +
-        'Drag <span class="k">the background</span> to orbit.<br>Pinch to zoom.', 4200);
-    }
+    showHint();
   } catch (err) {
     hideBusy();
-    alert('Could not start the 3D view:\n' + (err && err.message ? err.message : err));
+    alert('Could not start the game:\n' + (err && err.message ? err.message : err));
     showScreen('capScreen');
   }
 }
 
-function applyTexture() {
-  S.ren.setCharTexture(S.texMode ? S.atlasPhoto : S.atlasFlat);
+function applyTexture() { S.ren.setTexture(0, S.texMode ? S.atlasPhoto : S.atlasFlat); }
+
+function showHint() {
+  if (S.seenHelp) return;
+  S.seenHelp = true;
+  const c = $('#gl');
+  const portrait = c.clientWidth < c.clientHeight;
+  toast('<span class="k">Left thumb</span> move &amp; jump<br>' +
+    '<span class="k">Right thumb</span> aim &amp; fire<br>' +
+    'Walk over a dropped gun to take it' +
+    (portrait ? '<br><br><span class="k">Turn your phone sideways</span><br>for a much wider view' : ''),
+    portrait ? 6000 : 4200);
 }
 
-// Vertical FOV is fixed, so landscape needs to back off — the HUD eats more of
-// the frame and the character is taller than the visible band.
-function fitDist() {
+// A side-on shooter wants width. Portrait simply has less of it, so the
+// camera pulls back there — you trade character size for seeing what is
+// running at you, which is the trade that keeps the game playable.
+function setCamDist() {
   const c = $('#gl');
   const a = c.clientWidth / Math.max(1, c.clientHeight);
-  return a >= 1 ? 3.8 : 3.5;
-}
-function resetCamera() {
-  S.cam.yaw = 0.0; S.cam.pitch = 0.20; S.cam.dist = fitDist();
-  S.cam.target = [0, 0.85, 0];
-  S.userZoomed = false;
+  W.cam.dist = a >= 1.25 ? 5.0 : a >= 0.85 ? 7.0 : 10.5;
 }
 
 function startLoop() {
@@ -1977,200 +3082,11 @@ function startLoop() {
 }
 function stopLoop() { S.running = false; cancelAnimationFrame(S.raf); }
 
-function tick(now) {
-  if (!S.running) return;
-  S.raf = requestAnimationFrame(tick);
-  let dt = (now - S.last) / 1000;
-  S.last = now;
-  if (!(dt > 0)) dt = 1 / 60;
-  dt = Math.min(dt, 1 / 30);
-
-  S.doll.step(dt);
-  poseMesh(S.mesh, S.parts, S.doll);
-  S.ren.updateCharMesh(S.mesh);
-
-  // camera follows the torso
-  const p = S.doll.pos;
-  const tx = (p[J.pelvis * 3] + p[J.chest * 3]) * 0.5;
-  const ty = (p[J.pelvis * 3 + 1] + p[J.chest * 3 + 1]) * 0.5;
-  const tz = (p[J.pelvis * 3 + 2] + p[J.chest * 3 + 2]) * 0.5;
-  const k = Math.min(1, dt * 3.5);
-  S.cam.target[0] += (tx - S.cam.target[0]) * k;
-  S.cam.target[1] += (Math.max(ty, 0.42) - S.cam.target[1]) * k;
-  S.cam.target[2] += (tz - S.cam.target[2]) * k;
-
-  if (S.spin && now - S.lastInteract > 2600 && S.doll.grab < 0) S.cam.yaw += dt * 0.16;
-
-  S.ren.setCamera(S.cam);
-  S.ren.render();
-}
-
-/* ------------------------------- input ------------------------------- */
-const glc = $('#gl');
-const ptrs = new Map();
-let orbiting = false, pinchStart = 0, pinchDist = 0;
-let grabVel = [0, 0, 0], grabLast = null, grabLastT = 0;
-const _ray = [0, 0, 0], _prj = [0, 0, 0];
-
-function localPt(e) {
-  const r = glc.getBoundingClientRect();
-  return { x: e.clientX - r.left, y: e.clientY - r.top };
-}
-
-function pickJoint(x, y) {
-  let best = -1, bd = 58;
-  for (let j = 0; j < NJ; j++) {
-    if (!S.ren.project(S.doll.pos[j * 3], S.doll.pos[j * 3 + 1], S.doll.pos[j * 3 + 2], _prj)) continue;
-    const d = Math.hypot(_prj[0] - x, _prj[1] - y);
-    if (d < bd) { bd = d; best = j; }
-  }
-  return best;
-}
-
-// point on the camera-facing plane through `depthPoint`
-function dragPoint(x, y, depth) {
-  S.ren.unproject(x, y, _ray);
-  const e = S.ren.eye, m = S.ren.mView;
-  const fx = -m[2], fy = -m[6], fz = -m[10];        // camera forward in world space
-  const denom = _ray[0] * fx + _ray[1] * fy + _ray[2] * fz;
-  const t = denom > 1e-4 ? depth / denom : depth;
-  return [e[0] + _ray[0] * t, e[1] + _ray[1] * t, e[2] + _ray[2] * t];
-}
-
-glc.addEventListener('pointerdown', (e) => {
-  if (!S.doll) return;
-  glc.setPointerCapture(e.pointerId);
-  const p = localPt(e);
-  ptrs.set(e.pointerId, p);
-  S.lastInteract = performance.now();
-
-  if (ptrs.size === 2) {
-    const a = Array.from(ptrs.values());
-    pinchStart = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
-    pinchDist = S.cam.dist;
-    S.doll.grab = -1; orbiting = false;
-    return;
-  }
-  const j = pickJoint(p.x, p.y);
-  if (j >= 0) {
-    S.doll.grab = j;
-    const m = S.ren.mView, e0 = S.ren.eye;
-    const dx = S.doll.pos[j * 3] - e0[0], dy = S.doll.pos[j * 3 + 1] - e0[1], dz = S.doll.pos[j * 3 + 2] - e0[2];
-    S.grabDepth = -(m[2] * dx + m[6] * dy + m[10] * dz);
-    S.doll.grabP = [S.doll.pos[j * 3], S.doll.pos[j * 3 + 1], S.doll.pos[j * 3 + 2]];
-    grabLast = S.doll.grabP.slice(); grabLastT = performance.now(); grabVel = [0, 0, 0];
-  } else {
-    orbiting = true;
-  }
-  e.preventDefault();
-});
-
-glc.addEventListener('pointermove', (e) => {
-  if (!ptrs.has(e.pointerId) || !S.doll) return;
-  const prev = ptrs.get(e.pointerId);
-  const p = localPt(e);
-  ptrs.set(e.pointerId, p);
-  S.lastInteract = performance.now();
-
-  if (ptrs.size === 2) {
-    const a = Array.from(ptrs.values());
-    const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
-    if (pinchStart > 8) {
-      S.cam.dist = clamp(pinchDist * (pinchStart / Math.max(d, 8)), 1.2, 11);
-      S.userZoomed = true;
-    }
-    return;
-  }
-  if (S.doll.grab >= 0) {
-    const w = dragPoint(p.x, p.y, S.grabDepth);
-    const now = performance.now(), dt = Math.max(0.008, (now - grabLastT) / 1000);
-    if (grabLast) {
-      for (let i = 0; i < 3; i++) grabVel[i] = lerp(grabVel[i], (w[i] - grabLast[i]) / dt, 0.45);
-    }
-    grabLast = w.slice(); grabLastT = now;
-    w[1] = Math.max(w[1], RADIUS[S.doll.grab]);
-    S.doll.grabP = w;
-  } else if (orbiting) {
-    S.cam.yaw -= (p.x - prev.x) * 0.0085;
-    S.cam.pitch = clamp(S.cam.pitch + (p.y - prev.y) * 0.006, -0.35, 1.25);
-  }
-  e.preventDefault();
-});
-
-function endPointer(e) {
-  ptrs.delete(e.pointerId);
-  S.lastInteract = performance.now();
-  if (!S.doll) return;
-  if (S.doll.grab >= 0 && ptrs.size === 0) {
-    const j = S.doll.grab;
-    S.doll.grab = -1;
-    const cap = 9;
-    const v = grabVel.map(x => clamp(x, -cap, cap));
-    S.doll.impulse(j, v[0], v[1], v[2], 1 / 60);
-  }
-  if (ptrs.size === 0) { orbiting = false; pinchStart = 0; }
-}
-glc.addEventListener('pointerup', endPointer);
-glc.addEventListener('pointercancel', endPointer);
-glc.addEventListener('contextmenu', (e) => e.preventDefault());
-glc.addEventListener('wheel', (e) => {
-  if (!S.doll) return;
-  e.preventDefault();
-  S.cam.dist = clamp(S.cam.dist * (1 + Math.sign(e.deltaY) * 0.10), 1.2, 11);
-  S.userZoomed = true;
-  S.lastInteract = performance.now();
-}, { passive: false });
-
-/* ------------------------------ controls ----------------------------- */
-$$('#poseRow button').forEach(b => {
-  b.onclick = () => {
-    $$('#poseRow button').forEach(x => x.classList.remove('act'));
-    b.classList.add('act');
-    S.doll.setMode(b.dataset.pose);
-    S.lastInteract = performance.now();
-  };
-});
-function setPoseUI(mode) {
-  $$('#poseRow button').forEach(x => x.classList.toggle('act', x.dataset.pose === mode));
-}
-
-$('#actLaunch').onclick = () => {
-  S.doll.setMode('limp'); setPoseUI('limp');
-  S.doll.impulseAll(0, 7.2, 0, 1 / 60, 5.0);
-  S.lastInteract = performance.now();
-};
-$('#actPunch').onclick = () => {
-  S.doll.setMode('limp'); setPoseUI('limp');
-  const m = S.ren.mView;
-  const fx = -m[2], fz = -m[10];
-  const l = Math.hypot(fx, fz) || 1;
-  S.doll.impulse(J.chest, fx / l * 6.5, 2.6, fz / l * 6.5, 1 / 60);
-  S.doll.impulse(J.pelvis, fx / l * 3.0, 0.8, fz / l * 3.0, 1 / 60);
-  S.lastInteract = performance.now();
-};
-$('#actGrav').onclick = () => {
-  const moon = S.doll.gravity < -5;
-  S.doll.gravity = moon ? -1.62 : -9.81;
-  $('#actGrav').innerHTML = moon ? '<span class="em">🌙</span>MOON' : '<span class="em">🌍</span>EARTH';
-  S.lastInteract = performance.now();
-};
-$('#actReset').onclick = () => {
-  S.doll.reset(); resetCamera(); setPoseUI(S.doll.mode);
-  S.lastInteract = performance.now();
-};
 $('#btnHome').onclick = () => { stopLoop(); showScreen('capScreen'); refreshResume(); };
-$('#btnShot').onclick = () => {
-  try {
-    S.ren.setCamera(S.cam); S.ren.render();
-    const url = glc.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url; a.download = 'polyme.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('Saved a screenshot.<br>On iPhone: long-press the image to save.');
-  } catch (err) { toast("Couldn't save a screenshot here."); }
-};
+$('#overAgain').onclick = () => { resetWorld(); };
+$('#overHome').onclick = () => { stopLoop(); $('#over').classList.remove('on'); showScreen('capScreen'); refreshResume(); };
 
-/* ------------------------------- FX panel ---------------------------- */
+/* ------------------------------- FX panel --------------------------- */
 $('#btnFx').onclick = () => $('#fxPanel').classList.add('on');
 $('#fxClose').onclick = () => $('#fxPanel').classList.remove('on');
 
@@ -2178,52 +3094,40 @@ function syncSeg(sel, key, val) {
   $$(sel + ' button').forEach(b => b.classList.toggle('act', b.dataset[key] === val));
 }
 function wireSeg(sel, key, fn) {
-  $$(sel + ' button').forEach(b => {
-    b.onclick = () => { syncSeg(sel, key, b.dataset[key]); fn(b.dataset[key]); };
-  });
+  $$(sel + ' button').forEach(b => { b.onclick = () => { syncSeg(sel, key, b.dataset[key]); fn(b.dataset[key]); }; });
 }
-wireSeg('#segRes', 'res', v => { S.ren.lowH = +v; S.ren.resize(); });
-wireSeg('#segBits', 'bits', v => { S.ren.levels = v === '4' ? 7 : v === '5' ? 31 : 255; });
-wireSeg('#segFog', 'fog', v => { S.ren.fogOn = v === '1'; });
-wireSeg('#segTex', 'tex', v => { S.texMode = +v; applyTexture(); });
-wireSeg('#segSpin', 'spin', v => { S.spin = +v; });
+wireSeg('#segRes', 'res', v => { if (S.ren) { S.ren.lowH = +v; S.ren.resize(); } });
+wireSeg('#segBits', 'bits', v => { if (S.ren) S.ren.levels = v === '4' ? 7 : v === '5' ? 31 : 255; });
+wireSeg('#segFog', 'fog', v => { if (S.ren) S.ren.fogOn = v === '1'; });
+wireSeg('#segTex', 'tex', v => { S.texMode = +v; if (S.ren) applyTexture(); });
+wireSeg('#segLine', 'line', v => { if (S.ren) S.ren.outline = v === '1' ? 0.028 : 0; });
+wireSeg('#segGore', 'gore', v => { S.gore = +v; if (!S.gore) W.decals.length = 0; });
 
 function wireRange(id, valId, fn) {
   const el = $(id);
   const upd = () => { $(valId).textContent = el.value; fn(+el.value / 100); };
   el.oninput = upd; upd();
 }
-// deferred until the renderer exists
-function wireFxRanges() {
-  wireRange('#fxSnap', '#fxSnapV', v => { if (S.ren) S.ren.snap = v; });
-  wireRange('#fxWarp', '#fxWarpV', v => { if (S.ren) S.ren.warp = v; });
-}
+wireRange('#fxSnap', '#fxSnapV', v => { if (S.ren) S.ren.snap = v; });
+wireRange('#fxWarp', '#fxWarpV', v => { if (S.ren) S.ren.warp = v; });
 
-/* ----------------------------- persistence --------------------------- */
+/* ----------------------------- persistence -------------------------- */
 function saveCharacter() {
   try {
-    const data = {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
       props: S.props, pal: S.pal, texMode: S.texMode,
       photo: S.atlasPhoto === S.atlasFlat ? null : S.atlasPhoto.toDataURL('image/png'),
       flat: S.atlasFlat.toDataURL('image/png')
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    }));
   } catch (e) { /* private mode / quota — not important */ }
 }
 function loadSaved() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
+  try { const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
 }
-function refreshResume() {
-  $('#btnResume').classList.toggle('hidden', !loadSaved());
-}
+function refreshResume() { $('#btnResume').classList.toggle('hidden', !loadSaved()); }
 function imgFromURL(url) {
-  return new Promise((res, rej) => {
-    const im = new Image();
-    im.onload = () => res(im); im.onerror = rej; im.src = url;
-  });
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
 }
 $('#btnResume').onclick = async () => {
   const d = loadSaved();
@@ -2235,32 +3139,33 @@ $('#btnResume').onclick = async () => {
     S.atlasFlat = await imgFromURL(d.flat);
     S.atlasPhoto = d.photo ? await imgFromURL(d.photo) : S.atlasFlat;
     S.texMode = d.photo ? (d.texMode === 0 ? 0 : 1) : 0;
+    S.atlasGrunt = bakeAtlasGrunt(1);
     syncSeg('#segTex', 'tex', String(S.texMode));
-
-    S.doll = new Ragdoll(S.props);
-    S.parts = buildParts(S.props);
-    S.mesh = packParts(S.parts);
-    if (!S.ren) S.ren = new Renderer($('#gl'));
-    S.ren.setCharMesh(S.mesh);
+    if (!S.ren) {
+      S.ren = new Renderer($('#gl'));
+      S.ren.initBodyGroups([MAX_PLAYER_BODIES, MAX_GRUNT_BODIES]);
+      const proto = packParts(buildParts(S.props));
+      S.ren.setGroupIndices(0, proto.idx);
+      S.ren.setGroupIndices(1, proto.idx);
+      bindTouch(); bindDesktop();
+    }
     applyTexture();
+    S.ren.setTexture(1, S.atlasGrunt);
     showScreen('playScreen');
     hideBusy();
-    resetCamera(); S.ren.resize(); startLoop();
+    S.ren.resize(); setCamDist(); resetWorld(); startLoop(); showHint();
   } catch (e) {
     hideBusy();
-    toast('That saved character could not be loaded.');
+    alert('That saved character could not be loaded.');
   }
 };
 
-/* ------------------------------- lifecycle --------------------------- */
+/* ------------------------------- lifecycle -------------------------- */
 let resizeTimer = 0;
 function onResize() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    if (S.ren && $('#playScreen').classList.contains('on')) {
-      S.ren.resize();
-      if (!S.userZoomed) S.cam.dist = fitDist();   // reframe on rotate
-    }
+    if (S.ren && $('#playScreen').classList.contains('on')) { S.ren.resize(); setCamDist(); }
     if (S.img && $('#alignScreen').classList.contains('on')) alignFit();
   }, 80);
 }
@@ -2268,21 +3173,17 @@ window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 250));
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopLoop();
-  else if ($('#playScreen').classList.contains('on')) startLoop();
+  else if ($('#playScreen').classList.contains('on') && !W.over) startLoop();
 });
-// iOS: stop the page itself from rubber-banding behind the canvas
 document.addEventListener('touchmove', (e) => {
-  if ($('#playScreen').classList.contains('on') && !$('#fxPanel').classList.contains('on')) {
-    e.preventDefault();
-  }
+  if ($('#playScreen').classList.contains('on') && !$('#fxPanel').classList.contains('on')) e.preventDefault();
 }, { passive: false });
 
 $('#gl').addEventListener('webglcontextlost', (e) => {
   e.preventDefault(); stopLoop();
-  toast('Graphics context lost — reload the page.');
+  alert('Graphics context lost — reload the page.');
 });
 
-wireFxRanges();
 refreshResume();
 </script>
 </body>

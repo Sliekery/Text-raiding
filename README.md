@@ -43,12 +43,13 @@ Your progress (character, gear, cleared bosses) is saved automatically to
 
 ## 🕹️ Also in here: PolyMe
 
-**[`polyme/`](polyme/)** is a separate toy in the same spirit — one
+**[`polyme/`](polyme/)** is a second game in the same spirit — one
 self-contained `index.html`, no dependencies, works on a phone. Upload a photo
-of yourself and it builds a **low-poly PlayStation-era character** (180
-triangles, a 128×128 texture baked from the photo) that you can stand up, make
-dance, and throw around as a ragdoll. Nothing is uploaded — it all runs in the
-browser. See [polyme/README.md](polyme/README.md).
+of yourself and it builds a **low-poly PlayStation-era character** (~200
+triangles, a 128×128 texture baked from the photo), then drops you into a
+**Madness-style side-on ragdoll shootout**: grunts, dropped guns, blood, and
+bodies that stay where they fall. Nothing is uploaded — it all runs in the
+browser. Play it sideways. See [polyme/README.md](polyme/README.md).
 
 ---
 

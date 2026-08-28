@@ -49,7 +49,8 @@ use Option A or C instead.)
 ## Bonus: PolyMe
 
 The same repo has **[`polyme/`](polyme/)** — take a selfie, get a low-poly PS1
-character you can ragdoll.
+character, and fight waves of grunts in a Madness-style ragdoll shootout.
+**Turn the phone sideways to play it.**
 
 **Instant, no setup** (the repo is public, so this works right now):
 
