@@ -95,3 +95,11 @@ textraid/
 ```
 
 Content is data-driven: add a class, skill, or boss by editing `data.py`.
+
+---
+
+## Also in this repo
+
+**[`deepbreak/`](deepbreak/)** — *DEEPBREAK*, an unrelated single-file demo: a
+brick-breaking roguelike miner where a bouncing ball digs the cave for you.
+Open `deepbreak/index.html` in any browser.
