@@ -34,8 +34,11 @@
   .box .val{font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap;}
   .box.mid{text-align:center;} .box.right{text-align:right;}
   #combo.hot{color:var(--perfect); text-shadow:0 0 10px rgba(255,226,122,.7);}
-  #ultn{position:absolute; top:calc(env(safe-area-inset-top) + 72px); width:100%; text-align:center;
-    font-size:12px; letter-spacing:3px; color:var(--gold2); font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,.9);}
+  #strip{position:absolute; top:calc(env(safe-area-inset-top) + 72px); left:10px; right:10px;
+    display:flex; flex-wrap:wrap; justify-content:center; gap:4px 12px; font-size:11px; letter-spacing:1px;
+    color:var(--gold2); font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,.9); font-variant-numeric:tabular-nums;}
+  #strip b{color:#fff;}
+  #ultn{letter-spacing:3px;}
 
   #judge{position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 96px); text-align:center; opacity:0;}
   #judge.show{animation:judge 1.5s ease-out forwards;}
@@ -54,15 +57,31 @@
 
   #bottom{position:absolute; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 14px);
     display:flex; justify-content:space-between; align-items:flex-end;}
-  #stats{background:rgba(10,20,40,.72); border:1px solid rgba(200,170,110,.35); border-radius:10px;
-    padding:6px 10px; font-size:12px; color:var(--dim); line-height:1.6; font-variant-numeric:tabular-nums;}
-  #stats b{color:var(--txt); display:inline-block; min-width:52px; text-align:right;}
+  #qbtn{pointer-events:auto; position:relative; width:92px; height:92px; border-radius:50%;
+    border:3px solid var(--gold); background:radial-gradient(circle at 50% 35%, #2b6a78, #0a1428 70%);
+    box-shadow:0 0 0 4px rgba(10,20,40,.8), 0 0 18px rgba(10,200,185,.3); color:var(--txt);
+    display:flex; align-items:center; justify-content:center; padding:0; transition:transform .06s;}
+  #qbtn .ico{font-size:40px; line-height:1; position:relative;}
+  #qbtn .cd{position:absolute; inset:0; border-radius:50%; pointer-events:none;
+    background:conic-gradient(rgba(5,10,20,.78) calc(var(--cd, 0) * 360deg), transparent 0);}
+  #qbtn .pips{position:absolute; top:-18px; left:50%; transform:translateX(-50%); display:flex; gap:6px;}
+  #qbtn .pips i{width:12px; height:12px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,20,40,.85);}
+  #qbtn .pips i.on{background:var(--teal); box-shadow:0 0 8px var(--teal);}
+  #qbtn.press{transform:scale(.9);}
+  #qbtn.storm{border-color:var(--teal); animation:storm .7s ease-in-out infinite alternate;}
+  @keyframes storm{from{box-shadow:0 0 0 4px rgba(10,20,40,.8), 0 0 12px rgba(10,200,185,.5);}
+    to{box-shadow:0 0 0 4px rgba(10,20,40,.8), 0 0 34px rgba(10,230,210,1);}}
+  #qbtn .k{right:auto; left:-4px;}
+  .ftext{position:absolute; transform:translate(-50%,-50%); font-weight:900; font-size:17px; pointer-events:none;
+    text-shadow:0 2px 0 rgba(0,0,0,.75); animation:ftext .9s ease-out forwards; font-variant-numeric:tabular-nums;}
+  @keyframes ftext{0%{opacity:0; transform:translate(-50%,-30%) scale(.7);} 15%{opacity:1; transform:translate(-50%,-60%) scale(1.15);}
+    100%{opacity:0; transform:translate(-50%,-170%) scale(1);}}
   #rbtn{pointer-events:auto; position:relative; width:104px; height:104px; border-radius:50%;
     border:3px solid var(--gold); background:radial-gradient(circle at 50% 35%, #1f4a7a, #0a1428 70%);
     box-shadow:0 0 0 4px rgba(10,20,40,.8), 0 0 24px rgba(10,200,185,.45); color:var(--txt);
     display:flex; align-items:center; justify-content:center; padding:0; transition:transform .06s;}
   #rbtn .ico{font-size:46px; line-height:1;}
-  #rbtn .k{position:absolute; right:-4px; bottom:-4px; width:32px; height:32px; border-radius:50%;
+  #rbtn .k, #qbtn .k{position:absolute; right:-4px; bottom:-4px; width:32px; height:32px; border-radius:50%;
     background:var(--navy); border:2px solid var(--gold); font-weight:900; font-size:16px;
     display:flex; align-items:center; justify-content:center; color:var(--gold2);}
   #rbtn.press{transform:scale(.9);}
@@ -122,14 +141,10 @@
     <div class="box mid"><div class="lbl">COMBO</div><div class="val" id="combo">x1.0</div></div>
     <div class="box right"><div class="lbl">LIVES</div><div class="val" id="lives"></div></div>
   </div>
-  <div id="ultn"></div>
+  <div id="strip"><span id="ultn"></span><span>CS <b id="sCS">0</b></span><span>LAST <b id="sLast">—</b></span><span>BEST <b id="sBest">—</b></span><span>AVG <b id="sAvg">—</b></span></div>
   <div id="judge"><div id="jname"></div><div id="jms"></div><div id="jquote"></div></div>
   <div id="bottom">
-    <div id="stats">
-      <div>LAST <b id="sLast">—</b></div>
-      <div>BEST <b id="sBest">—</b></div>
-      <div>AVG&nbsp; <b id="sAvg">—</b></div>
-    </div>
+    <button id="qbtn" aria-label="Cast Steel Tempest"><span class="cd"></span><span class="ico">🗡️</span><span class="k">Q</span><span class="pips"><i></i><i></i></span></button>
     <button id="rbtn" aria-label="Cast Last Flush"><span class="ico">🚽</span><span class="k">R</span></button>
   </div>
 </div>
@@ -140,11 +155,12 @@
     <h1>SHASUO</h1>
     <div class="sub">THE UNFORGIVEN · THE UNFLUSHED</div>
     <div class="how">
-      <p>💩 <b>Malphite</b> lurks in the brush. At any moment he'll <b>Unstoppable Force</b> the creep wave into the air.</p>
-      <p>🚽 The instant they're knocked up, <b>tap anywhere</b> (or R / Space) to cast <b>LAST FLUSH</b>.</p>
-      <p>⏱️ Faster is better — <b>PERFECT</b> is under 180&nbsp;ms. Chain hits for a combo multiplier.</p>
-      <p>⚠️ Tapping before the knock-up is a <b>whiff</b> (½s lockout). Watch out for <b>fake-outs</b> and <b>Flash</b> ults.</p>
-      <p>🧻 Miss a knock-up and you lose a roll. Lose all 3 and your team types /ff.</p>
+      <p>💩 <b>Malphite</b> lurks in the brush. At any moment he'll <b>Unstoppable Force</b> the caster wave into the air.</p>
+      <p>🚽 The instant they're knocked up, tap the <b>right half</b> of the screen (or R) to cast <b>LAST FLUSH</b>. <b>PERFECT</b> is under 180&nbsp;ms; chain hits for a combo multiplier.</p>
+      <p>🗡️ Meanwhile minions march down the lane at you. Tap the <b>left half</b> (or Q) for <b>STEEL TEMPEST</b>, a stab that hits every minion in a line. Last hits earn gold and CS.</p>
+      <p>🌪️ Two Q hits charge a <b>whirlwind</b>: your next Q knocks up the whole lane. Hit R while they're airborne for a <b>SELF-SETUP</b> bonus.</p>
+      <p>⚠️ R before a knock-up is a <b>whiff</b> (½s lockout). Watch for <b>fake-outs</b> and <b>Flash</b> ults.</p>
+      <p>🧻 Missing a knock-up or getting slain by minions costs a roll. Lose all 3 and your team types /ff.</p>
     </div>
     <button class="btn" id="playBtn">PLAY</button>
     <div class="bestline" id="menuBest"></div>
@@ -164,6 +180,8 @@
       <div><small>BEST REACTION</small><span id="oBest">—</span></div>
       <div><small>PERFECTS</small><span id="oPerf">0</span></div>
       <div><small>MAX COMBO</small><span id="oCombo">0</span></div>
+      <div><small>CREEP SCORE</small><span id="oCS">0</span></div>
+      <div><small>SELF-SETUPS</small><span id="oSelf">0</span></div>
     </div>
     <p class="quip" id="oQuip"></p>
     <button class="btn" id="againBtn">PLAY AGAIN</button>
@@ -453,6 +471,31 @@ const TEX = {};
   TEX.water.center.set(0.5, 0.5);
 }
 
+{ // Steel Tempest thrust streak: bright core, fading toward the tip
+  const [c, g] = makeCanvas(64, 256);
+  const hg = g.createLinearGradient(0, 0, 64, 0);
+  hg.addColorStop(0, 'rgba(255,255,255,0)'); hg.addColorStop(0.5, 'rgba(255,255,255,1)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = hg; g.fillRect(0, 0, 64, 256);
+  g.globalCompositeOperation = 'destination-in';
+  const vg = g.createLinearGradient(0, 0, 0, 256);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.3, 'rgba(0,0,0,1)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  g.fillStyle = vg; g.fillRect(0, 0, 64, 256);
+  TEX.thrust = canvasTex(c);
+}
+{ // whirlwind streaks, wrapped around the tornado cones
+  const [c, g] = makeCanvas(256, 128);
+  g.lineCap = 'round';
+  for(let i = 0; i < 36; i++){
+    const y = rand(10, 128), x = rand(0, 256), len = rand(40, 120), a = rand(0.25, 0.85), w = rand(2, 6);
+    for(const ox of [0, -256]){
+      g.strokeStyle = `rgba(255,255,255,${a})`; g.lineWidth = w;
+      g.beginPath(); g.moveTo(x + ox, y); g.quadraticCurveTo(x + ox + len / 2, y - 6, x + ox + len, y - 18); g.stroke();
+    }
+  }
+  TEX.wind = canvasTex(c);
+  TEX.wind.wrapS = THREE.RepeatWrapping; TEX.wind.repeat.set(2, 1);
+}
+
 // brush spots where Malphite hides (needed by the ground painter)
 const SPOTS = [[-3.15, -3.6], [3.15, -3.6], [0, -6.6], [-3.3, 1.2], [3.3, 1.2]].map(([x, z]) => V(x, 0, z));
 
@@ -654,32 +697,44 @@ const motes = (() => {
 })();
 
 // ================================================================ League-style floating health bars
-function champBarTexture(name, level, fill, frame){
-  const [c, g] = makeCanvas(256, 80);
+function drawChampBar(bar, frac){
+  const { g, name, level, fill, frame } = bar.userData;
+  bar.userData.frac = frac;
+  g.clearRect(0, 0, 256, 80);
   g.font = 'bold 22px -apple-system, Segoe UI, Roboto, sans-serif';
   g.textAlign = 'center'; g.lineWidth = 5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.fillStyle = '#fff';
   g.strokeText(name, 138, 24); g.fillText(name, 138, 24);
   g.fillStyle = '#0b0f18'; g.fillRect(40, 36, 210, 30);
-  g.fillStyle = fill; g.fillRect(44, 40, 202, 22);
+  g.fillStyle = '#3b1c22'; g.fillRect(44, 40, 202, 22);
+  g.fillStyle = fill; g.fillRect(44, 40, 202 * clamp(frac, 0, 1), 22);
   g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(44, 40, 202, 8);
   g.fillStyle = 'rgba(0,0,0,.5)'; for(let x = 44 + 20; x < 246; x += 20) g.fillRect(x, 40, 2, 22);
   g.fillStyle = '#0b0f18'; g.beginPath(); g.arc(28, 51, 22, 0, 7); g.fill();
   g.strokeStyle = frame; g.lineWidth = 3; g.stroke();
   g.fillStyle = '#f0e6d2'; g.font = 'bold 20px -apple-system, Segoe UI, Roboto, sans-serif'; g.fillText(level, 28, 58);
-  return canvasTex(c);
+  bar.material.map.needsUpdate = true;
 }
 function champBar(name, level, fill, frame){
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: champBarTexture(name, level, fill, frame), depthTest: false, transparent: true }));
+  const [c, g] = makeCanvas(256, 80);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(c), depthTest: false, transparent: true }));
+  s.userData = { g, name, level, fill, frame, frac: 1 };
+  drawChampBar(s, 1);
   s.center.set(0.5, 0); s.scale.set(2.1, 0.66, 1); s.renderOrder = 20;
   scene.add(s);
   return s;
 }
 const barMat = color => new THREE.SpriteMaterial({ color, depthTest: false, transparent: true });
-function creepBar(){
-  const bg = new THREE.Sprite(barMat(0x0b0f18)); bg.scale.set(0.78, 0.12, 1); bg.renderOrder = 20;
-  const fg = new THREE.Sprite(barMat(0xe0404c)); fg.center.set(0, 0.5); fg.scale.set(0.72, 0.07, 1); fg.renderOrder = 21;
+function creepBar(width = 0.78){
+  const bg = new THREE.Sprite(barMat(0x0b0f18)); bg.scale.set(width, 0.12, 1); bg.renderOrder = 20;
+  const fg = new THREE.Sprite(barMat(0xe0404c)); fg.center.set(0, 0.5); fg.scale.set(width - 0.06, 0.07, 1); fg.renderOrder = 21;
   scene.add(bg, fg);
-  return { bg, fg, hp: 1 };
+  return { bg, fg, hp: 1, w: width - 0.06 };
+}
+function placeBar(bar, pos, y){
+  bar.bg.position.set(pos.x, pos.y + y, pos.z);
+  bar.fg.position.set(pos.x - bar.w / 2, pos.y + y, pos.z);
+  bar.fg.scale.x = Math.max(0.001, bar.w * bar.hp);
+  bar.bg.visible = bar.fg.visible = true;
 }
 
 // ================================================================ SHASUO — Yasuo with a porcelain throne for a head
@@ -1062,7 +1117,7 @@ function updateFx(dt){
     const f = fx[i];
     f.t += dt;
     const u = f.t / f.life;
-    if(u >= 1){ scene.remove(f.obj); if(f.obj.material !== debrisMat) f.obj.material.dispose(); fx.splice(i, 1); continue; }
+    if(u >= 1){ scene.remove(f.obj); if(!f.shared && f.obj.material !== debrisMat) f.obj.material.dispose(); fx.splice(i, 1); continue; }
     const o = f.obj;
     if(f.kind === 'sprite'){
       o.position.addScaledVector(f.v, dt);
@@ -1085,6 +1140,12 @@ function updateFx(dt){
       o.rotateZ(-f.spin * dt);
       o.scale.setScalar(f.s0 * (0.85 + 0.35 * easeOut(u)));
       o.material.opacity = 1 - u * u;
+    }else if(f.kind === 'thrust'){
+      o.scale.set(f.w * (1 - u * 0.5), f.len * Math.min(1, u / 0.3), 1);
+      o.material.opacity = 1 - u * u;
+    }else if(f.kind === 'ball'){
+      o.position.lerpVectors(f.from, f.to, u);
+      o.position.y += Math.sin(u * Math.PI) * 0.9;
     }else if(f.kind === 'stink'){
       o.position.addScaledVector(f.v, dt);
       o.material.opacity = 0.8 * Math.sin(u * Math.PI);
@@ -1147,6 +1208,13 @@ const SFX = {
   flash(){ tone(0.22, 'square', 900, 2600, 0.06); noise(0.2, 'highpass', 3000, 9000, 1, 0.25); },
   pop(){ tone(0.12, 'sine', 700, 180, 0.2); },
   life(){ tone(0.15, 'triangle', 660, 660, 0.15); tone(0.25, 'triangle', 990, 990, 0.15, 0.12); },
+  stab(){ noise(0.1, 'highpass', 3000, 8000, 1, 0.35); tone(0.12, 'triangle', 1700, 2600, 0.07); },
+  hitmark(){ noise(0.08, 'lowpass', 900, 200, 1, 0.45); tone(0.07, 'square', 260, 120, 0.06); },
+  storm(){ tone(0.12, 'sine', 900, 1400, 0.12); tone(0.18, 'sine', 1400, 2100, 0.1, 0.08); },
+  tornado(){ noise(0.7, 'bandpass', 300, 1600, 1.2, 0.55); noise(0.4, 'highpass', 2000, 5000, 1, 0.2, 0.1); },
+  coin(){ tone(0.07, 'square', 1568, 1568, 0.05); tone(0.2, 'square', 2093, 2093, 0.05, 0.07); },
+  hurt(){ noise(0.15, 'lowpass', 700, 120, 1, 0.5); tone(0.15, 'sine', 220, 90, 0.25); },
+  cannon(){ noise(0.35, 'lowpass', 900, 90, 1, 0.6); tone(0.25, 'sine', 120, 50, 0.4); },
 };
 
 // ================================================================ game state
@@ -1173,6 +1241,8 @@ const G = {
   rts: [], perfects: 0, lockUntil: 0, p: null, center: V(),
   knockTime: 0, spot: 0, shake: 0, zoom: 0, hitstop: 0, swingT: 9, shoutT: 9, flushSpin: 0,
   hopFrom: V(), hopTo: V(), dashFrom: V(), vortex: null,
+  hp: 100, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, qCd: 0.4, stabT: 9, qFaceT: 0, spawnT: 2.5,
+  tornadoes: 0, selfSetups: 0, overAt: 0,
   best: store.get('shasuo_best', 0), flags: {},
 };
 function setState(s){ G.state = s; G.t = 0; G.flags = {}; }
@@ -1185,6 +1255,7 @@ function updateHud(){
   let lv = '';
   for(let i = 0; i < 3; i++) lv += `<span class="${i < G.lives ? '' : 'gone'}">🧻</span>`;
   $('lives').innerHTML = lv;
+  $('sCS').textContent = G.cs;
   const hits = G.rts.length;
   $('sBest').textContent = hits ? `${Math.round(Math.min(...G.rts))} ms` : '—';
   $('sAvg').textContent = hits ? `${Math.round(G.rts.reduce((a, b) => a + b, 0) / hits)} ms` : '—';
@@ -1241,13 +1312,17 @@ function startRound(){
     if(wait > dur + 0.8) p.fakes.push({ type, dur, at: rand(0.3, wait - dur - 0.4) });
   }
   G.p = p;
-  $('ultn').textContent = `MALPHITE ULT #${n + 1}`;
+  $('ultn').textContent = `ULT #${n + 1}`;
   setState('setup');
 }
 
 function startGame(){
   audio();
-  Object.assign(G, { score: 0, combo: 0, maxCombo: 0, lives: 3, n: 0, rts: [], perfects: 0, lockUntil: 0, swingT: 9 });
+  Object.assign(G, { score: 0, combo: 0, maxCombo: 0, lives: 3, n: 0, rts: [], perfects: 0, lockUntil: 0, swingT: 9,
+    hp: MAX_HP, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, stabT: 9, qFaceT: 0, spawnT: 2.5, tornadoes: 0, selfSetups: 0, overAt: 0 });
+  clearLane();
+  updateQ();
+  drawChampBar(shasuoBar, 1);
   $('sLast').textContent = '—';
   $('menu').classList.add('hidden');
   $('over').classList.add('hidden');
@@ -1263,7 +1338,12 @@ function rankFor(score){
   return r;
 }
 function gameOver(){
+  if(G.state === 'over') return;
   setState('over');
+  G.overAt = 0;
+  clearLane();
+  $('oCS').textContent = G.cs;
+  $('oSelf').textContent = G.selfSetups;
   $('hud').classList.remove('on');
   const [, rname, rcol] = rankFor(G.score);
   $('oRank').textContent = rname; $('oRank').style.color = rcol;
@@ -1288,13 +1368,15 @@ function gameOver(){
 }
 
 // ================================================================ input
-function press(ts){
+function pressR(ts){
   const btn = $('rbtn');
   btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 90);
   if(ts < G.lockUntil) return;
   const st = G.state;
   if(st === 'air'){
     hit(Math.max(0, ts - G.knockTime));
+  }else if(Q_STATES.includes(st) && selfSetup()){
+    // R on minions your own whirlwind knocked up
   }else if(st === 'idle' || st === 'windup' || st === 'dash'){
     G.lockUntil = ts + 500;
     G.combo = 0;
@@ -1313,7 +1395,7 @@ window.addEventListener('pointerdown', e => {
   if(e.target.closest && e.target.closest('.overlay')) return;
   e.preventDefault();
   audio();
-  press(eventTime(e));
+  if(e.clientX < window.innerWidth / 2) castQ(); else pressR(eventTime(e));
 }, { passive: false });
 window.addEventListener('touchstart', e => {
   if(e.target.closest && e.target.closest('.overlay')) return;
@@ -1321,17 +1403,19 @@ window.addEventListener('touchstart', e => {
 }, { passive: false });
 window.addEventListener('keydown', e => {
   if(e.repeat) return;
-  if(e.code === 'KeyR' || e.code === 'Space' || e.code === 'Enter'){
+  if(e.code === 'KeyQ'){
+    if(G.state !== 'menu' && G.state !== 'over'){ e.preventDefault(); castQ(); }
+  }else if(e.code === 'KeyR' || e.code === 'Space' || e.code === 'Enter'){
     e.preventDefault();
     if(G.state === 'menu' || G.state === 'over'){ if(e.code !== 'KeyR') startGame(); return; }
-    press(eventTime(e));
+    pressR(eventTime(e));
   }
 });
 $('playBtn').addEventListener('click', startGame);
 $('againBtn').addEventListener('click', startGame);
 $('menuBtn').addEventListener('click', () => {
   $('over').classList.add('hidden'); $('menu').classList.remove('hidden');
-  showMenuBest(); clearCreeps(); setState('menu');
+  showMenuBest(); clearCreeps(); clearLane(); setState('menu');
 });
 function showMenuBest(){ $('menuBest').textContent = G.best ? `Best score: ${G.best.toLocaleString()} (${rankFor(G.best)[1]})` : ''; }
 showMenuBest();
@@ -1363,6 +1447,9 @@ function impact(now){
 }
 
 function hit(rt){
+  flushAirborneWalkers();
+  G.stabT = 9; G.qFaceT = 0;
+  shasuo.sword.rotation.x = SWORD_REST; shasuo.body.position.z = 0;
   const g = GRADES.find(x => rt <= x.max);
   G.combo++;
   G.maxCombo = Math.max(G.maxCombo, G.combo);
@@ -1395,6 +1482,368 @@ function miss(){
   updateHud();
 }
 
+// ================================================================ LANE PRESSURE: minions march at Shasuo, Steel Tempest (Q) stabs them
+const Q_RANGE = 2.8, Q_WIDTH = 0.6, Q3_RANGE = 9, Q_CD = 0.4, Q3_CD = 0.7, MAX_HP = 100;
+const Q_STATES = ['setup', 'idle', 'windup', 'dash', 'air', 'after'];
+const SWORD_REST = Math.PI / 2 + 0.35;
+const WALK = {
+  melee:  { hp: 1, speed: [1.15, 1.55], reach: 0.95, dmg: 10, atkEvery: 1.1, gold: 50,  bar: 0.78, radius: 0.35, y: 1.5 },
+  cannon: { hp: 3, speed: [0.75, 0.95], reach: 2.3,  dmg: 20, atkEvery: 1.7, gold: 150, bar: 1.15, radius: 0.55, y: 1.6 },
+};
+const SLAIN_QUOTES = ['Shasuo has been slain.', 'Death by a thousand minions.', 'Outpushed by the wave.', 'Should have Q\'d that.'];
+const walkers = [], tornadoes = [];
+
+const meleeMats = { armor: toon(0xb3363c), dark: toon(0x2e1c28), steel: toon(0xa9b3c3), gold: toon(0xd8b25e), cart: toon(0x8c3b2c), iron: toon(0x3e4450) };
+const MG = {
+  leg: new THREE.CylinderGeometry(0.07, 0.08, 0.3, 8),
+  torso: lathe([[0.001, 0], [0.2, 0.02], [0.25, 0.2], [0.23, 0.36], [0.12, 0.45], [0.001, 0.46]], 14),
+  plate: roundBox(0.3, 0.2, 0.08, 0.03),
+  helm: new THREE.SphereGeometry(0.21, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6),
+  face: new THREE.SphereGeometry(0.18, 12, 10),
+  crest: roundBox(0.05, 0.12, 0.34, 0.02),
+  horn: new THREE.ConeGeometry(0.05, 0.2, 6),
+  shield: new THREE.CylinderGeometry(0.2, 0.2, 0.05, 18),
+  rim: new THREE.TorusGeometry(0.2, 0.022, 5, 20),
+  boss: new THREE.SphereGeometry(0.05, 8, 6),
+  blade: new THREE.BoxGeometry(0.05, 0.02, 0.42),
+  guard: new THREE.BoxGeometry(0.16, 0.03, 0.03),
+  cart: roundBox(0.72, 0.34, 0.95, 0.06), trim: roundBox(0.76, 0.06, 0.99, 0.02),
+  wheel: new THREE.CylinderGeometry(0.21, 0.21, 0.08, 16), hub: new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8),
+  barrel: new THREE.CylinderGeometry(0.12, 0.16, 0.8, 14), muzzle: new THREE.TorusGeometry(0.13, 0.03, 6, 16),
+  pole: new THREE.CylinderGeometry(0.015, 0.015, 0.6, 5), flag: new THREE.PlaneGeometry(0.24, 0.16),
+};
+function makeMelee(){ // red-side melee minion: horned helm, void face, shield and shortsword
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  for(const sx of [-1, 1]) mesh(MG.leg, meleeMats.dark, sx * 0.1, 0.15, 0, body);
+  mesh(MG.torso, meleeMats.armor, 0, 0.26, 0, body);
+  mesh(MG.plate, meleeMats.steel, 0, 0.52, 0.17, body, { thick: 0.015 });
+  mesh(MG.face, creepMats.voidM, 0, 0.8, 0.02, body, { noOutline: true }).scale.z = 0.8;
+  mesh(MG.helm, meleeMats.armor, 0, 0.8, 0, body);
+  mesh(MG.crest, meleeMats.gold, 0, 1.0, -0.02, body, { thick: 0.015 });
+  for(const sx of [-1, 1]){
+    mesh(MG.horn, meleeMats.gold, sx * 0.2, 0.95, 0, body, { thick: 0.015 }).rotation.z = -sx * 0.9;
+    mesh(creepGeo.eye, creepMats.eye, sx * 0.065, 0.8, 0.17, body, { noOutline: true });
+  }
+  const shield = new THREE.Group(); shield.position.set(-0.3, 0.5, 0.1); shield.rotation.y = -0.5; body.add(shield);
+  mesh(MG.shield, meleeMats.armor, 0, 0, 0, shield).rotation.x = Math.PI / 2;
+  mesh(MG.rim, meleeMats.gold, 0, 0, 0.03, shield, { noOutline: true });
+  mesh(MG.boss, meleeMats.gold, 0, 0, 0.04, shield, { noOutline: true });
+  const arm = new THREE.Group(); arm.position.set(0.28, 0.55, 0.05); body.add(arm);
+  mesh(MG.blade, meleeMats.steel, 0, 0, 0.26, arm, { thick: 0.012 });
+  mesh(MG.guard, meleeMats.gold, 0, 0, 0.05, arm, { noOutline: true });
+  root.scale.setScalar(1.15);
+  scene.add(root);
+  inkify(root, 0.03);
+  return { root, body, arm };
+}
+function makeCannon(){ // siege minion: a little war cart with a cannon and a red pennant
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  mesh(MG.cart, meleeMats.cart, 0, 0.46, 0, body);
+  mesh(MG.trim, meleeMats.gold, 0, 0.64, 0, body, { thick: 0.015 });
+  const wheels = [];
+  for(const sx of [-1, 1]) for(const sz of [-1, 1]){
+    const wg = new THREE.Group(); wg.position.set(sx * 0.41, 0.22, sz * 0.3); body.add(wg);
+    mesh(MG.wheel, meleeMats.dark, 0, 0, 0, wg).rotation.z = Math.PI / 2;
+    mesh(MG.hub, meleeMats.gold, sx * 0.02, 0, 0, wg, { noOutline: true }).rotation.z = Math.PI / 2;
+    wheels.push(wg);
+  }
+  mesh(MG.barrel, meleeMats.iron, 0, 0.84, 0.2, body).rotation.x = Math.PI / 2;
+  mesh(MG.muzzle, meleeMats.gold, 0, 0.84, 0.6, body, { noOutline: true });
+  mesh(MG.pole, meleeMats.dark, -0.25, 0.95, -0.4, body, { noOutline: true });
+  mesh(MG.flag, toon(0xd8434e, { side: THREE.DoubleSide }), -0.13, 1.15, -0.4, body, { noOutline: true });
+  root.scale.setScalar(1.1);
+  scene.add(root);
+  inkify(root, 0.035);
+  return { root, body, wheels };
+}
+function spawnWalker(kind){
+  const spec = WALK[kind];
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const w = { kind, spec, ...(kind === 'melee' ? makeMelee() : makeCannon()), hp: spec.hp, speed: rand(...spec.speed),
+    state: 'walk', atkT: rand(0, 0.6), air: 0, airH: 2, spin: 0, lunge: 0, flinch: 0, dead: 0, baseScale: 1,
+    laneX: side * rand(1.7, 2.3), phase: rand(0, 6), bar: creepBar(spec.bar), kbFrom: V(), kbTo: V() };
+  w.root.position.set(w.laneX + rand(-0.2, 0.2), 0, rand(-13, -11.5));
+  walkers.push(w);
+}
+function removeWalker(w){
+  scene.remove(w.root, w.bar.bg, w.bar.fg);
+  w.bar.bg.material.dispose(); w.bar.fg.material.dispose();
+}
+function clearLane(){
+  walkers.forEach(removeWalker); walkers.length = 0;
+  for(const t of tornadoes){ scene.remove(t.g); t.layers.forEach(l => l.material.dispose()); t.base.material.dispose(); }
+  tornadoes.length = 0;
+}
+
+// floating combat text (+gold, -hp), projected from the 3D world onto the HUD
+const ftv = V();
+function floatText(pos, text, color = '#ffd75a'){
+  ftv.copy(pos).project(camera);
+  const el = document.createElement('div');
+  el.className = 'ftext'; el.textContent = text; el.style.color = color;
+  el.style.left = `${(ftv.x + 1) / 2 * 100}%`; el.style.top = `${(1 - ftv.y) / 2 * 100}%`;
+  $('hud').appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function killWalker(w, gold = true, bonus = 0){
+  if(w.state === 'dead') return;
+  w.state = 'dead'; w.dead = 0; w.baseScale = w.root.scale.x;
+  const p = w.root.position.clone().add(V(0, 0.5, 0));
+  puff(p, 0xb3363c, { n: 6, speed: 2.5, size: 0.3, life: 0.45, grav: 5 });
+  if(gold){
+    const g = w.spec.gold + bonus;
+    G.cs++; G.score += g;
+    puff(p.clone().add(V(0, 0.4, 0)), 0xffd75a, { n: 5, speed: 1.2, size: 0.22, life: 0.6, up: 2, add: true });
+    floatText(p.clone().add(V(0, 0.9, 0)), `+${g}`);
+    SFX.coin();
+  }
+  updateHud();
+}
+function damageWalker(w, dmg){
+  w.hp -= dmg; w.flinch = 1;
+  w.bar.hp = Math.max(0, w.hp / w.spec.hp);
+  puff(w.root.position.clone().add(V(0, 0.6, 0)), 0xdff8ff, { n: 4, speed: 2.2, size: 0.18, life: 0.25, add: true });
+  if(w.hp <= 0) killWalker(w);
+}
+function knockWalker(w, dir){
+  if(w.state === 'dead') return;
+  w.state = 'air'; w.air = 0; w.airH = rand(1.9, 2.4); w.spin = rand(-6, 6);
+  w.kbFrom.copy(w.root.position); w.kbFrom.y = 0;
+  w.kbTo.copy(w.kbFrom).addScaledVector(dir, 1.5);
+  puff(V(w.kbFrom.x, 0.3, w.kbFrom.z), 0xdff8ff, { n: 5, speed: 2, size: 0.35, life: 0.4, up: 1 });
+}
+function flushAirborneWalkers(){
+  const air = walkers.filter(w => w.state === 'air');
+  for(const w of air){ slashFx(w.root.position.clone().add(V(0, 0.5, 0)), rand(0, 6), 0.7); killWalker(w, true, 100); }
+  return air.length;
+}
+function selfSetup(){
+  const n = flushAirborneWalkers();
+  if(!n) return false;
+  G.selfSetups++;
+  SFX.slash(); SFX.flush();
+  G.flushSpin = 1; G.shoutT = 0; G.swingT = 0; G.hitstop = 0.07; G.shake = Math.max(G.shake, 0.18);
+  judge('SELF-SETUP', 'great', null, `Q3 → R · ${n} flushed`);
+  return true;
+}
+
+const thrustGeo = new THREE.PlaneGeometry(1, 1); thrustGeo.translate(0, 0.5, 0);
+function thrustFx(S, dir){
+  for(const [w, color] of [[0.6, 0x8fe0ff], [0.22, 0xffffff]]){
+    const m = new THREE.Mesh(thrustGeo, new THREE.MeshBasicMaterial({ map: TEX.thrust, color, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    m.rotation.set(-Math.PI / 2, Math.atan2(-dir.x, -dir.z), 0, 'YXZ');
+    m.position.set(S.x + dir.x * 0.4, 1.3, S.z + dir.z * 0.4);
+    m.scale.set(w, 0.01, 1);
+    addFx(m, { kind: 'thrust', life: 0.24, len: Q_RANGE + 0.2, w });
+  }
+}
+const ballGeo = new THREE.SphereGeometry(0.12, 10, 8);
+function cannonball(from, to){
+  const m = new THREE.Mesh(ballGeo, ink);
+  addFx(m, { kind: 'ball', life: 0.28, shared: true, from: V(from.x, 1.0, from.z), to: V(to.x, 1.3, to.z) });
+  puff(V(from.x, 1.0, from.z), 0xffb070, { n: 4, speed: 1.5, size: 0.3, life: 0.3, add: true });
+}
+
+const tornadoGeos = [new THREE.CylinderGeometry(0.95, 0.22, 2.6, 24, 1, true), new THREE.CylinderGeometry(0.62, 0.14, 2.1, 20, 1, true)];
+function spawnTornado(from, dir){
+  const g = new THREE.Group();
+  const layers = tornadoGeos.map((geo, i) => {
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: TEX.wind, color: i ? 0xf2fdff : 0x8fe0ff, transparent: true,
+      opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    m.position.y = geo.parameters.height / 2;
+    g.add(m);
+    return m;
+  });
+  const base = new THREE.Sprite(spriteMat(TEX.glow, 0x8fe0ff, true, 0.7));
+  base.scale.setScalar(2); base.position.y = 0.25; g.add(base);
+  const pos = from.clone().addScaledVector(dir, 0.6); pos.y = 0;
+  g.position.copy(pos);
+  scene.add(g);
+  tornadoes.push({ g, layers, base, pos, dir: dir.clone(), dist: 0, fade: 0, hit: new Set() });
+}
+function updateTornadoes(dt){
+  for(let i = tornadoes.length - 1; i >= 0; i--){
+    const t = tornadoes[i];
+    t.layers[0].rotation.y += dt * 14; t.layers[1].rotation.y -= dt * 20;
+    if(t.dist < Q3_RANGE){
+      const step = 13 * dt;
+      t.pos.addScaledVector(t.dir, step); t.dist += step;
+      if(Math.random() < dt * 30) puff(V(t.pos.x, 0.2, t.pos.z), 0xc9b08a, { n: 1, speed: 1.5, size: 0.45, life: 0.5, up: 0.3 });
+      for(const w of walkers){
+        if(w.state === 'dead' || t.hit.has(w)) continue;
+        if(Math.hypot(w.root.position.x - t.pos.x, w.root.position.z - t.pos.z) < 0.95 + w.spec.radius){ t.hit.add(w); knockWalker(w, t.dir); }
+      }
+    }else{
+      t.fade += dt;
+      const k = Math.max(0, 1 - t.fade / 0.3);
+      t.layers.forEach(l => { l.material.opacity = 0.95 * k; });
+      t.base.material.opacity = 0.7 * k;
+      t.g.scale.setScalar(Math.max(0.01, k));
+      if(t.fade >= 0.3){
+        scene.remove(t.g); t.layers.forEach(l => l.material.dispose()); t.base.material.dispose();
+        tornadoes.splice(i, 1);
+        continue;
+      }
+    }
+    t.g.position.copy(t.pos);
+  }
+}
+
+function castQ(){
+  const btn = $('qbtn');
+  btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 90);
+  if(!Q_STATES.includes(G.state) || G.time < G.qReadyAt) return;
+  const S = shasuo.root.position, storm = G.stacks >= 2, range = storm ? Q3_RANGE : Q_RANGE;
+  // auto-aim at the nearest minion (straight up the lane if nothing is close)
+  let target = null, best = Infinity;
+  for(const w of walkers){
+    if(w.state === 'dead') continue;
+    const d = Math.hypot(w.root.position.x - S.x, w.root.position.z - S.z);
+    if(d < best){ best = d; target = w; }
+  }
+  const dir = V(0, 0, -1);
+  if(target && best <= range + 1) dir.set(target.root.position.x - S.x, 0, target.root.position.z - S.z).normalize();
+  shasuo.root.rotation.y = Math.atan2(dir.x, dir.z);
+  G.qFaceT = 0.6; G.stabT = 0;
+  if(storm){
+    G.stacks = 0; G.qCd = Q3_CD; G.qReadyAt = G.time + Q3_CD; G.tornadoes++;
+    spawnTornado(S, dir);
+    SFX.tornado();
+    G.shoutT = 0; G.shake = Math.max(G.shake, 0.1);
+  }else{
+    G.qCd = Q_CD; G.qReadyAt = G.time + Q_CD;
+    thrustFx(S, dir);
+    SFX.stab();
+    let hits = 0;
+    for(const w of walkers){
+      if(w.state === 'dead') continue;
+      const rx = w.root.position.x - S.x, rz = w.root.position.z - S.z;
+      const along = rx * dir.x + rz * dir.z, perp = Math.abs(rx * dir.z - rz * dir.x);
+      if(along > -0.3 && along <= Q_RANGE + w.spec.radius && perp <= Q_WIDTH + w.spec.radius){ damageWalker(w, 1); hits++; }
+    }
+    if(hits){
+      G.stacks = Math.min(2, G.stacks + 1);
+      SFX.hitmark();
+      if(G.stacks === 2) SFX.storm();
+      G.hitstop = Math.max(G.hitstop, 0.03);
+    }
+  }
+  updateQ();
+}
+function updateQ(){
+  const b = $('qbtn');
+  b.classList.toggle('storm', G.stacks >= 2);
+  b.querySelector('.ico').textContent = G.stacks >= 2 ? '🌪️' : '🗡️';
+  b.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i < G.stacks));
+}
+
+function damageShasuo(d){
+  if(!Q_STATES.includes(G.state) || G.lives <= 0) return;
+  G.hp = Math.max(0, G.hp - d); G.hurtT = 0;
+  SFX.hurt();
+  screenFlash('rgba(255,50,60,.14)');
+  floatText(shasuo.root.position.clone().add(V(0.4, 2.7, 0)), `-${d}`, '#ff6470');
+  if(G.hp <= 0) slain();
+}
+function slain(){
+  G.lives--; G.combo = 0; G.hp = MAX_HP; G.stacks = 0;
+  updateQ();
+  SFX.sad();
+  screenFlash('rgba(255,40,60,.35)');
+  judge('SLAIN', 'miss', null, pick(SLAIN_QUOTES));
+  // he "respawns" in a burst of wind that clears the minions crowding him
+  for(const w of walkers) if(Math.hypot(w.root.position.x - HOME.x, w.root.position.z - HOME.z) < 4.5) killWalker(w, false);
+  ground_fx(HOME, TEX.ring, 0x9fe8ff, { r0: 0.4, r1: 4.5, life: 0.5 });
+  if(G.lives <= 0) G.overAt = G.time + 1.2;
+  updateHud();
+}
+
+function updateLane(dt, T){
+  const live = Q_STATES.includes(G.state) && G.lives > 0; // time freezes for minions while Last Flush plays
+  if(live){
+    G.spawnT -= dt;
+    if(G.spawnT <= 0){
+      const d = clamp(G.n / 22, 0, 1);
+      if(walkers.filter(w => w.state !== 'dead').length < 9){
+        if(G.n >= 3 && Math.random() < 0.14) spawnWalker('cannon');
+        else{ spawnWalker('melee'); if(Math.random() < lerp(0.15, 0.4, d)) spawnWalker('melee'); }
+      }
+      G.spawnT = lerp(2.8, 1.25, d) * rand(0.7, 1.3);
+    }
+    G.hurtT += dt;
+    if(G.hurtT > 3 && G.hp < MAX_HP) G.hp = Math.min(MAX_HP, G.hp + dt * 2);
+  }
+  updateTornadoes(dt);
+  for(let i = walkers.length - 1; i >= 0; i--){
+    const w = walkers[i], p = w.root.position;
+    if(w.state === 'dead'){
+      w.dead += dt;
+      const u = w.dead / 0.35;
+      w.root.scale.setScalar(w.baseScale * Math.max(0.01, 1 - u));
+      p.y += dt * 1.2;
+      w.bar.bg.visible = w.bar.fg.visible = false;
+      if(u >= 1){ removeWalker(w); walkers.splice(i, 1); }
+      continue;
+    }
+    placeBar(w.bar, p, w.spec.y);
+    w.flinch = Math.max(0, w.flinch - dt * 5);
+    if(!live) continue;
+    if(w.state === 'air'){
+      w.air += dt;
+      const u = Math.min(1, w.air / 0.95);
+      p.lerpVectors(w.kbFrom, w.kbTo, easeOut(u));
+      p.y = w.airH * 4 * u * (1 - u);
+      w.root.rotation.x = w.spin * w.air * 0.5;
+      if(u >= 1){
+        w.state = 'walk'; p.y = 0; w.root.rotation.x = 0;
+        puff(V(p.x, 0.2, p.z), 0xc9b08a, { n: 4, speed: 1.5, size: 0.35, life: 0.4, up: 0.3 });
+      }
+      continue;
+    }
+    const dx = HOME.x - p.x, dz = HOME.z - p.z, dist = Math.hypot(dx, dz);
+    if(dist > w.spec.reach){
+      w.state = 'walk';
+      // march down their side of the lane, around the caster wave, then converge on Shasuo
+      let vx = dx / dist, vz = dz / dist;
+      if(p.z < 1.6){ vx = (w.laneX - p.x) * 0.8; vz = 1; }
+      const n = Math.hypot(vx, vz);
+      p.x += vx / n * w.speed * dt; p.z += vz / n * w.speed * dt;
+      w.body.position.y = Math.abs(Math.sin(T * 9 + w.phase)) * 0.07 + w.flinch * 0.12;
+      if(w.wheels) w.wheels.forEach(wh => { wh.rotation.x += dt * w.speed * 4; });
+      faceTowards(w.root, tmp.set(p.x + vx, 0, p.z + vz), 0.2);
+    }else{
+      w.state = 'attack';
+      w.body.position.y = w.flinch * 0.12;
+      faceTowards(w.root, HOME, 0.3);
+      w.atkT += dt;
+      if(w.atkT >= w.spec.atkEvery){
+        w.atkT = 0; w.lunge = 1;
+        if(w.kind === 'cannon'){ SFX.cannon(); cannonball(p, HOME); }
+        damageShasuo(w.spec.dmg);
+      }
+    }
+    w.lunge = Math.max(0, w.lunge - dt * 4);
+    w.body.position.z = Math.sin(w.lunge * Math.PI) * (w.kind === 'cannon' ? -0.15 : 0.3);
+    if(w.arm) w.arm.rotation.x = -Math.sin(w.lunge * Math.PI) * 1.2;
+  }
+  if(!live) return;
+  // keep the wave from collapsing into one blob
+  for(let i = 0; i < walkers.length; i++) for(let j = i + 1; j < walkers.length; j++){
+    const a = walkers[i], b = walkers[j];
+    if(a.state === 'dead' || b.state === 'dead' || a.state === 'air' || b.state === 'air') continue;
+    const pa = a.root.position, pb = b.root.position, min = a.spec.radius + b.spec.radius + 0.1;
+    let dx = pb.x - pa.x, dz = pb.z - pa.z;
+    const d = Math.hypot(dx, dz) || 0.001;
+    if(d < min){
+      const push = (min - d) / 2;
+      dx /= d; dz /= d;
+      pa.x -= dx * push; pa.z -= dz * push; pb.x += dx * push; pb.z += dz * push;
+    }
+  }
+}
+
 // ================================================================ per-frame update
 const tmp = V(), tmp2 = V();
 function faceTowards(obj, target, k = 1){
@@ -1404,6 +1853,7 @@ function faceTowards(obj, target, k = 1){
   obj.rotation.y += d * k;
 }
 const ULT_AIR = V(-1.3, 1.6, 0.5), ULT_LAND = V(-1.9, 0, 0.9);
+const qBtn = $('qbtn');
 const setEmis = e => { for(const m of malph.mats) m.emissive.setRGB(e * 0.9, e * 0.3, 0); };
 
 function animateShasuoCosmetics(T, dt){
@@ -1463,12 +1913,23 @@ function update(dt, now){
   if(st !== 'dash') malph.body.rotation.y *= 0.85;
   let armX = Math.sin(T * 2) * 0.08;
 
-  // --- Shasuo sword arm: idle pose, or a whiff swing
-  G.swingT += dt;
+  // --- Shasuo sword arm: idle pose, a whiff swing, or a Steel Tempest thrust
+  G.swingT += dt; G.stabT += dt;
   if(st !== 'ult'){
     const sw = G.swingT < 0.35 ? Math.sin((G.swingT / 0.35) * Math.PI) : 0;
-    shasuo.armR.rotation.x = -0.25 - sw * 1.6;
+    let ax = -0.25 - sw * 1.6, swordX = SWORD_REST, lunge = 0;
+    const s = G.stabT;
+    if(s < 0.34){
+      ax = s < 0.06 ? lerp(-0.25, 0.4, s / 0.06) : s < 0.13 ? lerp(0.4, -1.6, (s - 0.06) / 0.07) : s < 0.22 ? -1.6 : lerp(-1.6, -0.25, (s - 0.22) / 0.12);
+      swordX = s < 0.26 ? Math.PI : lerp(Math.PI, SWORD_REST, (s - 0.26) / 0.08);
+      lunge = Math.sin(clamp((s - 0.06) / 0.26, 0, 1) * Math.PI) * 0.35;
+    }
+    shasuo.armR.rotation.x = ax; shasuo.sword.rotation.x = swordX; shasuo.body.position.z = lunge;
     shasuo.armL.rotation.x = 0.1;
+    G.qFaceT -= dt;
+    if(G.qFaceT <= 0 && st !== 'menu' && st !== 'over'){
+      faceTowards(shasuo.root, tmp.set(shasuo.root.position.x + Math.sin(IDLE_FACE), 0, shasuo.root.position.z + Math.cos(IDLE_FACE)), 0.12);
+    }
   }
 
   if(st === 'menu' || st === 'over'){
@@ -1493,7 +1954,6 @@ function update(dt, now){
       c.root.rotation.set(0, 0, 0);
     }
     shasuo.root.position.lerp(HOME, 0.2);
-    faceTowards(shasuo.root, tmp.set(HOME.x + Math.sin(IDLE_FACE), 0, HOME.z + Math.cos(IDLE_FACE)), 0.15);
     if(G.t >= 1.25) setState('idle');
   }
   else if(st === 'idle'){
@@ -1679,6 +2139,9 @@ function update(dt, now){
   }
   if(st !== 'after') shasuo.head.rotation.x = lerp(shasuo.head.rotation.x, HEAD_TILT, 0.1);
 
+  updateLane(dt, T);
+  if(G.overAt && G.time >= G.overAt && G.state !== 'ult') gameOver();
+
   // Malphite rig
   setEmis(emis);
   malph.aura.material.opacity = emis * 0.8;
@@ -1691,8 +2154,8 @@ function update(dt, now){
     c.orb.position.y = 1.02 + Math.sin(T * 3 + c.phase) * 0.05;
     const bp = tmp.copy(c.root.position); bp.y += 1.55 * c.root.scale.x;
     c.bar.bg.position.copy(bp);
-    c.bar.fg.position.set(bp.x - 0.36, bp.y, bp.z);
-    c.bar.fg.scale.x = Math.max(0.001, 0.72 * c.bar.hp);
+    c.bar.fg.position.set(bp.x - c.bar.w / 2, bp.y, bp.z);
+    c.bar.fg.scale.x = Math.max(0.001, c.bar.w * c.bar.hp);
     const vis = c.root.scale.x > 0.6;
     c.bar.bg.visible = c.bar.fg.visible = vis;
   }
@@ -1701,6 +2164,8 @@ function update(dt, now){
   malphBar.position.copy(malph.root.position); malphBar.position.y += 2.95;
 
   $('rbtn').classList.toggle('locked', performance.now() < G.lockUntil);
+  qBtn.style.setProperty('--cd', clamp((G.qReadyAt - G.time) / G.qCd, 0, 1).toFixed(3));
+  if(Math.abs(G.hp / MAX_HP - shasuoBar.userData.frac) > 0.004) drawChampBar(shasuoBar, G.hp / MAX_HP);
   updateFx(dt);
 
   // camera: shake + punch-in zoom
@@ -1739,7 +2204,7 @@ function frame(now){
 }
 updateHud();
 window.__shasuoReady = true;
-window.__shasuo = { G }; // handy for debugging from the console
+window.__shasuo = { G, lane: walkers }; // handy for debugging from the console
 requestAnimationFrame(frame);
 </script>
 </body>

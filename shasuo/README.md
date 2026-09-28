@@ -10,9 +10,9 @@ head. **Malphite** (a very solid 💩) hides in the brush and randomly
 Single self-contained file: [`index.html`](index.html). It loads three.js from a
 CDN, so it needs internet the first time.
 
-- **Phone:** open it in Safari/Chrome and tap anywhere (or the big 🚽 R button).
+- **Phone:** open it in Safari/Chrome. Tap the left half of the screen to stab (Q), the right half to ult (R).
   *Share → Add to Home Screen* makes it launch full-screen.
-- **Desktop:** press **R** or **Space**.
+- **Desktop:** press **Q** to stab and **R** or **Space** to ult.
 
 Quick link (renders straight from this branch):
 `https://raw.githack.com/Sliekery/Text-raiding/claude/shasuo-reaction-game-drfoud/shasuo/index.html`
@@ -55,13 +55,31 @@ resolution) if the frame rate dips, so that reaction timing stays fair.
 
 - Consecutive hits build a combo multiplier (up to ×2). Every 10-hit combo
   restocks a 🧻 life.
-- Tapping **before** the knock-up is a whiff: combo reset + ½ s lockout.
+- Tapping R **before** the knock-up is a whiff: combo reset + ½ s lockout.
 - Missing the knock-up entirely costs a 🧻. Lose all 3 and your team types /ff.
 - It gets harder: shorter airtime, faster dashes, **fake-outs** (Malphite
   glows and twitches but doesn't go) and **Flash** ults (blinks in, near-instant
   dash).
-- Your final score maps to a rank from Iron to Challenger; best score is saved
-  on the device.
+
+### Lane pressure and Steel Tempest (Q)
+
+While you watch Malphite, red-side minions march down both sides of the lane
+at Shasuo. **Controls:** left half of the screen (or **Q**) is Steel Tempest,
+right half (or **R** / Space) is Last Flush.
+
+| | |
+|---|---|
+| **Steel Tempest (Q)** | Stab that auto-aims at the nearest minion and hits every minion in a 2.8 m line. 0.4 s cooldown; stabbing at nothing is a whiff. Last hits give gold and CS. |
+| **Gathering Storm** | Each Q that hits adds a stack (pips above the button). |
+| **Whirlwind (Q3)** | At 2 stacks the next Q throws a tornado 9 m up the lane that knocks up and pushes back every minion it passes. |
+| **Self-setup (Q3 → R)** | Press R while your tornado has minions airborne to flush them all for bonus gold. |
+| **Melee minion** | 1 HP, 50 g. Hits Shasuo for 10 when it reaches him. |
+| **Cannon minion** | 3 HP, 150 g, appears from ult #4. Fires from range for 20. |
+
+Shasuo's health bar regenerates after 3 s without taking damage. If it hits
+zero he's **slain**: you lose a 🧻 and a burst of wind clears the minions
+around him. Minions freeze while Last Flush plays, and a Malphite flush also
+takes any minions your whirlwind has in the air.
 
 Reaction time is measured from the frame the knock-up is drawn to the input
 event's timestamp, so it includes your screen/touch latency — just like the
