@@ -19,6 +19,31 @@ Quick link (renders straight from this branch):
 
 Or with GitHub Pages enabled on the repo: `https://sliekery.github.io/Text-raiding/shasuo/`.
 
+## The cast (all assets are generated in code — no image or model files)
+
+- **Shasuo** — Yasuo's wide hakama, red sash, rope strap, bandaged sword arm,
+  layered shoulder pauldron and a curved katana… with a porcelain toilet for a
+  head. Angry googly eyes and the nose scar live on the bowl, his spiky hair
+  erupts from the tank, the open seat lid flaps like a mouth when he shouts,
+  the bowl water spins when he flushes, his ponytail is a streaming ribbon of
+  toilet paper off a roll, and he wears a plunger at the hip like a scabbard.
+- **Malphite** — a lumpy, rock-textured soft-serve 💩 swirl studded with
+  glowing ore crystals, with giant boulder fists, a boulder unibrow, a
+  gap-toothed grin, orbiting flies and rising stink lines. He glows orange
+  when he winds up Unstoppable Force.
+- **Caster minions** — hooded red-side casters with glowing eyes in a void
+  face, floating orb staves and League-style health bars.
+
+**Look:** cel-shaded toon materials with ink outlines, real-time shadows, a
+hand-painted procedural lane with cobblestones and flowers, thousands of
+wind-swept grass blades, tall Rift brush, an enemy turret, drifting pollen and
+League-style name/health bars. **Last Flush** blinks Shasuo in with wind
+crescents and hit-stop, blasts Malphite aside, then flushes the wave down a
+whirlpool. Knock-ups crack the ground and throw rock debris.
+
+Low-end phones automatically drop to a lighter quality mode (no shadows, 1×
+resolution) if the frame rate dips, so that reaction timing stays fair.
+
 ## Rules
 
 | Reaction (from the knock-up) | Grade   | Points |
