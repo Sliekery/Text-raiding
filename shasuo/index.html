@@ -158,7 +158,7 @@
       <p>💩 <b>Malphite</b> lurks in the brush. At any moment he'll <b>Unstoppable Force</b> the caster wave into the air.</p>
       <p>🚽 The instant they're knocked up, tap the <b>right half</b> of the screen (or R) to cast <b>LAST FLUSH</b>. <b>PERFECT</b> is under 180&nbsp;ms; chain hits for a combo multiplier.</p>
       <p>🗡️ Meanwhile minions march down the lane at you. Tap the <b>left half</b> (or Q) for <b>STEEL TEMPEST</b>, a stab that hits every minion in a line. Last hits earn gold and CS.</p>
-      <p>🌪️ Two Q hits charge a <b>whirlwind</b>: your next Q knocks up the whole lane. Hit R while they're airborne for a <b>SELF-SETUP</b> bonus.</p>
+      <p>🌪️ Minions come in <b>packs of 2–3</b>. Two Q hits charge a <b>whirlwind</b>, so stab one pack and your next Q knocks the following pack up. Hit R while they're airborne for a <b>SELF-SETUP</b>.</p>
       <p>⚠️ R before a knock-up is a <b>whiff</b> (½s lockout). Watch for <b>fake-outs</b> and <b>Flash</b> ults.</p>
       <p>🧻 Missing a knock-up or getting slain by minions costs a roll. Lose all 3 and your team types /ff.</p>
     </div>
@@ -1241,7 +1241,7 @@ const G = {
   rts: [], perfects: 0, lockUntil: 0, p: null, center: V(),
   knockTime: 0, spot: 0, shake: 0, zoom: 0, hitstop: 0, swingT: 9, shoutT: 9, flushSpin: 0,
   hopFrom: V(), hopTo: V(), dashFrom: V(), vortex: null,
-  hp: 100, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, qCd: 0.4, stabT: 9, qFaceT: 0, spawnT: 2.5,
+  hp: 100, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, qCd: 0.4, stabT: 9, qFaceT: 0, spawnT: 2.0,
   tornadoes: 0, selfSetups: 0, overAt: 0,
   best: store.get('shasuo_best', 0), flags: {},
 };
@@ -1319,7 +1319,7 @@ function startRound(){
 function startGame(){
   audio();
   Object.assign(G, { score: 0, combo: 0, maxCombo: 0, lives: 3, n: 0, rts: [], perfects: 0, lockUntil: 0, swingT: 9,
-    hp: MAX_HP, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, stabT: 9, qFaceT: 0, spawnT: 2.5, tornadoes: 0, selfSetups: 0, overAt: 0, self: null });
+    hp: MAX_HP, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, stabT: 9, qFaceT: 0, spawnT: 2.0, tornadoes: 0, selfSetups: 0, overAt: 0, self: null });
   clearLane();
   updateQ();
   drawChampBar(shasuoBar, 1);
@@ -1557,15 +1557,29 @@ function makeCannon(){ // siege minion: a little war cart with a cannon and a re
   inkify(root, 0.035);
   return { root, body, wheels };
 }
-function spawnWalker(kind){
+function spawnWalker(kind, laneX, z, speed){
   const spec = WALK[kind];
-  const side = Math.random() < 0.5 ? -1 : 1;
   const w = { kind, spec, ...(kind === 'melee' ? makeMelee() : makeCannon()), hp: spec.hp,
-    speed: rand(...spec.speed) * (1 + 0.3 * clamp(G.n / 22, 0, 1)),
+    speed: speed ?? rand(...spec.speed) * (1 + 0.3 * clamp(G.n / 22, 0, 1)),
     state: 'walk', atkT: rand(0, 0.6), air: 0, airH: 2, spin: 0, lunge: 0, flinch: 0, dead: 0, baseScale: 1,
-    laneX: side * rand(1.7, 2.3), phase: rand(0, 6), bar: creepBar(spec.bar), kbFrom: V(), kbTo: V() };
-  w.root.position.set(w.laneX + rand(-0.2, 0.2), 0, rand(-13, -11.5));
+    laneX, phase: rand(0, 6), bar: creepBar(spec.bar), kbFrom: V(), kbTo: V() };
+  w.root.position.set(laneX, 0, z);
   walkers.push(w);
+}
+// Melee minions come in packs of 2-3 marching side by side, farther apart than a stab is wide,
+// so every minion costs its own Q: clearing one pack charges the whirlwind for the next.
+const PACK_SPACING = 1.15;
+function spawnPack(){
+  const d = clamp(G.n / 22, 0, 1);
+  const size = Math.random() < lerp(0.3, 0.6, d) ? 3 : 2;
+  G.packSide = -(G.packSide || 1);
+  const side = G.packSide;
+  const xs = size === 2 ? [0.8, 0.8 + PACK_SPACING].map(x => x * side)
+                        : [-PACK_SPACING, 0, PACK_SPACING].map(x => x + side * 0.6);
+  const speed = rand(...WALK.melee.speed) * (1 + 0.3 * d);
+  xs.forEach(x => spawnWalker('melee', x, -12.5 - rand(0, 0.4), speed * rand(0.97, 1.03)));
+  // later on a cannon cart sometimes trails the pack
+  if(G.n >= 3 && Math.random() < 0.25) spawnWalker('cannon', side * rand(1.2, 1.8), -14.5);
 }
 function removeWalker(w){
   scene.remove(w.root, w.bar.bg, w.bar.fg);
@@ -1779,16 +1793,13 @@ function updateLane(dt, T){
     G.spawnT -= dt;
     if(G.spawnT <= 0){
       const d = clamp(G.n / 22, 0, 1);
-      if(walkers.filter(w => w.state !== 'dead').length < 9){
-        if(G.n >= 3 && Math.random() < 0.14) spawnWalker('cannon');
-        else{ spawnWalker('melee'); if(Math.random() < lerp(0.15, 0.4, d)) spawnWalker('melee'); }
-      }
-      G.spawnT = lerp(2.8, 1.25, d) * rand(0.7, 1.3);
+      if(walkers.filter(w => w.state !== 'dead').length < 8) spawnPack();
+      G.spawnT = lerp(4.6, 2.8, d) * rand(0.85, 1.15);
     }
     G.hurtT += dt;
     if(G.hurtT > 3 && G.hp < MAX_HP) G.hp = Math.min(MAX_HP, G.hp + dt * 2);
   }
-  updateTornadoes(dt);
+  if(!G.self) updateTornadoes(dt); // a whirlwind in flight also waits out a self-setup
   for(let i = walkers.length - 1; i >= 0; i--){
     const w = walkers[i], p = w.root.position;
     if(w.state === 'dead'){
@@ -1822,7 +1833,7 @@ function updateLane(dt, T){
       w.state = 'walk';
       // march down their side of the lane, around the caster wave, then converge on Shasuo
       let vx = dx / dist, vz = dz / dist;
-      if(p.z < 1.6){ vx = (w.laneX - p.x) * 0.8; vz = 1; }
+      if(p.z < 3.0){ vx = (w.laneX - p.x) * 0.8; vz = 1; }
       const n = Math.hypot(vx, vz);
       p.x += vx / n * w.speed * dt; p.z += vz / n * w.speed * dt;
       w.body.position.y = Math.abs(Math.sin(T * 9 + w.phase)) * 0.07 + w.flinch * 0.12;

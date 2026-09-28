@@ -74,7 +74,8 @@ right half (or **R** / Space) is Last Flush.
 | **Whirlwind (Q3)** | At 2 stacks the next Q throws a tornado 9 m up the lane that knocks up and pushes back every minion it passes. |
 | **Self-setup (Q3 → R)** | Press R while your tornado has minions airborne: Shasuo plays the full Last Flush on them (the round pauses meanwhile) for bonus gold. |
 | **Melee minion** | 1 HP, 50 g, fast (about 2.2 m/s, up to 30% faster later). Hits Shasuo for 10 when it reaches him. |
-| **Cannon minion** | 3 HP, 150 g, appears from ult #4. Fires from range for 20. |
+| **Packs** | Melee minions arrive in packs of 2–3, side by side on alternating sides of the lane and spaced wider than a stab, so each minion takes its own Q. Stabbing one pack charges the whirlwind for the next: stab, tornado, stab, tornado. |
+| **Cannon minion** | 3 HP, 150 g. From ult #4 one sometimes trails a pack. Fires from range for 20. |
 
 Shasuo's health bar regenerates after 3 s without taking damage. If it hits
 zero he's **slain**: you lose a 🧻 and a burst of wind clears the minions
