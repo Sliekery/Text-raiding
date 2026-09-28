@@ -5,6 +5,10 @@ A text-based raid game with retro terminal graphics. You play **one** member of 
 4-boss raid, *The Sunken Throne*. Pick a role, learn your class's kit, gear up,
 and push from **Normal → Heroic → Mythic**.
 
+> 🚽 **Bonus:** [`shasuo/`](shasuo/) contains *Shasuo: Last Flush*, a three.js
+> reaction mini-game — Yasuo with a toilet for a head vs. a poop-shaped Malphite.
+> Open `shasuo/index.html` on your phone.
+
 ```
         __/\__            Voidlord Malach
        ' .  . '           Herald of the End
