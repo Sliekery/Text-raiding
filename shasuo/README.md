@@ -79,8 +79,9 @@ right half (or **R** / Space) is Last Flush.
 
 Shasuo's health bar regenerates after 3 s without taking damage. If it hits
 zero he's **slain**: you lose a 🧻 and a burst of wind clears the minions
-around him. Minions freeze while Last Flush plays, and a Malphite flush also
-takes any minions your whirlwind has in the air.
+around him. Minions freeze while Last Flush plays, and Malphite's ult also
+knocks up melee minions within about 2 m of the impact: landing Last Flush carries them
+(and any minions your whirlwind has in the air) through the flush for bonus gold.
 
 Reaction time is measured from the frame the knock-up is drawn to the input
 event's timestamp, so it includes your screen/touch latency — just like the

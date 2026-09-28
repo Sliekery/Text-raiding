@@ -1444,10 +1444,17 @@ function impact(now){
     cr.spin = rand(-7, 7);
     cr.drift = V(cr.home.x - c.x, 0, cr.home.z - c.z).multiplyScalar(0.25);
   }
+  for(const w of walkers){
+    if(w.state !== 'walk' && w.state !== 'attack') continue;
+    const dx = w.root.position.x - c.x, dz = w.root.position.z - c.z, d = Math.hypot(dx, dz);
+    if(d < MAL_KNOCK_RADIUS + w.spec.radius) knockWalker(w, V(dx, 0, dz).normalize(), 0.4, G.p.airT);
+  }
 }
+const MAL_KNOCK_RADIUS = 2.0;
 
 function hit(rt){
-  flushAirborneWalkers();
+  const airMinions = walkers.filter(w => w.state === 'air');
+  for(const w of airMinions){ w.state = 'ulted'; w.y0 = w.root.position.y; w.s0 = w.root.scale.x; }
   G.stabT = 9; G.qFaceT = 0;
   shasuo.sword.rotation.x = SWORD_REST; shasuo.body.position.z = 0;
   const g = GRADES.find(x => rt <= x.max);
@@ -1461,13 +1468,14 @@ function hit(rt){
   $('sLast').textContent = `${Math.round(rt)} ms`;
   let quote = g.name === 'PERFECT' && Math.random() < 0.35 ? pick(PERFECT_QUOTES) : pick(HIT_QUOTES);
   if(G.combo % 10 === 0 && G.lives < 3){ G.lives++; quote = '+1 🧻  Combo restock!'; SFX.life(); }
-  judge(g.name, g.cls, rt, `${quote}   +${pts}`);
+  judge(g.name, g.cls, rt, `${quote}   +${pts}${airMinions.length ? `   (+${airMinions.length} minion${airMinions.length > 1 ? 's' : ''})` : ''}`);
   SFX.whoosh();
   G.shoutT = 0;
   G.malphFrom = malph.root.position.clone();
   G.malphTo = G.center.clone().add(V(2.3, 0, -1.2));
   for(const c of creeps){ c.y0 = c.root.position.y; c.s0 = c.root.scale.x; }
-  G.ult = { center: G.center.clone(), targets: creeps, flags: {}, vortex: null, onFlushed: clearCreeps };
+  G.ult = { center: G.center.clone(), targets: [...creeps, ...airMinions], flags: {}, vortex: null,
+    onFlushed(){ clearCreeps(); for(const w of airMinions) killWalker(w, true, 100); } };
   puff(V(HOME.x, 1.2, HOME.z), 0x8fe0ff, { n: 12, speed: 2.5, size: 0.35, life: 0.45, up: 1.2, add: true });
   setState('ult');
   updateHud();
@@ -1623,17 +1631,12 @@ function damageWalker(w, dmg){
   puff(w.root.position.clone().add(V(0, 0.6, 0)), 0xdff8ff, { n: 4, speed: 2.2, size: 0.18, life: 0.25, add: true });
   if(w.hp <= 0) killWalker(w);
 }
-function knockWalker(w, dir){
+function knockWalker(w, dir, push = 1.5, airDur = 0.95){
   if(w.state === 'dead') return;
-  w.state = 'air'; w.air = 0; w.airH = rand(1.9, 2.4); w.spin = rand(-6, 6);
+  w.state = 'air'; w.air = 0; w.airDur = airDur; w.airH = rand(1.9, 2.4); w.spin = rand(-6, 6);
   w.kbFrom.copy(w.root.position); w.kbFrom.y = 0;
-  w.kbTo.copy(w.kbFrom).addScaledVector(dir, 1.5);
+  w.kbTo.copy(w.kbFrom).addScaledVector(dir, push);
   puff(V(w.kbFrom.x, 0.3, w.kbFrom.z), 0xdff8ff, { n: 5, speed: 2, size: 0.35, life: 0.4, up: 1 });
-}
-function flushAirborneWalkers(){
-  const air = walkers.filter(w => w.state === 'air');
-  for(const w of air){ slashFx(w.root.position.clone().add(V(0, 0.5, 0)), rand(0, 6), 0.7); killWalker(w, true, 100); }
-  return air.length;
 }
 function selfSetup(){
   const air = walkers.filter(w => w.state === 'air');
@@ -1818,7 +1821,7 @@ function updateLane(dt, T){
     if(!live) continue;
     if(w.state === 'air'){
       w.air += dt;
-      const u = Math.min(1, w.air / 0.95);
+      const u = Math.min(1, w.air / w.airDur);
       p.lerpVectors(w.kbFrom, w.kbTo, easeOut(u));
       p.y = w.airH * 4 * u * (1 - u);
       w.root.rotation.x = w.spin * w.air * 0.5;
