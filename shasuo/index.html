@@ -1319,7 +1319,7 @@ function startRound(){
 function startGame(){
   audio();
   Object.assign(G, { score: 0, combo: 0, maxCombo: 0, lives: 3, n: 0, rts: [], perfects: 0, lockUntil: 0, swingT: 9,
-    hp: MAX_HP, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, stabT: 9, qFaceT: 0, spawnT: 2.5, tornadoes: 0, selfSetups: 0, overAt: 0 });
+    hp: MAX_HP, hurtT: 9, cs: 0, stacks: 0, qReadyAt: 0, stabT: 9, qFaceT: 0, spawnT: 2.5, tornadoes: 0, selfSetups: 0, overAt: 0, self: null });
   clearLane();
   updateQ();
   drawChampBar(shasuoBar, 1);
@@ -1371,7 +1371,7 @@ function gameOver(){
 function pressR(ts){
   const btn = $('rbtn');
   btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 90);
-  if(ts < G.lockUntil) return;
+  if(ts < G.lockUntil || G.self) return;
   const st = G.state;
   if(st === 'air'){
     hit(Math.max(0, ts - G.knockTime));
@@ -1421,7 +1421,7 @@ function showMenuBest(){ $('menuBest').textContent = G.best ? `Best score: ${G.b
 showMenuBest();
 document.addEventListener('visibilitychange', () => {
   // don't punish the player for a notification / app switch mid-ult: just re-deal the round
-  if(document.hidden && ['setup', 'idle', 'windup', 'dash', 'air'].includes(G.state)) startRound();
+  if(document.hidden && !G.self && ['setup', 'idle', 'windup', 'dash', 'air'].includes(G.state)) startRound();
 });
 
 // ================================================================ round outcomes
@@ -1466,7 +1466,8 @@ function hit(rt){
   G.shoutT = 0;
   G.malphFrom = malph.root.position.clone();
   G.malphTo = G.center.clone().add(V(2.3, 0, -1.2));
-  for(const c of creeps) c.y0 = c.root.position.y;
+  for(const c of creeps){ c.y0 = c.root.position.y; c.s0 = c.root.scale.x; }
+  G.ult = { center: G.center.clone(), targets: creeps, flags: {}, vortex: null, onFlushed: clearCreeps };
   puff(V(HOME.x, 1.2, HOME.z), 0x8fe0ff, { n: 12, speed: 2.5, size: 0.35, life: 0.45, up: 1.2, add: true });
   setState('ult');
   updateHud();
@@ -1487,7 +1488,7 @@ const Q_RANGE = 2.8, Q_WIDTH = 0.6, Q3_RANGE = 9, Q_CD = 0.4, Q3_CD = 0.7, MAX_H
 const Q_STATES = ['setup', 'idle', 'windup', 'dash', 'air', 'after'];
 const SWORD_REST = Math.PI / 2 + 0.35;
 const WALK = {
-  melee:  { hp: 1, speed: [1.15, 1.55], reach: 0.95, dmg: 10, atkEvery: 1.1, gold: 50,  bar: 0.78, radius: 0.35, y: 1.5 },
+  melee:  { hp: 1, speed: [1.9, 2.5], reach: 0.95, dmg: 10, atkEvery: 1.1, gold: 50,  bar: 0.78, radius: 0.35, y: 1.5 },
   cannon: { hp: 3, speed: [0.75, 0.95], reach: 2.3,  dmg: 20, atkEvery: 1.7, gold: 150, bar: 1.15, radius: 0.55, y: 1.6 },
 };
 const SLAIN_QUOTES = ['Shasuo has been slain.', 'Death by a thousand minions.', 'Outpushed by the wave.', 'Should have Q\'d that.'];
@@ -1559,7 +1560,8 @@ function makeCannon(){ // siege minion: a little war cart with a cannon and a re
 function spawnWalker(kind){
   const spec = WALK[kind];
   const side = Math.random() < 0.5 ? -1 : 1;
-  const w = { kind, spec, ...(kind === 'melee' ? makeMelee() : makeCannon()), hp: spec.hp, speed: rand(...spec.speed),
+  const w = { kind, spec, ...(kind === 'melee' ? makeMelee() : makeCannon()), hp: spec.hp,
+    speed: rand(...spec.speed) * (1 + 0.3 * clamp(G.n / 22, 0, 1)),
     state: 'walk', atkT: rand(0, 0.6), air: 0, airH: 2, spin: 0, lunge: 0, flinch: 0, dead: 0, baseScale: 1,
     laneX: side * rand(1.7, 2.3), phase: rand(0, 6), bar: creepBar(spec.bar), kbFrom: V(), kbTo: V() };
   w.root.position.set(w.laneX + rand(-0.2, 0.2), 0, rand(-13, -11.5));
@@ -1570,6 +1572,7 @@ function removeWalker(w){
   w.bar.bg.material.dispose(); w.bar.fg.material.dispose();
 }
 function clearLane(){
+  G.self = null;
   walkers.forEach(removeWalker); walkers.length = 0;
   for(const t of tornadoes){ scene.remove(t.g); t.layers.forEach(l => l.material.dispose()); t.base.material.dispose(); }
   tornadoes.length = 0;
@@ -1619,12 +1622,22 @@ function flushAirborneWalkers(){
   return air.length;
 }
 function selfSetup(){
-  const n = flushAirborneWalkers();
-  if(!n) return false;
+  const air = walkers.filter(w => w.state === 'air');
+  if(!air.length) return false;
   G.selfSetups++;
-  SFX.slash(); SFX.flush();
-  G.flushSpin = 1; G.shoutT = 0; G.swingT = 0; G.hitstop = 0.07; G.shake = Math.max(G.shake, 0.18);
-  judge('SELF-SETUP', 'great', null, `Q3 → R · ${n} flushed`);
+  const center = V();
+  for(const w of air){
+    center.add(w.root.position);
+    w.state = 'ulted'; w.y0 = w.root.position.y; w.s0 = w.root.scale.x; w.spin = w.spin || rand(-6, 6);
+  }
+  center.divideScalar(air.length); center.y = 0;
+  G.self = { t: 0, center, targets: air, flags: {}, vortex: null,
+    onFlushed(){ for(const w of air) killWalker(w, true, 100); } };
+  G.stabT = 9; G.qFaceT = 0;
+  shasuo.sword.rotation.x = SWORD_REST; shasuo.body.position.z = 0;
+  SFX.whoosh(); G.shoutT = 0;
+  puff(V(HOME.x, 1.2, HOME.z), 0x8fe0ff, { n: 12, speed: 2.5, size: 0.35, life: 0.45, up: 1.2, add: true });
+  judge('SELF-SETUP', 'great', null, `Q3 → R · ${air.length} airborne   +${air.length * 100} bonus`);
   return true;
 }
 
@@ -1672,7 +1685,7 @@ function updateTornadoes(dt){
       t.pos.addScaledVector(t.dir, step); t.dist += step;
       if(Math.random() < dt * 30) puff(V(t.pos.x, 0.2, t.pos.z), 0xc9b08a, { n: 1, speed: 1.5, size: 0.45, life: 0.5, up: 0.3 });
       for(const w of walkers){
-        if(w.state === 'dead' || t.hit.has(w)) continue;
+        if(w.state === 'dead' || w.state === 'ulted' || t.hit.has(w)) continue;
         if(Math.hypot(w.root.position.x - t.pos.x, w.root.position.z - t.pos.z) < 0.95 + w.spec.radius){ t.hit.add(w); knockWalker(w, t.dir); }
       }
     }else{
@@ -1694,7 +1707,7 @@ function updateTornadoes(dt){
 function castQ(){
   const btn = $('qbtn');
   btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 90);
-  if(!Q_STATES.includes(G.state) || G.time < G.qReadyAt) return;
+  if(!Q_STATES.includes(G.state) || G.self || G.time < G.qReadyAt) return;
   const S = shasuo.root.position, storm = G.stacks >= 2, range = storm ? Q3_RANGE : Q_RANGE;
   // auto-aim at the nearest minion (straight up the lane if nothing is close)
   let target = null, best = Infinity;
@@ -1740,7 +1753,7 @@ function updateQ(){
 }
 
 function damageShasuo(d){
-  if(!Q_STATES.includes(G.state) || G.lives <= 0) return;
+  if(!Q_STATES.includes(G.state) || G.self || G.lives <= 0) return;
   G.hp = Math.max(0, G.hp - d); G.hurtT = 0;
   SFX.hurt();
   screenFlash('rgba(255,50,60,.14)');
@@ -1761,7 +1774,7 @@ function slain(){
 }
 
 function updateLane(dt, T){
-  const live = Q_STATES.includes(G.state) && G.lives > 0; // time freezes for minions while Last Flush plays
+  const live = Q_STATES.includes(G.state) && G.lives > 0 && !G.self; // minions freeze while Last Flush plays
   if(live){
     G.spawnT -= dt;
     if(G.spawnT <= 0){
@@ -1788,6 +1801,8 @@ function updateLane(dt, T){
       continue;
     }
     placeBar(w.bar, p, w.spec.y);
+    if(w.root.scale.x < 0.6) w.bar.bg.visible = w.bar.fg.visible = false;
+    if(w.state === 'ulted') continue; // being carried by Last Flush
     w.flinch = Math.max(0, w.flinch - dt * 5);
     if(!live) continue;
     if(w.state === 'air'){
@@ -1832,7 +1847,7 @@ function updateLane(dt, T){
   // keep the wave from collapsing into one blob
   for(let i = 0; i < walkers.length; i++) for(let j = i + 1; j < walkers.length; j++){
     const a = walkers[i], b = walkers[j];
-    if(a.state === 'dead' || b.state === 'dead' || a.state === 'air' || b.state === 'air') continue;
+    if(a.state !== 'walk' && a.state !== 'attack' || b.state !== 'walk' && b.state !== 'attack') continue;
     const pa = a.root.position, pb = b.root.position, min = a.spec.radius + b.spec.radius + 0.1;
     let dx = pb.x - pa.x, dz = pb.z - pa.z;
     const d = Math.hypot(dx, dz) || 0.001;
@@ -1879,8 +1894,98 @@ function animateShasuoCosmetics(T, dt){
   hd.waterMat.map.rotation += dt * (0.4 + G.flushSpin * 14);
 }
 
+// Shared LAST FLUSH choreography: blink to an airborne group (L.targets), suspend them, slice,
+// flush them down a whirlpool at L.center, then dash home. Returns true when it has finished.
+function lastBreath(L, t, dt){
+  const air = tmp2.copy(L.center).add(ULT_AIR);
+  if(t < 0.1){
+    shasuo.root.scale.setScalar(SH_SCALE * (1 - t / 0.1));
+  }else if(!L.flags.blinked){
+    L.flags.blinked = true;
+    shasuo.root.position.copy(air);
+    puff(V(air.x, air.y + 1, air.z), 0x8fe0ff, { n: 14, speed: 3, size: 0.35, life: 0.4, add: true });
+    G.zoom = 1.4;
+  }
+  if(t >= 0.1 && t < 0.62){
+    shasuo.root.scale.setScalar(SH_SCALE * Math.min(1, (t - 0.1) / 0.08));
+    faceTowards(shasuo.root, L.center, 0.5);
+    shasuo.root.position.y = air.y + Math.sin(t * 20) * 0.05;
+    [0.2, 0.3, 0.4, 0.5, 0.58].forEach((ts, i) => {
+      if(t >= ts && !L.flags['s' + i]){
+        L.flags['s' + i] = true;
+        const big = i === 4;
+        slashFx(V(L.center.x, 2.2, L.center.z), big ? 0.3 : rand(-1.4, 1.4) + (i % 2 ? Math.PI / 2 : 0), big ? 1.6 : 1.1);
+        if(big) slashFx(V(L.center.x, 2.2, L.center.z), 0.3 + Math.PI / 2, 1.6);
+        SFX.slash();
+        G.shake = Math.max(G.shake, big ? 0.25 : 0.12);
+        G.hitstop = big ? 0.08 : 0.045;
+        for(const c of L.targets){
+          c.bar.hp = Math.max(0, 1 - (i + 1) * 0.22);
+          puff(c.root.position.clone().add(V(0, 0.6, 0)), 0xbff6ff, { n: 3, speed: 2, size: 0.18, life: 0.25, add: true });
+        }
+      }
+    });
+    const ph = ((t - 0.2) % 0.1) / 0.1;
+    shasuo.armR.rotation.x = t > 0.2 ? lerp(-2.7, 0.7, ph) : -2.3;
+    shasuo.armL.rotation.x = -0.7;
+    for(const c of L.targets){
+      c.root.position.y = lerp(c.y0, 2.3, easeOut(clamp(t / 0.25, 0, 1))) + (t > 0.2 ? rand(-0.04, 0.04) : 0);
+      c.root.rotation.x += dt * c.spin * 0.2;
+    }
+  }
+  if(t >= 0.62){
+    if(!L.flags.vortex){
+      L.flags.vortex = true;
+      L.vortex = ground_fx(L.center, TEX.swirl, 0xffffff, { r0: 0.1, r1: 1.7, life: 0.85, hold: 0.7, y: 0.06 });
+      SFX.flush();
+      G.flushSpin = 1.2;
+      G.shoutT = 0;
+      for(const c of L.targets){
+        c.sa = Math.atan2(c.root.position.z - L.center.z, c.root.position.x - L.center.x);
+        c.sr = Math.hypot(c.root.position.z - L.center.z, c.root.position.x - L.center.x) + 0.3;
+        c.sy = c.root.position.y;
+      }
+    }
+    if(L.vortex) L.vortex.rotation.z -= dt * 9;
+    // Shasuo drops to the ground beside the whirlpool and sheathes
+    if(t < 0.85){
+      const u = (t - 0.62) / 0.23;
+      tmp.copy(L.center).add(ULT_LAND);
+      shasuo.root.position.lerpVectors(air, tmp, u);
+      shasuo.root.position.y = lerp(air.y, 0, u * u);
+      shasuo.armR.rotation.x = 0.4;
+    }
+    // the targets swirl down the drain
+    const u = clamp((t - 0.62) / 0.5, 0, 1);
+    if(!L.flags.flushed) for(const c of L.targets){
+      const a = c.sa + u * 10, r = c.sr * (1 - u);
+      c.root.position.set(L.center.x + Math.cos(a) * r, c.sy * Math.pow(1 - u, 1.6), L.center.z + Math.sin(a) * r);
+      c.root.rotation.y += dt * 12;
+      c.root.scale.setScalar(c.s0 * (1 - u * 0.85));
+    }
+    if(t >= 1.12 && !L.flags.flushed){
+      L.flags.flushed = true;
+      L.onFlushed();
+      SFX.splash(); SFX.pop();
+      G.shake = 0.2;
+      puff(V(L.center.x, 0.3, L.center.z), 0x7fd8ff, { n: 16, speed: 3.5, size: 0.25, life: 0.6, up: 2, grav: 10, add: true });
+      ground_fx(L.center, TEX.ring, 0x9fe8ff, { r0: 0.3, r1: 2.6, life: 0.4 });
+    }
+    if(t >= 1.2 && t < 1.5){
+      const u2 = smooth((t - 1.2) / 0.3);
+      tmp.copy(L.center).add(ULT_LAND);
+      shasuo.root.position.lerpVectors(tmp, HOME, u2);
+      shasuo.root.position.y = 0;
+      faceTowards(shasuo.root, HOME, 0.3);
+      puff(V(shasuo.root.position.x, 0.5, shasuo.root.position.z), 0x8fe0ff, { n: 1, speed: 0.4, size: 0.3, life: 0.3, add: true });
+    }
+  }
+  return t >= 1.6;
+}
+
 function update(dt, now){
-  G.time += dt; G.t += dt;
+  G.time += dt;
+  if(!G.self) G.t += dt;
   const T = G.time, st = G.state;
   grassUniforms.time.value = T;
 
@@ -1915,7 +2020,7 @@ function update(dt, now){
 
   // --- Shasuo sword arm: idle pose, a whiff swing, or a Steel Tempest thrust
   G.swingT += dt; G.stabT += dt;
-  if(st !== 'ult'){
+  if(st !== 'ult' && !G.self){
     const sw = G.swingT < 0.35 ? Math.sin((G.swingT / 0.35) * Math.PI) : 0;
     let ax = -0.25 - sw * 1.6, swordX = SWORD_REST, lunge = 0;
     const s = G.stabT;
@@ -1932,7 +2037,11 @@ function update(dt, now){
     }
   }
 
-  if(st === 'menu' || st === 'over'){
+  if(G.self){
+    G.self.t += dt;
+    if(lastBreath(G.self, G.self.t, dt)) G.self = null;
+  }
+  else if(st === 'menu' || st === 'over'){
     malph.body.position.y = Math.abs(Math.sin(T * 3)) * 0.08;
     faceTowards(malph.root, shasuo.root.position, 0.1);
     shasuo.root.rotation.y = IDLE_FACE + Math.sin(T * 0.7) * 0.25;
@@ -2030,9 +2139,8 @@ function update(dt, now){
     if(u >= 1) miss();
   }
   else if(st === 'ult'){
-    // LAST FLUSH: blink to the airborne wave, suspend them, slice, then flush them down a whirlpool.
+    // LAST FLUSH on Malphite's knock-up
     const t = G.t;
-    const air = tmp2.copy(G.center).add(ULT_AIR);
     if(t < 0.45){ // Malphite gets swept aside by the wind, spinning dizzily
       const u = easeOut(clamp(t / 0.45, 0, 1));
       malph.root.position.lerpVectors(G.malphFrom, G.malphTo, u);
@@ -2040,89 +2148,7 @@ function update(dt, now){
       malph.body.rotation.y = u * Math.PI * 4;
       if(!G.flags.gust){ G.flags.gust = true; puff(V(G.center.x + 0.8, 0.6, G.center.z - 0.4), 0xdff8ff, { n: 8, speed: 3, size: 0.6, life: 0.5, up: 0.4 }); }
     }
-    if(t < 0.1){
-      shasuo.root.scale.setScalar(SH_SCALE * (1 - t / 0.1));
-    }else if(!G.flags.blinked){
-      G.flags.blinked = true;
-      shasuo.root.position.copy(air);
-      puff(V(air.x, air.y + 1, air.z), 0x8fe0ff, { n: 14, speed: 3, size: 0.35, life: 0.4, add: true });
-      G.zoom = 1.4;
-    }
-    if(t >= 0.1 && t < 0.62){
-      shasuo.root.scale.setScalar(SH_SCALE * Math.min(1, (t - 0.1) / 0.08));
-      faceTowards(shasuo.root, G.center, 0.5);
-      shasuo.root.position.y = air.y + Math.sin(t * 20) * 0.05;
-      [0.2, 0.3, 0.4, 0.5, 0.58].forEach((ts, i) => {
-        if(t >= ts && !G.flags['s' + i]){
-          G.flags['s' + i] = true;
-          const big = i === 4;
-          slashFx(V(G.center.x, 2.2, G.center.z), big ? 0.3 : rand(-1.4, 1.4) + (i % 2 ? Math.PI / 2 : 0), big ? 1.6 : 1.1);
-          if(big) slashFx(V(G.center.x, 2.2, G.center.z), 0.3 + Math.PI / 2, 1.6);
-          SFX.slash();
-          G.shake = Math.max(G.shake, big ? 0.25 : 0.12);
-          G.hitstop = big ? 0.08 : 0.045;
-          for(const c of creeps){
-            c.bar.hp = Math.max(0, 1 - (i + 1) * 0.22);
-            puff(c.root.position.clone().add(V(0, 0.6, 0)), 0xbff6ff, { n: 3, speed: 2, size: 0.18, life: 0.25, add: true });
-          }
-        }
-      });
-      const ph = ((t - 0.2) % 0.1) / 0.1;
-      shasuo.armR.rotation.x = t > 0.2 ? lerp(-2.7, 0.7, ph) : -2.3;
-      shasuo.armL.rotation.x = -0.7;
-      for(const c of creeps){
-        c.root.position.y = lerp(c.y0, 2.3, easeOut(clamp(t / 0.25, 0, 1))) + (t > 0.2 ? rand(-0.04, 0.04) : 0);
-        c.root.rotation.x += dt * c.spin * 0.2;
-      }
-    }
-    if(t >= 0.62){
-      if(!G.flags.vortex){
-        G.flags.vortex = true;
-        G.vortex = ground_fx(G.center, TEX.swirl, 0xffffff, { r0: 0.1, r1: 1.7, life: 0.85, hold: 0.7, y: 0.06 });
-        SFX.flush();
-        G.flushSpin = 1.2;
-        G.shoutT = 0;
-        for(const c of creeps){
-          c.sa = Math.atan2(c.root.position.z - G.center.z, c.root.position.x - G.center.x);
-          c.sr = Math.hypot(c.root.position.z - G.center.z, c.root.position.x - G.center.x) + 0.3;
-          c.sy = c.root.position.y;
-        }
-      }
-      if(G.vortex) G.vortex.rotation.z -= dt * 9;
-      // Shasuo drops to the ground beside the whirlpool and sheathes
-      if(t < 0.85){
-        const u = (t - 0.62) / 0.23;
-        tmp.copy(G.center).add(ULT_LAND);
-        shasuo.root.position.lerpVectors(air, tmp, u);
-        shasuo.root.position.y = lerp(air.y, 0, u * u);
-        shasuo.armR.rotation.x = 0.4;
-      }
-      // creeps swirl down the drain
-      const u = clamp((t - 0.62) / 0.5, 0, 1);
-      for(const c of creeps){
-        const a = c.sa + u * 10, r = c.sr * (1 - u);
-        c.root.position.set(G.center.x + Math.cos(a) * r, c.sy * Math.pow(1 - u, 1.6), G.center.z + Math.sin(a) * r);
-        c.root.rotation.y += dt * 12;
-        c.root.scale.setScalar(1.15 * (1 - u * 0.85));
-      }
-      if(t >= 1.12 && !G.flags.flushed){
-        G.flags.flushed = true;
-        clearCreeps();
-        SFX.splash(); SFX.pop();
-        G.shake = 0.2;
-        puff(V(G.center.x, 0.3, G.center.z), 0x7fd8ff, { n: 16, speed: 3.5, size: 0.25, life: 0.6, up: 2, grav: 10, add: true });
-        ground_fx(G.center, TEX.ring, 0x9fe8ff, { r0: 0.3, r1: 2.6, life: 0.4 });
-      }
-      if(t >= 1.2 && t < 1.5){
-        const u2 = smooth((t - 1.2) / 0.3);
-        tmp.copy(G.center).add(ULT_LAND);
-        shasuo.root.position.lerpVectors(tmp, HOME, u2);
-        shasuo.root.position.y = 0;
-        faceTowards(shasuo.root, HOME, 0.3);
-        puff(V(shasuo.root.position.x, 0.5, shasuo.root.position.z), 0x8fe0ff, { n: 1, speed: 0.4, size: 0.3, life: 0.3, add: true });
-      }
-    }
-    if(t >= 1.6){ G.vortex = null; G.n++; startRound(); }
+    if(lastBreath(G.ult, t, dt)){ G.n++; startRound(); }
   }
   else if(st === 'after'){
     const t = G.t;

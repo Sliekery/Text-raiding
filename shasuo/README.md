@@ -72,8 +72,8 @@ right half (or **R** / Space) is Last Flush.
 | **Steel Tempest (Q)** | Stab that auto-aims at the nearest minion and hits every minion in a 2.8 m line. 0.4 s cooldown; stabbing at nothing is a whiff. Last hits give gold and CS. |
 | **Gathering Storm** | Each Q that hits adds a stack (pips above the button). |
 | **Whirlwind (Q3)** | At 2 stacks the next Q throws a tornado 9 m up the lane that knocks up and pushes back every minion it passes. |
-| **Self-setup (Q3 → R)** | Press R while your tornado has minions airborne to flush them all for bonus gold. |
-| **Melee minion** | 1 HP, 50 g. Hits Shasuo for 10 when it reaches him. |
+| **Self-setup (Q3 → R)** | Press R while your tornado has minions airborne: Shasuo plays the full Last Flush on them (the round pauses meanwhile) for bonus gold. |
+| **Melee minion** | 1 HP, 50 g, fast (about 2.2 m/s, up to 30% faster later). Hits Shasuo for 10 when it reaches him. |
 | **Cannon minion** | 3 HP, 150 g, appears from ult #4. Fires from range for 20. |
 
 Shasuo's health bar regenerates after 3 s without taking damage. If it hits
