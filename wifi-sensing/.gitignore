@@ -1,0 +1,4 @@
+pc/calibration.json
+*.csv
+__pycache__/
+firmware/.pio/
