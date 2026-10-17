@@ -13,6 +13,14 @@ and push from **Normal → Heroic → Mythic**.
       - MALACH -            12% HP   ⚠ ENRAGED   ✦ PHASE 2
 ```
 
+## Also in this repo
+
+- **[Blood Moor](blood-moor/)**: an isometric action RPG homage to Diablo II's
+  first act. Play the Sorceress with a 25-skill tree, level up, chase magic,
+  rare and unique loot, and clear the Den of Evil. Mouse, keyboard and touch.
+  Open `blood-moor/index.html` through a static web server.
+- **[Cinder Keep](souls-demo/)**: a PS1-style souls-like browser demo.
+
 ## Play
 
 ### 📱 On iPhone / any browser (recommended for mobile)
