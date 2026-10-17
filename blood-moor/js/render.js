@@ -4,6 +4,8 @@ const RD = { cv: null, ctx: null, W: 0, H: 0, Z: 1, dpr: 1, camX: 0, camY: 0, li
 
 function renderInit() {
   RD.cv = $('#game'); RD.ctx = RD.cv.getContext('2d');
+  // the world is drawn 1:1 into a small frame buffer, snapped to the palette, then blown up with hard pixels
+  RD.buf = makeCanvas(8, 8); RD.bctx = RD.buf.getContext('2d', { willReadFrequently: true });
   RD.light = makeCanvas(8, 8); RD.lctx = RD.light.getContext('2d');
   resizeRender(); addEventListener('resize', resizeRender);
 }
@@ -13,9 +15,12 @@ function resizeRender() {
   if (w * h * RD.dpr * RD.dpr > 2.6e6) RD.dpr = Math.sqrt(2.6e6 / (w * h));
   RD.cv.width = Math.round(w * RD.dpr); RD.cv.height = Math.round(h * RD.dpr);
   RD.W = RD.cv.width; RD.H = RD.cv.height;
-  const zc = w < h ? clamp(w / 470, .62, 1.6) : clamp(Math.min(w / 800, h / 560), .62, 2);
-  RD.Z = zc * RD.dpr; RD.cssZ = zc;
-  RD.light.width = Math.ceil(RD.W / 4); RD.light.height = Math.ceil(RD.H / 4);
+  // one game pixel = S screen pixels; aim for a view about 440 game pixels tall (420 wide in portrait)
+  RD.S = Math.max(RD.H < 600 ? 1 : 2, Math.round(w < h ? RD.W / 420 : RD.H / 440));
+  RD.bw = Math.ceil(RD.W / RD.S); RD.bh = Math.ceil(RD.H / RD.S);
+  RD.buf.width = RD.bw; RD.buf.height = RD.bh;
+  RD.Z = RD.S; RD.cssZ = RD.S / RD.dpr;
+  RD.light.width = Math.ceil(RD.bw / 4); RD.light.height = Math.ceil(RD.bh / 4);
 }
 const toScreen = (x, y) => [isoX(x, y), isoY(x, y)];
 function screenToWorld(px, py) {
@@ -26,18 +31,18 @@ function screenToWorld(px, py) {
 function worldToCss(x, y, z = 0) { return [((isoX(x, y) - RD.camX) * RD.Z + RD.W / 2) / RD.dpr, ((isoY(x, y) - z - RD.camY) * RD.Z + RD.H / 2) / RD.dpr]; }
 
 function render(dt) {
-  const ctx = RD.ctx, A = G.area, t = G.time;
+  const ctx = RD.bctx, A = G.area, t = G.time, bw = RD.bw, bh = RD.bh;
   if (!A) return;
   RD.hoverables = [];
   // camera follows the player with a little shake
   const [px, py] = toScreen(P.x, P.y);
   RD.camX = px; RD.camY = py - 18;
   if (G.shake > 0) { RD.camX += rand(-1, 1) * G.shake * 18; RD.camY += rand(-1, 1) * G.shake * 12; G.shake = Math.max(0, G.shake - dt * 1.4); }
-  RD.camX = Math.round(RD.camX * RD.Z) / RD.Z; RD.camY = Math.round(RD.camY * RD.Z) / RD.Z;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, RD.W, RD.H);
-  ctx.imageSmoothingEnabled = true;
-  ctx.setTransform(RD.Z, 0, 0, RD.Z, Math.round(RD.W / 2 - RD.camX * RD.Z), Math.round(RD.H / 2 - RD.camY * RD.Z));
-  const hw = RD.W / 2 / RD.Z, hh = RD.H / 2 / RD.Z, vx0 = RD.camX - hw, vx1 = RD.camX + hw, vy0 = RD.camY - hh, vy1 = RD.camY + hh;
+  RD.camX = Math.round(RD.camX); RD.camY = Math.round(RD.camY);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, bw, bh);
+  ctx.imageSmoothingEnabled = false;
+  ctx.setTransform(1, 0, 0, 1, Math.floor(bw / 2) - RD.camX, Math.floor(bh / 2) - RD.camY);
+  const hw = bw / 2, hh = bh / 2, vx0 = RD.camX - hw, vx1 = RD.camX + hw, vy0 = RD.camY - hh, vy1 = RD.camY + hh;
   // tile range covered by the view
   const corners = [[vx0, vy0 - 40], [vx1, vy0 - 40], [vx0, vy1 + 120], [vx1, vy1 + 120]].map(([sx, sy]) => [unIsoX(sx, sy), unIsoY(sx, sy)]);
   const tx0 = Math.max(0, Math.floor(Math.min(...corners.map(c => c[0]))) - 1), tx1 = Math.min(A.w - 1, Math.ceil(Math.max(...corners.map(c => c[0]))) + 1);
@@ -110,11 +115,16 @@ function render(dt) {
   }
   // light radius / darkness
   drawLighting(ctx, A, t);
-  // health bars over hovered monster, labels and names in screen space
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawLabels(ctx);
-  drawOverheads(ctx);
-  if (RD.showMap) drawAutomap(ctx, false); else if (RD.miniMap) drawAutomap(ctx, true);
+  if (PAL.on) quantize(ctx, bw, bh, false);
+  // blow the frame up with hard pixels, centred so game pixel (bw/2) lands on screen centre
+  const out = RD.ctx, S = RD.S;
+  out.setTransform(1, 0, 0, 1, 0, 0); out.imageSmoothingEnabled = false;
+  out.fillStyle = '#000'; out.fillRect(0, 0, RD.W, RD.H);
+  out.drawImage(RD.buf, Math.round(RD.W / 2 - Math.floor(bw / 2) * S), Math.round(RD.H / 2 - Math.floor(bh / 2) * S), bw * S, bh * S);
+  // labels, names and the automap in screen space
+  drawLabels(out);
+  drawOverheads(out);
+  if (RD.showMap) drawAutomap(out, false); else if (RD.miniMap) drawAutomap(out, true);
 }
 function inView(x, y, x0, x1, y0, y1) { const sx = isoX(x, y), sy = isoY(x, y); return sx > x0 - 80 && sx < x1 + 80 && sy > y0 - 20 && sy < y1 + 140; }
 
@@ -200,7 +210,7 @@ function drawPortal(ctx, pe, t) {
 function drawGroundItem(ctx, gi, dt) {
   gi.t += dt;
   const it = gi.item, b = BASES[it.base], [sx, sy] = toScreen(gi.x, gi.y), ic = itemIcon(it).c;
-  const s = .44, w = ic.width * s * .5, h = ic.height * s * .5, drop = Math.max(0, .35 - gi.t) / .35;
+  const w = ic.width * .64, h = ic.height * .64, drop = Math.max(0, .35 - gi.t) / .35;
   const lift = Math.sin(drop * Math.PI) * 26;
   ctx.save(); ctx.translate(sx, sy - h * .3 - lift); ctx.rotate(b.h > 2 ? -1.05 : -.2); ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 2; ctx.drawImage(ic, -w / 2, -h / 2, w, h); ctx.restore();
   if (it.rarity === 'unique' || it.rarity === 'rare') { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(sx, sy - 6, 0, sx, sy - 6, 22); g.addColorStop(0, it.rarity === 'unique' ? 'rgba(220,180,90,.35)' : 'rgba(230,230,90,.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(sx - 22, sy - 28, 44, 44); ctx.restore(); }
@@ -350,7 +360,7 @@ function drawFx(ctx, dt) {
 
 /* ---------- Light radius ---------- */
 function drawLighting(ctx, A, t) {
-  const L = RD.lctx, lw = RD.light.width, lh = RD.light.height, sc = RD.Z / 4;
+  const L = RD.lctx, lw = RD.light.width, lh = RD.light.height, sc = 1 / 4, bw = RD.bw, bh = RD.bh;
   const dark = A.id === 'moor' && inTown() ? .32 : A.dark;
   L.globalCompositeOperation = 'source-over'; L.clearRect(0, 0, lw, lh);
   L.fillStyle = `rgba(4,3,8,${dark})`; L.fillRect(0, 0, lw, lh);
@@ -368,19 +378,19 @@ function drawLighting(ctx, A, t) {
   for (const pe of portalEnds()) if (pe.area === A.id) hole(pe.x, pe.y, 3, .8);
   for (const m of A.monsters) if (!m.dead && m.mods.includes('fireench')) hole(m.x, m.y, 2.2, .6);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(RD.light, 0, 0, RD.W, RD.H);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(RD.light, 0, 0, bw, bh); ctx.imageSmoothingEnabled = false;
   // warm glow from fires in camp and the den
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const l of A.lights) if (l.warm) {
-    const sx = (isoX(l.x, l.y) - RD.camX) * RD.Z + RD.W / 2, sy = (isoY(l.x, l.y) - 20 - RD.camY) * RD.Z + RD.H / 2, r = l.r * 26 * RD.Z;
-    if (sx < -r || sx > RD.W + r || sy < -r || sy > RD.H + r) continue;
+    const sx = isoX(l.x, l.y) - RD.camX + bw / 2, sy = isoY(l.x, l.y) - 20 - RD.camY + bh / 2, r = l.r * 26;
+    if (sx < -r || sx > bw + r || sy < -r || sy > bh + r) continue;
     const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, `rgba(255,140,50,${.13 + .03 * Math.sin(t * 9 + l.x)})`); g.addColorStop(1, 'rgba(255,100,20,0)');
     ctx.fillStyle = g; ctx.fillRect(sx - r, sy - r, r * 2, r * 2);
   }
   ctx.restore();
   // vignette
-  const vg = ctx.createRadialGradient(RD.W / 2, RD.H / 2, Math.min(RD.W, RD.H) * .35, RD.W / 2, RD.H / 2, Math.max(RD.W, RD.H) * .75);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, RD.W, RD.H);
+  const vg = ctx.createRadialGradient(bw / 2, bh / 2, Math.min(bw, bh) * .35, bw / 2, bh / 2, Math.max(bw, bh) * .75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, bw, bh);
 }
 
 /* ---------- Automap ---------- */

@@ -3,6 +3,8 @@
 A browser homage to Diablo II's first act: the Sorceress, the Rogue Encampment,
 the Blood Moor and the Den of Evil. Everything (ground, props, characters,
 spells, item art, sound) is generated in code; there are no image or audio files.
+The world is drawn at classic low resolution, snapped to a 256-colour palette
+with ordered dithering, and scaled up with hard pixels (toggle in the menu).
 
 Open `index.html` through any static web server (or GitHub Pages) and play with
 mouse and keyboard or touch.
@@ -44,6 +46,7 @@ Progress saves to the browser.
 ```
 index.html      HUD markup and styles
 js/core.js      math, noise, isometric projection, synthesized sound
+js/palette.js   256-colour palette, ordered dithering, pixel stone texture
 js/data.js      skills, monsters, item bases, affixes, uniques, XP table
 js/world.js     map generation, collision, pathfinding, ground painting, automap
 js/sprites.js   props, wall blocks, the 3D-rigged characters, item icons

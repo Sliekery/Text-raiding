@@ -8,7 +8,8 @@ const SK_ICON = {};
 function skillIcon(id) {
   if (!id) return '';
   if (SK_ICON[id]) return SK_ICON[id];
-  const S = 64, c = makeCanvas(S, S), x = c.getContext('2d'), s = SKILLS[id], tr = s.tree;
+  const S = 64, c = makeCanvas(32, 32), x = c.getContext('2d'), s = SKILLS[id], tr = s.tree;
+  x.scale(.5, .5);
   const bg = [['#3a1408', '#7a2a10'], ['#0c1a34', '#24467a'], ['#1a1434', '#3e3a7a'], ['#2a2420', '#5a4a38']][tr < 0 ? 3 : tr];
   const g = x.createRadialGradient(24, 20, 4, 32, 32, 46); g.addColorStop(0, bg[1]); g.addColorStop(1, bg[0]); x.fillStyle = g; x.fillRect(0, 0, S, S);
   const hot = ['255,190,90', '170,215,255', '210,210,255', '230,210,170'][tr < 0 ? 3 : tr];
@@ -41,13 +42,14 @@ function skillIcon(id) {
     case 'energyshield': gl(32, 32, 26, .4); x.strokeStyle = '#cfe0ff'; x.lineWidth = 3; x.beginPath(); x.arc(32, 32, 20, 0, TAU); x.stroke(); x.lineWidth = 1.5; x.beginPath(); x.arc(32, 32, 14, -1, 2); x.stroke(); break;
   }
   x.globalCompositeOperation = 'source-over'; x.strokeStyle = 'rgba(0,0,0,.7)'; x.lineWidth = 3; x.strokeRect(1.5, 1.5, S - 3, S - 3);
+  x.setTransform(1, 0, 0, 1, 0, 0); quantize(x, 32, 32, true);
   return SK_ICON[id] = c.toDataURL();
 }
 
 /* ---------- Globes ---------- */
 function drawGlobe(cv, frac, kind, t) {
-  const ctx = cv.getContext('2d'), S = cv.width, r = S / 2 - 3, cx = S / 2, cy = S / 2;
-  ctx.clearRect(0, 0, S, S);
+  const ctx = cv.getContext('2d', { willReadFrequently: true }), px = cv.width, S = 120, r = S / 2 - 3, cx = S / 2, cy = S / 2;
+  ctx.setTransform(px / S, 0, 0, px / S, 0, 0); ctx.clearRect(0, 0, S, S);
   ctx.fillStyle = '#060404'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill();
   const lvl = cy + r - frac * r * 2;
   ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, TAU); ctx.clip();
@@ -55,12 +57,13 @@ function drawGlobe(cv, frac, kind, t) {
   const g = ctx.createRadialGradient(cx - r * .35, cy - r * .3, r * .1, cx, cy, r * 1.05);
   g.addColorStop(0, kind === 'life' ? '#ff6a4a' : '#6a8aff'); g.addColorStop(.5, base); g.addColorStop(1, kind === 'life' ? '#2a0404' : '#060a2a');
   ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, S);
-  for (let x = 0; x <= S; x += 3) ctx.lineTo(x, lvl + Math.sin(x * .12 + t * 2.4) * 1.6);
+  for (let x = 0; x <= S; x += 5) ctx.lineTo(x, lvl + Math.sin(x * .12 + t * 2.4) * 2.5);
   ctx.lineTo(S, S); ctx.closePath(); ctx.fill();
   ctx.restore();
   const hl = ctx.createRadialGradient(cx - r * .35, cy - r * .45, 1, cx - r * .3, cy - r * .4, r * .7);
   hl.addColorStop(0, 'rgba(255,255,255,.35)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill();
-  ctx.lineWidth = 3; ctx.strokeStyle = '#3a3226'; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#8a7a5a'; ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, TAU); ctx.stroke();
+  ctx.lineWidth = 5; ctx.strokeStyle = '#3a3226'; ctx.stroke(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#8a7a5a'; ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, TAU); ctx.stroke();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); quantize(ctx, px, px, true);
 }
 
 /* ---------- HUD ---------- */
@@ -425,6 +428,7 @@ function renderMenu(el) {
     <label><span>Sound</span><input type="checkbox" id="optSound" ${AU.on ? 'checked' : ''}></label>
     <label><span>Always show item names</span><input type="checkbox" id="optLabels" ${RD.showLabels ? 'checked' : ''}></label>
     <label><span>Minimap</span><input type="checkbox" id="optMini" ${RD.miniMap ? 'checked' : ''}></label>
+    <label><span>Classic 256-colour palette</span><input type="checkbox" id="optPal" ${PAL.on ? 'checked' : ''}></label>
   </div>
   <h3>New game</h3><p class="sub">Starts a fresh world: the moor is rebuilt and monsters return. Your hero, items and stash carry over.</p>
   <div class="acts diffs">${diffs}</div>
@@ -442,6 +446,7 @@ function renderMenu(el) {
   $('#optSound').onchange = e => { setSound(e.target.checked); saveSettings(); };
   $('#optLabels').onchange = e => { RD.showLabels = e.target.checked; saveSettings(); };
   $('#optMini').onchange = e => { RD.miniMap = e.target.checked; saveSettings(); };
+  $('#optPal').onchange = e => { PAL.on = e.target.checked; saveSettings(); };
   el.querySelectorAll('[data-diff]').forEach(b => b.onclick = () => { const d = +b.dataset.diff; if (d > P.diffMax) return; newGame(d); closePanels(); });
   $('#mTitle').onclick = () => { saveGame(); closePanels(); showTitle(); };
 }

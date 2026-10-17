@@ -233,8 +233,8 @@ function genMoor(seed) {
       void o;
     }
   };
-  scatter('deadtree', 150, { solid: true, vars: 6 });
-  scatter('tree', 34, { solid: true, vars: 4, cluster: 3, ground: [G_GRASS, G_DGRASS] });
+  scatter('deadtree', 170, { solid: true, vars: 6 });
+  scatter('tree', 16, { solid: true, vars: 4, cluster: 2, ground: [G_GRASS, G_DGRASS] });
   scatter('rock', 110, { solid: true, vars: 4 });
   scatter('stump', 40, { solid: true, vars: 2 });
   scatter('bush', 260, { vars: 4 });

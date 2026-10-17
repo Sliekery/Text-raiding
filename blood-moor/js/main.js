@@ -6,8 +6,8 @@ const PERSIST = ['name', 'level', 'xp', 'st', 'statPts', 'skillPts', 'skills', '
 function serialize() { const o = {}; for (const k of PERSIST) o[k] = P[k]; return { v: 1, P: o, diff: G.diff }; }
 function saveGame() { if (!G.running || G.backdrop) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch (e) { /* storage unavailable */ } }
 function readSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
-function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify({ sound: AU.on, labels: RD.showLabels, mini: RD.miniMap })); } catch (e) { /* ignore */ } }
-function loadSettings() { try { const s = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (s) { AU.on = s.sound !== false; RD.showLabels = s.labels !== false; RD.miniMap = s.mini !== false; } } catch (e) { /* ignore */ } }
+function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify({ sound: AU.on, labels: RD.showLabels, mini: RD.miniMap, pal: PAL.on })); } catch (e) { /* ignore */ } }
+function loadSettings() { try { const s = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (s) { AU.on = s.sound !== false; RD.showLabels = s.labels !== false; RD.miniMap = s.mini !== false; PAL.on = s.pal !== false; } } catch (e) { /* ignore */ } }
 
 function applySave(data) {
   newCharacter(data.P.name);
@@ -68,7 +68,8 @@ function frame(now) {
 }
 
 function boot(hot) {
-  loadSettings(); renderInit(); bindInput();
+  buildPalette(); loadSettings(); renderInit(); bindInput();
+  const stone = stoneTexture(); document.documentElement.style.setProperty('--stoneTex', `url(${stone})`);
   // the title screen shows the camp at night behind it
   G.backdrop = true; newCharacter('Sorceress'); P.quests = {}; newGame(0);
   showTitle();

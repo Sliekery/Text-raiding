@@ -21,10 +21,12 @@ html,body{height:100%;margin:0;background:var(--void);color:var(--bone);overflow
 body{font-family:var(--text);font-size:15px;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;image-rendering:pixelated}
+.globe canvas,.sk img,.bslot img,.gi img,.eq img,.skc img,#buffs img,.panel,#strip,.stoneBtn{image-rendering:pixelated;image-rendering:crisp-edges}
+.globe canvas,.sk img,.bslot img,.gi img,.eq img,.skc img,#buffs img{image-rendering:pixelated}
 #hud{position:fixed;inset:0;pointer-events:none;z-index:2}
 #hud button{pointer-events:auto}
-.stoneBtn{background:linear-gradient(180deg,#2a231b,#120e0b);border:1px solid var(--line);box-shadow:inset 0 0 0 1px #000,inset 0 1px 0 rgba(255,230,180,.08)}
+.stoneBtn{background:linear-gradient(180deg,rgba(42,35,27,.4),rgba(18,14,11,.7)),var(--stoneTex) 0 0/192px 192px,#120e0b;border:1px solid var(--line);box-shadow:inset 0 0 0 1px #000,inset 0 1px 0 rgba(255,230,180,.08)}
 
 /* globes */
 .globe{position:absolute;width:118px;height:118px;bottom:calc(8px + var(--sb));pointer-events:auto}
@@ -37,7 +39,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 #ptsDot{position:absolute;left:calc(140px + var(--sl));bottom:calc(36px + var(--sb));width:10px;height:10px;border-radius:50%;background:#ffd34a;box-shadow:0 0 8px #ffb000}
 
 /* bottom strip: belt + skills */
-#strip{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(8px + var(--sb));display:flex;align-items:flex-end;gap:14px;padding:12px 12px 8px;background:linear-gradient(180deg,rgba(26,21,16,.85),rgba(8,6,5,.92));border:1px solid var(--line);border-bottom:0;box-shadow:inset 0 0 0 1px #000}
+#strip{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(8px + var(--sb));display:flex;align-items:flex-end;gap:14px;padding:12px 12px 8px;background:linear-gradient(180deg,rgba(26,21,16,.35),rgba(8,6,5,.6)),var(--stoneTex) 0 0/192px 192px;border:1px solid var(--line);border-bottom:0;box-shadow:inset 0 0 0 1px #000}
 #xpbar{position:absolute;left:8px;right:8px;top:4px;height:4px;background:#0a0806;border:1px solid #2a2218}
 #xpbar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#8a6a20,#e8c860);width:0}
 #belt{display:flex;gap:4px}
@@ -112,7 +114,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 
 /* panels */
 .panel{position:fixed;z-index:6;top:calc(8px + var(--st));bottom:calc(8px + var(--sb));width:min(440px,calc(50vw - 16px));overflow-y:auto;overflow-x:hidden;touch-action:pan-y;padding:14px 14px 18px;box-sizing:border-box;
-  background:radial-gradient(ellipse at 30% 0%,rgba(80,62,40,.25),transparent 60%),linear-gradient(180deg,#1b1611,#0c0a08);border:1px solid var(--line2);box-shadow:inset 0 0 0 3px #000,inset 0 0 0 4px #3a2e20,0 10px 40px #000;display:flex;flex-direction:column;align-items:center;gap:10px}
+  background:linear-gradient(180deg,rgba(12,9,7,.55),rgba(6,5,4,.8)),var(--stoneTex) 0 0/192px 192px,#120e0b;border:1px solid var(--line2);box-shadow:inset 0 0 0 3px #000,inset 0 0 0 4px #3a2e20,0 10px 40px #000;display:flex;flex-direction:column;align-items:center;gap:10px}
 #panelL{left:calc(8px + var(--sl))}
 #panelR{right:calc(8px + var(--sr))}
 @media (max-width:719px){
@@ -239,8 +241,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 
 <div id="hud" hidden>
   <div id="target" hidden><div class="tbar"><i></i><div class="tname"></div></div><div class="tmods"></div></div>
-  <div id="globeL" class="globe" role="button" aria-label="Life, open character sheet"><canvas width="120" height="120"></canvas><span></span></div>
-  <div id="globeR" class="globe" aria-label="Mana"><canvas width="120" height="120"></canvas><span></span></div>
+  <div id="globeL" class="globe" role="button" aria-label="Life, open character sheet"><canvas width="46" height="46"></canvas><span></span></div>
+  <div id="globeR" class="globe" aria-label="Mana"><canvas width="46" height="46"></canvas><span></span></div>
   <div id="lvlBadge" aria-label="Character level">1</div><div id="ptsDot" hidden></div>
   <div id="buffs"></div>
   <div id="msgs" aria-live="polite"></div>
@@ -285,6 +287,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 </div>
 
 <script src="js/core.js"></script>
+<script src="js/palette.js"></script>
 <script src="js/data.js"></script>
 <script src="js/world.js"></script>
 <script src="js/sprites.js"></script>

@@ -563,12 +563,14 @@ function drawRat(ctx, e, sx, sy, ang, t, tint) {
 }
 
 /* ---------- Item icons (inventory art) ---------- */
-const ICON_S = 40; // pixels per inventory cell, drawn at 2x for sharpness
+const ICON_S = 40; // art units per inventory cell (drawn at 2x, then shrunk to ICON_PX real pixels)
+const ICON_PX = 28;
 const ICON_CACHE = {};
 function itemIcon(it) {
   const b = BASES[it.base], key = it.base + (it.rarity === 'unique' ? 'u' : '');
   if (ICON_CACHE[key]) return ICON_CACHE[key];
-  const S = ICON_S * 2, w = b.w * S, h = b.h * S, c = makeCanvas(w, h), ctx = c.getContext('2d'), tn = b.tint, cx = w / 2, cy = h / 2;
+  const S = ICON_S * 2, w = b.w * S, h = b.h * S, c = makeCanvas(b.w * ICON_PX, b.h * ICON_PX), ctx = c.getContext('2d'), tn = b.tint, cx = w / 2, cy = h / 2;
+  ctx.scale(ICON_PX / S, ICON_PX / S);
   const R = mulberry(key.length * 97 + w + h);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const metal = (x0, y0, x1, y1) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, col(tn, 1.5)); g.addColorStop(.45, col(tn, 1)); g.addColorStop(1, col(tn, .45)); return g; };
@@ -696,6 +698,7 @@ function itemIcon(it) {
     }
   }
   if (it.rarity === 'unique') { ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(200,160,60,.18)'; ctx.fillRect(0, 0, w, h); }
+  quantize(ctx, c.width, c.height, true);
   const url = c.toDataURL(); ICON_CACHE[key] = { c, url };
   return ICON_CACHE[key];
 }
