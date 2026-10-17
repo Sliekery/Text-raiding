@@ -63,12 +63,13 @@ function frame(now) {
   } else if (G.backdrop) {
     G.time += dt; P.ang += dt * .2; P.anim = 'idle';
   }
+  mdBake();
   render(dt);
   if (G.running) { updateHover(); updateHUD(dt); }
 }
 
 function boot(hot) {
-  buildPalette(); loadSettings(); renderInit(); bindInput();
+  buildPalette(); loadSettings(); renderInit(); mdInit(); bindInput();
   const stone = stoneTexture(); document.documentElement.style.setProperty('--stoneTex', `url(${stone})`);
   // the title screen shows the camp at night behind it
   G.backdrop = true; newCharacter('Sorceress'); P.quests = {}; newGame(0);

@@ -49,7 +49,8 @@ js/core.js      math, noise, isometric projection, synthesized sound
 js/palette.js   256-colour palette, ordered dithering, pixel stone texture
 js/data.js      skills, monsters, item bases, affixes, uniques, XP table
 js/world.js     map generation, collision, pathfinding, ground painting, automap
-js/sprites.js   props, wall blocks, the 3D-rigged characters, item icons
+js/sprites.js   props, wall blocks, the character skeleton, item icons
+js/models.js    3D character models ray-marched on the GPU into 8-direction sprites
 js/items.js     item generation, inventory grids, belt, tooltips
 js/game.js      player, monster AI, skills, missiles, damage, loot, quests
 js/render.js    depth-sorted drawing, spell effects, light radius

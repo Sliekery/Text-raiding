@@ -161,8 +161,8 @@ function drawActor(ctx, e, t) {
   if (e === P) { e.castCol = P.castCol; equipLook(); if (P.buffs.frozenarmor) drawAura(ctx, sx, sy, '160,200,255', t); if (P.buffs.energyshield) drawAura(ctx, sx, sy, '90,140,255', t, 1); }
   const tint = actorTint(e);
   let top;
-  if (e.type === 'quillrat') top = drawRat(ctx, e, sx, sy, e.ang, t, tint);
-  else top = drawHumanoid(ctx, e, sx, sy, e.ang, t, tint);
+  if (e === P) mdGearChanged();
+  top = drawModel(ctx, e, sx, sy, t, tint) || (e.type === 'quillrat' ? drawRat(ctx, e, sx, sy, e.ang, t, tint) : drawHumanoid(ctx, e, sx, sy, e.ang, t, tint));
   if (e.d && e.mods && e.mods.includes('fireench') && !e.dead) drawFlame(ctx, sx, sy - 10, 12, t, e.id);
   if (e.d && e.rank === 'boss' && !e.dead) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(sx, sy - 30, 0, sx, sy - 30, 40); g.addColorStop(0, 'rgba(120,255,90,.18)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(sx - 40, sy - 70, 80, 80); ctx.restore(); }
   ctx.globalAlpha = 1;
@@ -188,7 +188,8 @@ function drawNpc(ctx, n, t) {
   const dP = dist(n.x, n.y, P.x, P.y); if (dP < 5) n.ang = Math.atan2(P.y - n.y, P.x - n.x);
   const [sx, sy] = toScreen(n.x, n.y);
   ctx.fillStyle = 'rgba(0,0,0,.38)'; ctx.beginPath(); ctx.ellipse(sx, sy, 15, 7, 0, 0, TAU); ctx.fill();
-  drawHumanoid(ctx, n, sx, sy, n.ang, t, RD.hoverN === n ? [255, 255, 255, .18] : null);
+  const nt = RD.hoverN === n ? [255, 255, 255, .18] : null;
+  drawModel(ctx, n, sx, sy, t, nt) || drawHumanoid(ctx, n, sx, sy, n.ang, t, nt);
   RD.hoverables.push({ k: 'npc', e: n, sx, sy: sy - 28, r: 20, name: d.name });
   if (n.id === 'akara' && P.quest.den === 2) { ctx.fillStyle = '#e8c860'; ctx.font = 'bold 18px serif'; ctx.textAlign = 'center'; ctx.fillText('!', sx, sy - 74 + Math.sin(t * 4) * 2); }
 }

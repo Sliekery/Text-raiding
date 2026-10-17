@@ -409,8 +409,8 @@ function poseFor(e, t) {
   if (e.dead) { p.fall = Math.min(1, e.deadT * 2.2); p.armL = p.armR = -.25; p.elbL = p.elbR = .1; p.spreadL = p.spreadR = .9; p.legL = .12; p.legR = -.12; p.kneeL = p.kneeR = 0; p.lean = 0; return p; }
   const st = e.anim || 'idle';
   if (st === 'walk' || st === 'run') {
-    const ph = e.walkPh, s = Math.sin(ph), amp = st === 'run' ? .75 : .55;
-    p.legL = s * amp; p.legR = -s * amp; p.kneeL = .15 + Math.max(0, -Math.cos(ph)) * .9; p.kneeR = .15 + Math.max(0, Math.cos(ph)) * .9;
+    const ph = e.walkPh, s = Math.sin(ph), amp = st === 'run' ? .6 : .48;
+    p.legL = s * amp; p.legR = -s * amp; p.kneeL = .12 + Math.max(0, -Math.cos(ph)) * .65; p.kneeR = .12 + Math.max(0, Math.cos(ph)) * .65;
     p.armL = -s * .5; p.armR = s * .5; p.bob = Math.abs(Math.cos(ph)) * 2.2; p.lean += st === 'run' ? .18 : .06;
   } else {
     p.bob = Math.sin(t * 2.2 + (e.seed || 0)) * .6;
